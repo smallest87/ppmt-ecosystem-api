@@ -36,9 +36,12 @@
                 </template>
 
                 <template x-if="hasToken">
-                    <div class="flex items-center gap-2">
-                        <a href="/dashboard" class="px-3.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 transition">
+                    <div class="flex items-center gap-2 sm:gap-3">
+                        <a href="/dashboard" class="px-3 py-1.5 rounded-lg hover:bg-emerald-800 transition">
                             Portal Warga
+                        </a>
+                        <a href="/komunitas" class="px-3 py-1.5 rounded-lg hover:bg-emerald-800 transition">
+                            Direktori &amp; UMKM
                         </a>
                         <button @click="localStorage.removeItem('ppmt_token'); window.location.href='/'"
                                 class="px-3 py-1.5 rounded-lg bg-rose-600/90 hover:bg-rose-600 text-xs transition">

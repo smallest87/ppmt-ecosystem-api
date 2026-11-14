@@ -34,6 +34,7 @@ Route::prefix('v1')->group(function () {
 
         // 3. Endpoint Eksklusif Warga PPMT Terverifikasi & Aktif
         Route::middleware('warga.ppmt')->group(function () {
+            Route::get('/verifications/pending', [VerificationController::class, 'pending']);
             Route::post('/verifications/approve', [VerificationController::class, 'approve']);
             Route::post('/units/{unit_code}/invites', [UnitInviteController::class, 'store']);
             Route::patch('/profile', [ProfileController::class, 'updateProgressiveProfile']);
