@@ -40,6 +40,8 @@ Route::prefix('v1')->group(function () {
                         'show_phone' => false,
                         'show_ownership' => false,
                     ],
+                    'has_nik' => ! empty($user->profile?->nik_encrypted),
+                    'has_kk' => ! empty($user->profile?->kk_encrypted),
                     'has_identity_docs' => ! empty($user->profile?->nik_encrypted) && ! empty($user->profile?->kk_encrypted),
                     'memberships' => $user->unitMemberships,
                 ],

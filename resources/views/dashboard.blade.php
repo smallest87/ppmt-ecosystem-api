@@ -122,20 +122,51 @@
                     </div>
 
                     <!-- Identitas Terenkripsi AES-256 -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">
-                                NIK (16 Digit • Enkripsi AES-256)
-                            </label>
-                            <input type="text" x-model="profileForm.nik" maxlength="16" placeholder="Isi untuk update NIK terenkripsi"
-                                   class="w-full rounded-xl border-slate-300 text-xs font-mono">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-100 items-start">
+                        <!-- Input NIK -->
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between gap-2 min-h-[24px]">
+                                <label class="text-xs font-semibold text-slate-700">
+                                    NIK (16 Digit • AES-256)
+                                </label>
+                                <span x-show="user?.has_nik"
+                                    class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                    &#10003; Data Sudah Ada
+                                </span>
+                                <span x-show="!user?.has_nik"
+                                    class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                                    Belum Diisi
+                                </span>
+                            </div>
+                            <input type="text" x-model="profileForm.nik" maxlength="16"
+                                :placeholder="user?.has_nik ? '•••••••••••• (Ketik untuk memperbarui)' : 'Masukkan 16 digit NIK Anda'"
+                                class="w-full rounded-xl border-slate-300 text-xs font-mono">
+                            <p x-show="user?.has_nik" class="text-[11px] text-slate-500">
+                                NIK sudah tersimpan terenkripsi. Biarkan kosong jika tidak ingin mengubah.
+                            </p>
                         </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">
-                                Nomor KK (16 Digit • Enkripsi AES-256)
-                            </label>
-                            <input type="text" x-model="profileForm.kk" maxlength="16" placeholder="Isi untuk update KK terenkripsi"
-                                   class="w-full rounded-xl border-slate-300 text-xs font-mono">
+
+                        <!-- Input Nomor KK -->
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between gap-2 min-h-[24px]">
+                                <label class="text-xs font-semibold text-slate-700">
+                                    Nomor KK (16 Digit • AES-256)
+                                </label>
+                                <span x-show="user?.has_kk"
+                                    class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                    &#10003; Data Sudah Ada
+                                </span>
+                                <span x-show="!user?.has_kk"
+                                    class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                                    Belum Diisi
+                                </span>
+                            </div>
+                            <input type="text" x-model="profileForm.kk" maxlength="16"
+                                :placeholder="user?.has_kk ? '•••••••••••• (Ketik untuk memperbarui)' : 'Masukkan 16 digit Nomor KK'"
+                                class="w-full rounded-xl border-slate-300 text-xs font-mono">
+                            <p x-show="user?.has_kk" class="text-[11px] text-slate-500">
+                                Nomor KK sudah tersimpan terenkripsi. Biarkan kosong jika tidak ingin mengubah.
+                            </p>
                         </div>
                     </div>
 

@@ -1,26 +1,31 @@
 @extends('layouts.app')
 
-@section('title', 'Direktori Warga & Pasar Tetangga — PPMT Digital')
+@section('title', 'Komunitas, UMKM & Peta Kavling — PPMT Digital')
 
 @section('content')
 <div x-data="ppmtCommunity()" x-init="init()" class="max-w-6xl mx-auto px-4 py-8 space-y-6">
 
-    <!-- Tab Switcher Utama -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+    <!-- Tab Switcher Utama (3 Tab Internal Terproteksi) -->
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
         <div>
-            <h1 class="text-xl font-extrabold text-slate-900">Komunitas &amp; Ekonomi Warga PPMT</h1>
-            <p class="text-xs text-slate-500">Eksklusif bagi warga terverifikasi • Perlindungan privasi &amp; transaksi langsung tanpa biaya admin.</p>
+            <h1 class="text-xl font-extrabold text-slate-900">Komunitas &amp; Peta Lingkungan PPMT</h1>
+            <p class="text-xs text-slate-500">Eksklusif bagi warga terverifikasi &bull; Perlindungan privasi hunian &amp; ekonomi tetangga.</p>
         </div>
-        <div class="grid grid-cols-2 bg-slate-100 p-1 rounded-xl text-xs font-bold shrink-0">
+        <div class="grid grid-cols-3 bg-slate-100 p-1 rounded-xl text-xs font-bold shrink-0">
             <button type="button" @click="tab = 'umkm'"
                     :class="tab === 'umkm' ? 'bg-emerald-700 text-white shadow' : 'text-slate-600 hover:text-slate-900'"
-                    class="px-4 py-2 rounded-lg transition">
-                Pasar Tetangga (UMKM)
+                    class="px-3.5 py-2 rounded-lg transition cursor-pointer">
+                Pasar Tetangga
             </button>
             <button type="button" @click="tab = 'directory'"
                     :class="tab === 'directory' ? 'bg-emerald-700 text-white shadow' : 'text-slate-600 hover:text-slate-900'"
-                    class="px-4 py-2 rounded-lg transition">
+                    class="px-3.5 py-2 rounded-lg transition cursor-pointer">
                 Direktori Warga
+            </button>
+            <button type="button" @click="tab = 'siteplan'"
+                    :class="tab === 'siteplan' ? 'bg-emerald-700 text-white shadow' : 'text-slate-600 hover:text-slate-900'"
+                    class="px-3.5 py-2 rounded-lg transition cursor-pointer">
+                Peta 91 Kavling
             </button>
         </div>
     </div>
@@ -81,11 +86,10 @@
 
                             <p class="text-xs text-slate-600 leading-relaxed" x-text="store.description || 'Lapak usaha warga internal PPMT.'"></p>
                             <div class="text-[11px] text-slate-500">
-                                Kavling <strong class="text-slate-700" x-text="store.unit?.code"></strong> • <span x-text="store.owner?.name"></span>
+                                Kavling <strong class="text-slate-700" x-text="store.unit?.code"></strong> &bull; <span x-text="store.owner?.name"></span>
                             </div>
                         </div>
 
-                        <!-- Kontrol Pemilik Lapak atau Tombol Pesan WA -->
                         <div class="pt-3 border-t border-slate-100">
                             <template x-if="store.owner_user_id === me?.id">
                                 <div class="flex items-center justify-between gap-2">
@@ -121,7 +125,7 @@
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Kavling Lokasi Usaha *</label>
                     <select x-model="storeForm.unit_code" required class="w-full rounded-xl border-slate-300 text-xs">
-                        <template x-for="m in me?.memberships" :key="m.id">
+                        <template x-for="m in (me?.memberships || [])" :key="m.id">
                             <option :value="m.unit.code" x-text="'Kavling ' + m.unit.code"></option>
                         </template>
                     </select>
@@ -197,6 +201,48 @@
         </div>
     </div>
 
+    <!-- BAGIAN 3: PETA 91 KAVLING INTERNAL (DIPINDAHKAN DARI HALAMAN PUBLIK DEMI PRIVASI) -->
+    <div x-show="tab === 'siteplan'" class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+            <div>
+                <h2 class="text-lg font-bold text-slate-900">Peta Kavling Internal PPMT (<span x-text="units.length"></span> Unit)</h2>
+                <p class="text-xs text-slate-500">Pemetaan blok, zona koordinasi, dan status keterisian hunian (khusus internal warga).</p>
+            </div>
+            <div class="flex flex-wrap gap-3 text-xs">
+                <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-slate-200 border border-slate-300"></span> Belum Klaim</span>
+                <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-amber-200 border border-amber-400"></span> Menunggu</span>
+                <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-emerald-200 border border-emerald-400"></span> Terisi</span>
+            </div>
+        </div>
+
+        <div class="space-y-6">
+            <template x-for="(groupUnits, blockName) in groupedUnits" :key="blockName">
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600"
+                            x-text="formatBlockTitle(blockName)"></h3>
+                        <span class="text-[11px] text-slate-400" x-text="groupUnits.length + ' unit'"></span>
+                    </div>
+
+                    <div class="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2">
+                        <template x-for="unit in groupUnits" :key="unit.id">
+                            <div :class="{
+                                    'bg-teal-50 text-teal-800 border-teal-300': unit.unit_type === 'fasum',
+                                    'bg-emerald-50 text-emerald-900 border-emerald-300': ['occupied', 'rented'].includes(unit.occupancy_status) && unit.unit_type !== 'fasum',
+                                    'bg-amber-50 text-amber-900 border-amber-300': unit.occupancy_status === 'pending',
+                                    'bg-slate-100 text-slate-700 border-slate-200': unit.occupancy_status === 'unclaimed' && unit.unit_type !== 'fasum'
+                                 }"
+                                 class="px-2 py-2 rounded-lg border text-xs text-center flex flex-col items-center justify-center">
+                                <span class="font-bold" x-text="unit.code"></span>
+                                <span class="text-[9px] opacity-75" x-text="unit.zone.replace('ZONA-', 'Z')"></span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
 </div>
 
 <script>
@@ -207,6 +253,7 @@ function ppmtCommunity() {
         me: null,
         stores: [],
         residents: [],
+        units: [],
         filterCategory: '',
         filterStatus: '',
         toastMessage: '',
@@ -240,7 +287,7 @@ function ppmtCommunity() {
                 this.storeForm.unit_code = this.me.memberships[0].unit.code;
             }
 
-            await Promise.all([this.loadStores(), this.loadDirectory()]);
+            await Promise.all([this.loadStores(), this.loadDirectory(), this.loadUnits()]);
         },
 
         headers() {
@@ -269,6 +316,34 @@ function ppmtCommunity() {
                 const json = await res.json();
                 this.residents = json.data || [];
             }
+        },
+
+        async loadUnits() {
+            const res = await fetch('/api/v1/public/units');
+            if (res.ok) {
+                const json = await res.json();
+                this.units = json.data || [];
+            }
+        },
+
+        get groupedUnits() {
+            return this.units.reduce((groups, unit) => {
+                if (!groups[unit.block]) groups[unit.block] = [];
+                groups[unit.block].push(unit);
+                return groups;
+            }, {});
+        },
+
+        formatBlockTitle(block) {
+            const titles = {
+                'R': 'Ruko Depan (R1 – R2)',
+                'A': 'Blok A (A-1 s/d A-25 • Tanpa No. 13)',
+                'B': 'Blok B (B-1 s/d B-24 • Tanpa No. 13)',
+                'C': 'Blok C (C-1 s/d C-22 • Tanpa No. 13)',
+                'D': 'Blok D (D-1 s/d D-17 • Tanpa No. 13)',
+                'FASUM': 'Fasilitas Umum'
+            };
+            return titles[block] || 'Blok ' + block;
         },
 
         async createStore() {

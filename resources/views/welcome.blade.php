@@ -1,216 +1,346 @@
 @extends('layouts.app')
 
 @section('content')
-<div x-data="ppmtGateway()" x-init="init()" class="max-w-6xl mx-auto px-4 py-8 space-y-10">
+<div x-data="ppmtPublicHome()" x-init="init()"
+     @open-warga-modal.window="openModal($event.detail || 'choose')">
 
-    <!-- Hero Banner -->
-    <section class="bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 text-white rounded-2xl p-6 sm:p-10 shadow-lg">
-        <div class="max-w-2xl space-y-4">
-            <span class="inline-block px-3 py-1 rounded-full bg-emerald-700/80 text-emerald-100 text-xs font-semibold tracking-wider uppercase">
-                Portal Resmi Lingkungan &bull; 91 Kavling Terintegrasi
-            </span>
-            <h1 class="text-2xl sm:text-4xl font-extrabold leading-tight">
-                Ekosistem Digital Warga Pesona Mandiri Turen
-            </h1>
-            <p class="text-emerald-100 text-sm sm:text-base leading-relaxed">
-                Satu pintu untuk pendataan hunian berbasis verifikasi sosial tetangga, direktori warga ramah privasi, serta Pasar Tetangga antar-warga tanpa potongan biaya.
-            </p>
-            <div class="pt-2 flex flex-wrap gap-3 text-xs font-medium">
-                <span class="px-3 py-1.5 rounded-lg bg-white/10 backdrop-blur">✓ Verifikasi Sosial Web-of-Trust</span>
-                <span class="px-3 py-1.5 rounded-lg bg-white/10 backdrop-blur">✓ Enkripsi Identitas AES-256</span>
-                <span class="px-3 py-1.5 rounded-lg bg-white/10 backdrop-blur">✓ Pemisahan Pemilik & Penghuni</span>
+    <!-- HERO SECTION PUBLIK -->
+    <section class="bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-900 text-white">
+        <div class="max-w-6xl mx-auto px-4 py-14 sm:py-20 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+            <div class="lg:col-span-7 space-y-5">
+                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-800/80 border border-emerald-700 text-emerald-100 text-xs font-semibold tracking-wide">
+                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                    Paguyuban Resmi Lingkungan &bull; Turen, Malang
+                </span>
+                <h1 class="text-3xl sm:text-5xl font-extrabold leading-tight tracking-tight">
+                    Guyub Rukun, Aman, dan Mandiri Bersama Warga PPMT
+                </h1>
+                <p class="text-emerald-100/90 text-sm sm:text-base leading-relaxed max-w-xl">
+                    Selamat datang di portal informasi resmi <strong>Perumahan Pesona Mandiri Turen (PPMT)</strong>. Wadah komunikasi paguyuban, informasi kegiatan sosial warga, dan penguatan ekonomi lokal antar-tetangga.
+                </p>
+
+                <div class="pt-2 flex flex-wrap items-center gap-3">
+                    <button type="button" @click="openModal('choose')"
+                            class="px-6 py-3.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-sm shadow-lg transition cursor-pointer">
+                        Saya Warga Perumahan &rarr;
+                    </button>
+                    <a href="#kegiatan-warga"
+                       class="px-5 py-3.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-sm backdrop-blur transition">
+                        Lihat Kegiatan Warga
+                    </a>
+                </div>
+            </div>
+
+            <!-- Kartu Ringkasan Makro (Non-Sensitif) -->
+            <div class="lg:col-span-5 grid grid-cols-2 gap-4">
+                <div class="bg-white/10 backdrop-blur border border-white/15 rounded-2xl p-5 space-y-1">
+                    <div class="text-3xl font-extrabold text-amber-400">91</div>
+                    <div class="text-sm font-bold text-white">Unit Kavling</div>
+                    <div class="text-xs text-emerald-200">Terbagi dalam 4 zona koordinasi lingkungan</div>
+                </div>
+                <div class="bg-white/10 backdrop-blur border border-white/15 rounded-2xl p-5 space-y-1">
+                    <div class="text-3xl font-extrabold text-emerald-300">24 Jam</div>
+                    <div class="text-sm font-bold text-white">Keamanan Terpadu</div>
+                    <div class="text-xs text-emerald-200">Sistem satu pintu &amp; ronda swadaya warga</div>
+                </div>
+                <div class="bg-white/10 backdrop-blur border border-white/15 rounded-2xl p-5 space-y-1">
+                    <div class="text-3xl font-extrabold text-teal-300">UMKM</div>
+                    <div class="text-sm font-bold text-white">Pasar Tetangga</div>
+                    <div class="text-xs text-emerald-200">Jual-beli kebutuhan harian langsung antar-warga</div>
+                </div>
+                <div class="bg-white/10 backdrop-blur border border-white/15 rounded-2xl p-5 space-y-1">
+                    <div class="text-3xl font-extrabold text-white">Guyub</div>
+                    <div class="text-sm font-bold text-white">Tata Kelola Mandiri</div>
+                    <div class="text-xs text-emerald-200">Musyawarah paguyuban &amp; transparansi blok</div>
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- Grid Utama: Peta Kavling (Kiri/Atas) & Form Masuk/Klaim (Kanan/Bawah) -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
-        <!-- Kolom Kiri (7 Kolom): Site Plan Interaktif 91 Kavling -->
-        <section id="peta-kavling" class="lg:col-span-7 bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200 space-y-5">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
-                <div>
-                    <h2 class="text-lg font-bold text-slate-900">Peta Kavling PPMT (<span x-text="totalUnits"></span> Unit)</h2>
-                    <p class="text-xs text-slate-500">Ketuk nomor rumah Anda untuk langsung memilih unit pada formulir pendaftaran.</p>
-                </div>
-                <div class="flex flex-wrap gap-2 text-[11px]">
-                    <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-slate-200 border border-slate-300"></span> Belum Klaim</span>
-                    <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-amber-200 border border-amber-400"></span> Menunggu</span>
-                    <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-emerald-200 border border-emerald-400"></span> Terisi</span>
-                </div>
+    <!-- CUPLIKAN KEGIATAN WARGA (MOCKUP BERITA & AGENDA PUBLIK) -->
+    <section id="kegiatan-warga" class="max-w-6xl mx-auto px-4 py-14 space-y-8">
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-slate-200 pb-4">
+            <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-700">Kabar Lingkungan</span>
+                <h2 class="text-2xl font-extrabold text-slate-900 mt-1">Cuplikan Kegiatan Warga PPMT</h2>
             </div>
+            <p class="text-xs text-slate-500">Dokumentasi kegiatan sosial yang terbuka untuk informasi masyarakat umum.</p>
+        </div>
 
-            <!-- Loading State -->
-            <div x-show="loadingUnits" class="py-12 text-center text-sm text-slate-400">
-                Memuat data 91 kavling dari server API...
-            </div>
-
-            <!-- Daftar Blok Kavling -->
-            <div x-show="!loadingUnits" class="space-y-5">
-                <template x-for="(groupUnits, blockName) in groupedUnits" :key="blockName">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Kartu Kegiatan 1 -->
+            <article class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm flex flex-col">
+                <div class="h-40 bg-gradient-to-tr from-emerald-800 to-teal-600 p-5 flex flex-col justify-between text-white">
+                    <span class="self-start px-2.5 py-1 rounded-md bg-black/25 text-[11px] font-semibold">Kerja Bakti Rutin</span>
+                    <div class="text-xs text-emerald-100">Minggu Pagi &bull; Area Fasum &amp; Drainase</div>
+                </div>
+                <div class="p-5 flex-1 flex flex-col justify-between space-y-3">
                     <div class="space-y-2">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600"
-                                x-text="formatBlockTitle(blockName)"></h3>
-                            <span class="text-[11px] text-slate-400" x-text="groupUnits.length + ' unit'"></span>
+                        <h3 class="font-bold text-base text-slate-900">Gotong Royong Pembersihan Saluran Air &amp; Penghijauan</h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Warga dari seluruh blok bahu-membahu membersihkan saluran drainase menjelang musim penghujan serta menanam tanaman peneduh di area fasilitas umum perumahan.
+                        </p>
+                    </div>
+                    <div class="pt-2 border-t border-slate-100 text-[11px] text-slate-400">
+                        Paguyuban PPMT &bull; Bidang Kebersihan &amp; Lingkungan
+                    </div>
+                </div>
+            </article>
+
+            <!-- Kartu Kegiatan 2 -->
+            <article class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm flex flex-col">
+                <div class="h-40 bg-gradient-to-tr from-amber-600 to-orange-500 p-5 flex flex-col justify-between text-white">
+                    <span class="self-start px-2.5 py-1 rounded-md bg-black/25 text-[11px] font-semibold">Musyawarah Warga</span>
+                    <div class="text-xs text-amber-100">Malam Minggu &bull; Musholla / Balai Warga</div>
+                </div>
+                <div class="p-5 flex-1 flex flex-col justify-between space-y-3">
+                    <div class="space-y-2">
+                        <h3 class="font-bold text-base text-slate-900">Rapat Koordinasi Keamanan &amp; Tata Tertib Lingkungan</h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Pertemuan pengurus paguyuban bersama koordinator zona membahas jadwal ronda akhir pekan, penertiban parkir tamu, serta aktivasi pendataan warga terverifikasi.
+                        </p>
+                    </div>
+                    <div class="pt-2 border-t border-slate-100 text-[11px] text-slate-400">
+                        Paguyuban PPMT &bull; Bidang Keamanan &amp; Ketertiban
+                    </div>
+                </div>
+            </article>
+
+            <!-- Kartu Kegiatan 3 -->
+            <article class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm flex flex-col">
+                <div class="h-40 bg-gradient-to-tr from-indigo-800 to-blue-600 p-5 flex flex-col justify-between text-white">
+                    <span class="self-start px-2.5 py-1 rounded-md bg-black/25 text-[11px] font-semibold">Sosial &amp; Keluarga</span>
+                    <div class="text-xs text-blue-100">Akhir Pekan &bull; Lingkungan PPMT</div>
+                </div>
+                <div class="p-5 flex-1 flex flex-col justify-between space-y-3">
+                    <div class="space-y-2">
+                        <h3 class="font-bold text-base text-slate-900">Senam Sehat Bersama &amp; Bazar Kuliner Ibu-Ibu PPMT</h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Mempererat silaturahmi antar-keluarga penghuni perumahan sekaligus mendukung produk kuliner rumahan dan usaha mikro warga sekitar.
+                        </p>
+                    </div>
+                    <div class="pt-2 border-t border-slate-100 text-[11px] text-slate-400">
+                        Paguyuban PPMT &bull; PKK &amp; Pemberdayaan UMKM
+                    </div>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <!-- INFORMASI FASILITAS & TATA TERTIB TAMU (AMAN UNTUK PUBLIK) -->
+    <section id="lingkungan" class="max-w-6xl mx-auto px-4 pb-8">
+        <div class="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div class="space-y-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-700">Informasi Pengunjung &amp; Tamu</span>
+                <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900">Komitmen Privasi &amp; Kenyamanan Lingkungan</h2>
+                <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                    Demi menjaga keamanan dan privasi seluruh penghuni, data detail kavling, direktori warga, dan saluran komunikasi internal hanya dapat diakses oleh pemilik maupun penghuni terverifikasi melalui Portal Warga.
+                </p>
+                <ul class="space-y-2 text-xs text-slate-700 pt-1">
+                    <li>&#10003; Tamu maupun kurir paket dimohon melapor pada pos keamanan atau menghubungi tuan rumah secara langsung.</li>
+                    <li>&#10003; Kecepatan kendaraan di dalam area blok perumahan maksimal 15 km/jam.</li>
+                    <li>&#10003; Fasilitas ibadah lingkungan terbuka bagi warga dan tamu yang berkunjung.</li>
+                </ul>
+            </div>
+
+            <div class="bg-slate-50 rounded-2xl p-6 border border-slate-200 space-y-4">
+                <h3 class="font-bold text-base text-slate-900">Apakah Anda Pemilik atau Penghuni PPMT?</h3>
+                <p class="text-xs text-slate-600 leading-relaxed">
+                    Masuk ke portal untuk mengakses peta kavling internal, direktori warga, pengaturan privasi, dan Pasar Tetangga UMKM—atau ajukan pendaftaran jika Anda warga baru yang belum terdaftar.
+                </p>
+                <button type="button" @click="openModal('choose')"
+                        class="w-full py-3 px-4 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-sm shadow transition cursor-pointer">
+                    Saya Warga Perumahan
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL POPUP: SAYA WARGA PERUMAHAN (PILIHAN MASUK / PENDAFTARAN BARU)  -->
+    <!-- ===================================================================== -->
+    <div x-show="modalOpen"
+         x-transition.opacity
+         style="display: none;"
+         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4 overflow-y-auto">
+
+        <div @click.away="modalOpen = false"
+             class="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-8">
+
+            <!-- Header Modal -->
+            <div class="bg-emerald-950 text-white px-6 py-4 flex items-center justify-between">
+                <div>
+                    <h3 class="font-bold text-base">Portal Akses Warga PPMT</h3>
+                    <p class="text-[11px] text-emerald-200">Perumahan Pesona Mandiri Turen</p>
+                </div>
+                <button type="button" @click="modalOpen = false"
+                        class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-sm cursor-pointer">
+                    ✕
+                </button>
+            </div>
+
+            <div class="p-6 space-y-5">
+
+                <!-- Notifikasi Error / Sukses -->
+                <div x-show="alertMessage"
+                     :class="alertType === 'error' ? 'bg-rose-50 text-rose-800 border-rose-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'"
+                     class="p-3.5 rounded-xl border text-xs leading-relaxed"
+                     x-text="alertMessage">
+                </div>
+
+                <!-- LANGKAH 1: PILIHAN JALUR WARGA -->
+                <div x-show="modalStep === 'choose'" class="space-y-4">
+                    <p class="text-xs sm:text-sm text-slate-600">
+                        Silakan pilih status akses Anda untuk melanjutkan ke sistem internal warga PPMT:
+                    </p>
+
+                    <button type="button" @click="switchStep('login')"
+                            class="w-full text-left p-4 rounded-xl border-2 border-emerald-600 bg-emerald-50/60 hover:bg-emerald-50 transition flex items-center justify-between gap-3 cursor-pointer">
+                        <div>
+                            <div class="font-bold text-sm text-emerald-950">Saya Sudah Punya Akun (Masuk Portal)</div>
+                            <div class="text-xs text-emerald-800 mt-0.5">Masuk menggunakan Nomor WhatsApp dan kata sandi yang sudah terdaftar.</div>
+                        </div>
+                        <span class="text-emerald-700 font-bold text-lg">&rarr;</span>
+                    </button>
+
+                    <button type="button" @click="switchStep('register')"
+                            class="w-full text-left p-4 rounded-xl border border-slate-300 hover:border-amber-500 hover:bg-amber-50/40 transition flex items-center justify-between gap-3 cursor-pointer">
+                        <div>
+                            <div class="font-bold text-sm text-slate-900">Saya Warga PPMT, Namun Belum Terdaftar</div>
+                            <div class="text-xs text-slate-600 mt-0.5">Ajukan pendaftaran kavling baru atau gunakan kode undangan dari keluarga/pemilik rumah.</div>
+                        </div>
+                        <span class="text-slate-500 font-bold text-lg">&rarr;</span>
+                    </button>
+                </div>
+
+                <!-- LANGKAH 2A: FORM MASUK (LOGIN) -->
+                <div x-show="modalStep === 'login'" class="space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <h4 class="font-bold text-sm text-slate-900">Masuk ke Akun Warga</h4>
+                        <button type="button" @click="switchStep('choose')" class="text-xs text-emerald-700 hover:underline cursor-pointer">
+                            &larr; Ganti Pilihan
+                        </button>
+                    </div>
+
+                    <form @submit.prevent="submitLogin()" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor WhatsApp Terdaftar</label>
+                            <input type="tel" x-model="loginForm.phone" required placeholder="0812xxxxxxxx"
+                                   class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
                         </div>
 
-                        <div class="grid grid-cols-5 sm:grid-cols-7 gap-2">
-                            <template x-for="unit in groupUnits" :key="unit.id">
-                                <button type="button"
-                                        @click="selectUnit(unit)"
-                                        :disabled="unit.unit_type === 'fasum'"
-                                        :class="{
-                                            'ring-2 ring-emerald-600 bg-emerald-600 text-white font-bold': claimForm.unit_code === unit.code,
-                                            'bg-teal-50 text-teal-800 border-teal-300 cursor-default': unit.unit_type === 'fasum',
-                                            'bg-emerald-50 text-emerald-900 border-emerald-300 hover:bg-emerald-100': claimForm.unit_code !== unit.code && ['occupied', 'rented'].includes(unit.occupancy_status),
-                                            'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100': claimForm.unit_code !== unit.code && unit.occupancy_status === 'pending',
-                                            'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200': claimForm.unit_code !== unit.code && unit.occupancy_status === 'unclaimed' && unit.unit_type !== 'fasum'
-                                        }"
-                                        class="px-2 py-2 rounded-lg border text-xs text-center transition flex flex-col items-center justify-center">
-                                    <span x-text="unit.code"></span>
-                                    <span class="text-[9px] opacity-75" x-text="unit.zone.replace('ZONA-', 'Z')"></span>
-                                </button>
-                            </template>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Kata Sandi</label>
+                            <input type="password" x-model="loginForm.password" required placeholder="••••••••"
+                                   class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
                         </div>
+
+                        <button type="submit" :disabled="submitting"
+                                class="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-sm shadow transition disabled:opacity-50 cursor-pointer">
+                            <span x-show="!submitting">Masuk ke Portal Warga</span>
+                            <span x-show="submitting">Memverifikasi...</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- LANGKAH 2B: FORM PENDAFTARAN WARGA BARU -->
+                <div x-show="modalStep === 'register'" class="space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <h4 class="font-bold text-sm text-slate-900">Pendaftaran Warga Baru PPMT</h4>
+                        <button type="button" @click="switchStep('choose')" class="text-xs text-emerald-700 hover:underline cursor-pointer">
+                            &larr; Ganti Pilihan
+                        </button>
                     </div>
-                </template>
+
+                    <form @submit.prevent="submitClaim()" class="space-y-3.5">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Nomor Kavling Anda *</label>
+                            <select x-model="claimForm.unit_code" required
+                                    class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                                <option value="">-- Pilih Kavling Hunian --</option>
+                                <template x-for="unit in selectableUnits" :key="unit.id">
+                                    <option :value="unit.code" x-text="'Kavling ' + unit.code + ' (' + unit.zone + ')'"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap Sesuai Identitas *</label>
+                            <input type="text" x-model="claimForm.name" required placeholder="Contoh: Budi Santoso"
+                                   class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor WhatsApp Aktif *</label>
+                            <input type="tel" x-model="claimForm.phone" required placeholder="0812xxxxxxxx"
+                                   class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Status Keterkaitan *</label>
+                                <select x-model="claimForm.entity_type" @change="updateDefaultSubRole()"
+                                        class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                                    <option value="owner">Pemilik Rumah</option>
+                                    <option value="resident">Penghuni</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Peran Spesifik *</label>
+                                <select x-model="claimForm.sub_role"
+                                        class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                                    <template x-if="claimForm.entity_type === 'owner'">
+                                        <optgroup label="Entitas Pemilik">
+                                            <option value="primary_owner">Pemilik Utama</option>
+                                            <option value="co_owner">Pemilik Bersama (Pasangan)</option>
+                                        </optgroup>
+                                    </template>
+                                    <template x-if="claimForm.entity_type === 'resident'">
+                                        <optgroup label="Entitas Penghuni">
+                                            <option value="primary_resident">Penghuni Utama</option>
+                                            <option value="family_member">Anggota Keluarga</option>
+                                            <option value="tenant">Penyewa / Kontrak</option>
+                                            <option value="caretaker">Penjaga Rumah</option>
+                                        </optgroup>
+                                    </template>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Buat Kata Sandi (Minimal 8 Karakter) *</label>
+                            <input type="password" x-model="claimForm.password" required minlength="8" placeholder="••••••••"
+                                   class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">
+                                Kode Undangan Keluarga/Pemilik <span class="text-slate-400 font-normal">(Opsional)</span>
+                            </label>
+                            <input type="text" x-model="claimForm.invite_token" placeholder="Kosongkan jika mendaftar mandiri"
+                                   class="w-full rounded-xl border-slate-300 text-xs font-mono focus:border-emerald-600 focus:ring-emerald-600">
+                        </div>
+
+                        <button type="submit" :disabled="submitting"
+                                class="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-sm shadow transition disabled:opacity-50 cursor-pointer">
+                            <span x-show="!submitting">Kirim Pengajuan Pendaftaran</span>
+                            <span x-show="submitting">Memproses Pendaftaran...</span>
+                        </button>
+                    </form>
+                </div>
+
             </div>
-        </section>
-
-        <!-- Kolom Kanan (5 Kolom): Tab Masuk & Klaim Unit -->
-        <section id="akses-warga" class="lg:col-span-5 bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200 space-y-5 sticky top-20">
-            <!-- Switcher Tab -->
-            <div class="grid grid-cols-2 bg-slate-100 p-1 rounded-xl text-sm font-semibold">
-                <button type="button"
-                        @click="activeTab = 'claim'; alertMessage = ''"
-                        :class="activeTab === 'claim' ? 'bg-white text-emerald-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
-                        class="py-2 rounded-lg transition">
-                    Klaim Unit Baru
-                </button>
-                <button type="button"
-                        @click="activeTab = 'login'; alertMessage = ''"
-                        :class="activeTab === 'login' ? 'bg-white text-emerald-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
-                        class="py-2 rounded-lg transition">
-                    Masuk Warga
-                </button>
-            </div>
-
-            <!-- Notifikasi Error / Sukses -->
-            <div x-show="alertMessage"
-                 :class="alertType === 'error' ? 'bg-rose-50 text-rose-800 border-rose-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'"
-                 class="p-3.5 rounded-xl border text-xs leading-relaxed"
-                 x-text="alertMessage">
-            </div>
-
-            <!-- FORM 1: KLAIM UNIT / PENDAFTARAN WARGA -->
-            <form x-show="activeTab === 'claim'" @submit.prevent="submitClaim()" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Kavling / Unit Hunian *</label>
-                    <select x-model="claimForm.unit_code" required
-                            class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
-                        <option value="">-- Pilih atau Ketuk Unit di Peta --</option>
-                        <template x-for="unit in selectableUnits" :key="unit.id">
-                            <option :value="unit.code" x-text="unit.code + ' (' + unit.zone + ')'"></option>
-                        </template>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap Sesuai Identitas *</label>
-                    <input type="text" x-model="claimForm.name" required placeholder="Contoh: Budi Santoso"
-                           class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor WhatsApp Aktif *</label>
-                    <input type="tel" x-model="claimForm.phone" required placeholder="0812xxxxxxxx"
-                           class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Status Keterkaitan *</label>
-                        <select x-model="claimForm.entity_type" @change="updateDefaultSubRole()"
-                                class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
-                            <option value="owner">Pemilik Rumah</option>
-                            <option value="resident">Penghuni</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Peran Spesifik *</label>
-                        <select x-model="claimForm.sub_role"
-                                class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
-                            <template x-if="claimForm.entity_type === 'owner'">
-                                <optgroup label="Entitas Pemilik">
-                                    <option value="primary_owner">Pemilik Utama</option>
-                                    <option value="co_owner">Pemilik Bersama (Pasangan)</option>
-                                </optgroup>
-                            </template>
-                            <template x-if="claimForm.entity_type === 'resident'">
-                                <optgroup label="Entitas Penghuni">
-                                    <option value="primary_resident">Penghuni Utama</option>
-                                    <option value="family_member">Anggota Keluarga</option>
-                                    <option value="tenant">Penyewa / Kontrak</option>
-                                    <option value="caretaker">Penjaga Rumah</option>
-                                </optgroup>
-                            </template>
-                        </select>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Kata Sandi (Minimal 8 Karakter) *</label>
-                    <input type="password" x-model="claimForm.password" required minlength="8" placeholder="••••••••"
-                           class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">
-                        Kode Undangan Keluarga/Pemilik <span class="text-slate-400 font-normal">(Opsional)</span>
-                    </label>
-                    <input type="text" x-model="claimForm.invite_token" placeholder="Kosongkan jika mendaftar mandiri"
-                           class="w-full rounded-xl border-slate-300 text-xs font-mono focus:border-emerald-600 focus:ring-emerald-600">
-                </div>
-
-                <button type="submit" :disabled="submitting"
-                        class="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-sm shadow transition disabled:opacity-50">
-                    <span x-show="!submitting">Ajukan Klaim & Daftar Akun</span>
-                    <span x-show="submitting">Memproses Pendaftaran...</span>
-                </button>
-            </form>
-
-            <!-- FORM 2: LOGIN WARGA -->
-            <form x-show="activeTab === 'login'" @submit.prevent="submitLogin()" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor WhatsApp Terdaftar</label>
-                    <input type="tel" x-model="loginForm.phone" required placeholder="0812xxxxxxxx"
-                           class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Kata Sandi</label>
-                    <input type="password" x-model="loginForm.password" required placeholder="••••••••"
-                           class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
-                </div>
-
-                <button type="submit" :disabled="submitting"
-                        class="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-sm shadow transition disabled:opacity-50">
-                    <span x-show="!submitting">Masuk ke Portal Warga</span>
-                    <span x-show="submitting">Memverifikasi...</span>
-                </button>
-            </form>
-        </section>
+        </div>
     </div>
 </div>
 
 <script>
-function ppmtGateway() {
+function ppmtPublicHome() {
     return {
-        units: [],
-        totalUnits: 0,
-        loadingUnits: true,
-        activeTab: 'claim',
+        modalOpen: false,
+        modalStep: 'choose', // 'choose' | 'login' | 'register'
+        selectableUnits: [],
+        unitsLoaded: false,
         submitting: false,
         alertMessage: '',
         alertType: 'success',
@@ -229,57 +359,42 @@ function ppmtGateway() {
         },
 
         async init() {
-            // Tangkap parameter URL jika warga membuka tautan undangan (?unit=C-21&invite=xxxx)
+            // Jika warga membuka link undangan (?unit=C-21&invite=xxxx), langsung buka modal pendaftaran
             const params = new URLSearchParams(window.location.search);
-            if (params.get('unit')) this.claimForm.unit_code = params.get('unit');
-            if (params.get('invite')) this.claimForm.invite_token = params.get('invite');
-
-            await this.fetchUnits();
-        },
-
-        async fetchUnits() {
-            try {
-                const res = await fetch('/api/v1/public/units');
-                const json = await res.json();
-                this.units = json.data || [];
-                this.totalUnits = json.total || 0;
-            } catch (e) {
-                this.alertType = 'error';
-                this.alertMessage = 'Gagal memuat data kavling dari server.';
-            } finally {
-                this.loadingUnits = false;
+            if (params.get('unit') || params.get('invite')) {
+                if (params.get('unit')) this.claimForm.unit_code = params.get('unit');
+                if (params.get('invite')) this.claimForm.invite_token = params.get('invite');
+                await this.openModal('register');
             }
         },
 
-        get groupedUnits() {
-            return this.units.reduce((groups, unit) => {
-                if (!groups[unit.block]) groups[unit.block] = [];
-                groups[unit.block].push(unit);
-                return groups;
-            }, {});
+        async openModal(step = 'choose') {
+            this.alertMessage = '';
+            this.modalStep = step;
+            this.modalOpen = true;
+            if (step === 'register' && !this.unitsLoaded) {
+                await this.loadUnitsForSelect();
+            }
         },
 
-        get selectableUnits() {
-            return this.units.filter(u => u.unit_type !== 'fasum');
+        async switchStep(step) {
+            this.alertMessage = '';
+            this.modalStep = step;
+            if (step === 'register' && !this.unitsLoaded) {
+                await this.loadUnitsForSelect();
+            }
         },
 
-        formatBlockTitle(block) {
-            const titles = {
-                'R': 'Ruko Depan (R1 – R2)',
-                'A': 'Blok A (A-1 s/d A-25 • Tanpa No. 13)',
-                'B': 'Blok B (B-1 s/d B-24 • Tanpa No. 13)',
-                'C': 'Blok C (C-1 s/d C-22 • Tanpa No. 13)',
-                'D': 'Blok D (D-1 s/d D-17 • Tanpa No. 13)',
-                'FASUM': 'Fasilitas Umum'
-            };
-            return titles[block] || 'Blok ' + block;
-        },
-
-        selectUnit(unit) {
-            if (unit.unit_type === 'fasum') return;
-            this.claimForm.unit_code = unit.code;
-            this.activeTab = 'claim';
-            document.getElementById('akses-warga').scrollIntoView({ behavior: 'smooth' });
+        async loadUnitsForSelect() {
+            try {
+                const res = await fetch('/api/v1/public/units');
+                const json = await res.json();
+                this.selectableUnits = (json.data || []).filter(u => u.unit_type !== 'fasum');
+                this.unitsLoaded = true;
+            } catch (e) {
+                this.alertType = 'error';
+                this.alertMessage = 'Gagal memuat daftar kavling.';
+            }
         },
 
         updateDefaultSubRole() {
@@ -306,7 +421,7 @@ function ppmtGateway() {
                 localStorage.setItem('ppmt_token', json.token);
                 this.alertType = 'success';
                 this.alertMessage = json.message;
-                setTimeout(() => window.location.href = '/dashboard', 1200);
+                setTimeout(() => window.location.href = '/dashboard', 1000);
             } catch (e) {
                 this.alertType = 'error';
                 this.alertMessage = 'Terjadi gangguan koneksi ke server.';
