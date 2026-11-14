@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\PublicUnitController;
 use App\Http\Controllers\Api\V1\VerificationController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\UnitInviteController;
+use App\Http\Controllers\Api\V1\UmkmStoreController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -37,6 +38,9 @@ Route::prefix('v1')->group(function () {
             Route::post('/units/{unit_code}/invites', [UnitInviteController::class, 'store']);
             Route::patch('/profile', [ProfileController::class, 'updateProgressiveProfile']);
             Route::get('/residents/directory', [ProfileController::class, 'directory']);
+            Route::get('/umkm/stores', [UmkmStoreController::class, 'index']);
+            Route::post('/umkm/stores', [UmkmStoreController::class, 'store']);
+            Route::patch('/umkm/stores/{store}/status', [UmkmStoreController::class, 'updateStatus']);
         });
     });
 });
