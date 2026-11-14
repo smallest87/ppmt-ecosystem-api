@@ -33,15 +33,17 @@ class PpmtSecurityAndQaTest extends TestCase
 
         $codes = collect($response->json('data'))->pluck('code');
 
-        // Pastikan angka 13 tidak ada di Blok B, C, D
+        // Pastikan angka 13 tidak ada di seluruh blok perumahan (A, B, C, D)
+        $this->assertFalse($codes->contains('A-13'));
         $this->assertFalse($codes->contains('B-13'));
         $this->assertFalse($codes->contains('C-13'));
         $this->assertFalse($codes->contains('D-13'));
 
-        // Pastikan 12A dan 12B ada di Blok B, C, D, namun tidak di Blok A
+        // Pastikan 12A dan 12B aktif pada Blok A dan B
+        $this->assertTrue($codes->contains('A-12A'));
+        $this->assertTrue($codes->contains('A-12B'));
         $this->assertTrue($codes->contains('B-12A'));
         $this->assertTrue($codes->contains('B-12B'));
-        $this->assertFalse($codes->contains('A-12A'));
     }
 
     /**

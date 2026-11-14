@@ -19,7 +19,7 @@ class PpmtUnitSeeder extends Seeder
         $this->seedBlock('R', 1, 2, 'ruko', [], fn ($i) => 'ZONA-1');
 
         // 2. Blok A (A-1 s/d A-25, tanpa 12A/12B) -> A-1..A-16 ZONA-1, A-17..A-25 ZONA-3
-        $this->seedBlock('A', 1, 25, 'rumah', [], fn ($i) => $i <= 16 ? 'ZONA-1' : 'ZONA-3');
+        $this->seedBlock('A', 1, 25, 'rumah', $antiThirteenRule, fn ($i) => $i <= 16 ? 'ZONA-1' : 'ZONA-3');
 
         // 3. Blok B (B-1 s/d B-24, pakai 12A/12B) -> B-1..B-10 ZONA-2, B-11..B-24 ZONA-3
         $this->seedBlock('B', 1, 24, 'rumah', $antiThirteenRule, fn ($i) => $i <= 10 ? 'ZONA-2' : 'ZONA-3');
