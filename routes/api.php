@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\V1\AuthClaimController;
 use App\Http\Controllers\Api\V1\PublicUnitController;
 use App\Http\Controllers\Api\V1\VerificationController;
+use App\Http\Controllers\Api\V1\ProfileController;
+use App\Http\Controllers\Api\V1\UnitInviteController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -32,6 +34,9 @@ Route::prefix('v1')->group(function () {
         // 3. Endpoint Eksklusif Warga PPMT Terverifikasi & Aktif
         Route::middleware('warga.ppmt')->group(function () {
             Route::post('/verifications/approve', [VerificationController::class, 'approve']);
+            Route::post('/units/{unit_code}/invites', [UnitInviteController::class, 'store']);
+            Route::patch('/profile', [ProfileController::class, 'updateProgressiveProfile']);
+            Route::get('/residents/directory', [ProfileController::class, 'directory']);
         });
     });
 });
