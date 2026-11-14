@@ -18,7 +18,7 @@ class GovernanceController extends Controller
     public function index(Request $request): JsonResponse
     {
         if (! $request->user()->isGlobalGovernor()) {
-            return response()->json(['message' => 'Akses ditolak. Hanya Operator Aplikasi atau Ketua Paguyuban.'], 403);
+            return response()->json(['message' => 'Akses ditolak. Hanya Admin, Operator Aplikasi, atau Ketua Paguyuban.'], 403);
         }
 
         $assignments = UserGovernanceRole::query()
@@ -45,9 +45,9 @@ class GovernanceController extends Controller
     {
         $actor = $request->user();
 
-        if (! $actor->hasGovernanceRole('operator_aplikasi') && ! $actor->hasGovernanceRole('ketua_paguyuban')) {
+        if (! $actor->isGlobalGovernor()) {
             return response()->json([
-                'message' => 'Akses ditolak. Anda tidak memiliki wewenang Operator Aplikasi untuk menyematkan jabatan.',
+                'message' => 'Akses ditolak. Anda tidak memiliki wewenang pengurus pusat untuk menyematkan jabatan.',
             ], 403);
         }
 
@@ -67,18 +67,12 @@ class GovernanceController extends Controller
             'scope_value' => ['nullable', 'string', 'max:30'],
         ]);
 
-        if (in_array($validated['role_code'], ['admin', 'operator_aplikasi'], true)
-            && ! $actor->hasGovernanceRole('admin')
-            && ! $actor->hasGovernanceRole('operator_aplikasi')) {
+        $isActorSystemAdmin = $actor->hasGovernanceRole('admin') || $actor->hasGovernanceRole('operator_aplikasi');
+
+        // Kunci pengaman: Hanya Admin / Operator Aplikasi aktif yang boleh mengangkat Admin / Operator Aplikasi baru
+        if (in_array($validated['role_code'], ['admin', 'operator_aplikasi'], true) && ! $isActorSystemAdmin) {
             return response()->json([
                 'message' => 'Hanya Admin atau Operator Aplikasi aktif yang dapat menetapkan jabatan Admin baru.',
-            ], 403);
-        }
-
-        // Kunci pengaman: Hanya operator_aplikasi yang boleh mengangkat operator_aplikasi baru
-        if ($validated['role_code'] === 'operator_aplikasi' && ! $actor->hasGovernanceRole('operator_aplikasi')) {
-            return response()->json([
-                'message' => 'Hanya Operator Aplikasi aktif yang dapat menetapkan Operator Aplikasi baru.',
             ], 403);
         }
 
@@ -115,14 +109,21 @@ class GovernanceController extends Controller
     {
         $actor = $request->user();
 
-        if (! $actor->hasGovernanceRole('operator_aplikasi') && ! $actor->hasGovernanceRole('ketua_paguyuban')) {
+        if (! $actor->isGlobalGovernor()) {
             return response()->json(['message' => 'Akses ditolak.'], 403);
         }
 
-        if ($role->role_code === 'operator_aplikasi' && $role->user_id === $actor->id) {
-            return response()->json([
-                'message' => 'Demi mencegah penguncian sistem, Anda tidak dapat mencabut peran Operator Aplikasi dari diri sendiri.',
-            ], 422);
+        // Kunci pengaman: Mencegah sistem kehilangan seluruh Admin / Operator Aplikasi aktif
+        if (in_array($role->role_code, ['admin', 'operator_aplikasi'], true)) {
+            $activeAdminCount = UserGovernanceRole::whereIn('role_code', ['admin', 'operator_aplikasi'])
+                ->where('is_active', true)
+                ->count();
+
+            if ($activeAdminCount <= 1) {
+                return response()->json([
+                    'message' => 'Sistem mewajibkan minimal 1 Admin aktif. Delegasikan jabatan Admin ke warga lain terlebih dahulu sebelum mencabut jabatan ini.',
+                ], 422);
+            }
         }
 
         $role->update(['is_active' => false]);
@@ -138,7 +139,7 @@ class GovernanceController extends Controller
 
         if (! $actor->isGlobalGovernor()) {
             return response()->json([
-                'message' => 'Akses ditolak. Hanya Operator Aplikasi atau Ketua Paguyuban yang dapat mendaftarkan warga secara langsung.',
+                'message' => 'Akses ditolak. Hanya Admin, Operator Aplikasi, atau Ketua Paguyuban yang dapat mendaftarkan warga secara langsung.',
             ], 403);
         }
 
@@ -174,6 +175,7 @@ class GovernanceController extends Controller
                 'privacy_settings' => [
                     'show_phone' => false,
                     'show_ownership' => false,
+                    'show_full_name' => false,
                 ],
             ]);
 
