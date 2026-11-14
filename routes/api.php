@@ -27,6 +27,12 @@ Route::prefix('v1')->group(function () {
                     'global_role' => $user->profile?->global_role,
                     'is_verified' => $user->profile?->is_verified,
                     'reputation_badge' => $user->profile?->reputation_badge,
+                    'vehicles' => $user->profile?->vehicles ?? [],
+                    'privacy_settings' => $user->profile?->privacy_settings ?? [
+                        'show_phone' => false,
+                        'show_ownership' => false,
+                    ],
+                    'has_identity_docs' => ! empty($user->profile?->nik_encrypted) && ! empty($user->profile?->kk_encrypted),
                     'memberships' => $user->unitMemberships,
                 ],
             ]);

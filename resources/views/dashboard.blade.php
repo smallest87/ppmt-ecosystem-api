@@ -292,6 +292,12 @@ function ppmtDashboard() {
                 const json = await res.json();
                 this.user = json.data;
 
+                this.profileForm.vehicles = Array.isArray(this.user.vehicles) ? this.user.vehicles : [];
+                this.profileForm.privacy_settings = {
+                    show_phone: Boolean(this.user.privacy_settings?.show_phone),
+                    show_ownership: Boolean(this.user.privacy_settings?.show_ownership)
+                };
+
                 if (this.manageableUnits.length > 0) {
                     this.inviteForm.unit_code = this.manageableUnits[0].unit.code;
                 }
