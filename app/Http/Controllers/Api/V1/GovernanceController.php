@@ -5,6 +5,10 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\UserGovernanceRole;
+use App\Models\Unit;
+use App\Models\VerificationVoucher;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -117,5 +121,85 @@ class GovernanceController extends Controller
         return response()->json([
             'message' => "Jabatan '{$role->display_label}' telah dicabut.",
         ]);
+    }
+
+    public function assistedRegister(Request $request): JsonResponse
+    {
+        $actor = $request->user();
+
+        if (! $actor->isGlobalGovernor()) {
+            return response()->json([
+                'message' => 'Akses ditolak. Hanya Operator Aplikasi atau Ketua Paguyuban yang dapat mendaftarkan warga secara langsung.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'unit_code' => ['required', 'string', 'exists:units,code'],
+            'name' => ['required', 'string', 'max:150'],
+            'phone' => ['required', 'string', 'max:20', 'unique:resident_profiles,phone'],
+            'password' => ['required', 'string', 'min:8'],
+            'entity_type' => ['required', Rule::in(['owner', 'resident'])],
+            'sub_role' => ['required', Rule::in([
+                'primary_owner', 'co_owner',
+                'primary_resident', 'family_member', 'co_resident', 'tenant', 'caretaker',
+            ])],
+        ]);
+
+        $unit = Unit::where('code', $validated['unit_code'])->firstOrFail();
+
+        if ($unit->unit_type === 'fasum') {
+            return response()->json(['message' => 'Unit fasilitas umum tidak dapat didaftarkan sebagai hunian warga.'], 422);
+        }
+
+        $newUser = DB::transaction(function () use ($validated, $unit, $actor) {
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['phone'] . '@ppmt.local',
+                'password' => Hash::make($validated['password']),
+            ]);
+
+            $user->profile()->create([
+                'phone' => $validated['phone'],
+                'global_role' => 'warga_ppmt',
+                'is_verified' => true,
+                'privacy_settings' => [
+                    'show_phone' => false,
+                    'show_ownership' => false,
+                ],
+            ]);
+
+            $user->unitMemberships()->create([
+                'unit_id' => $unit->id,
+                'entity_type' => $validated['entity_type'],
+                'sub_role' => $validated['sub_role'],
+                'is_primary_contact' => in_array($validated['sub_role'], ['primary_owner', 'primary_resident']),
+                'is_approved' => true,
+            ]);
+
+            // Tetap tercatat sah dalam Verification Ledger (Web of Trust)
+            VerificationVoucher::create([
+                'target_user_id' => $user->id,
+                'unit_id' => $unit->id,
+                'voucher_user_id' => $actor->id,
+                'method' => 'in_person_vouch',
+            ]);
+
+            if ($unit->occupancy_status === 'unclaimed' || $unit->occupancy_status === 'pending') {
+                $unit->update([
+                    'occupancy_status' => $validated['sub_role'] === 'tenant' ? 'rented' : 'occupied',
+                ]);
+            }
+
+            return $user;
+        });
+
+        return response()->json([
+            'message' => "Warga {$newUser->name} berhasil didaftarkan dan langsung aktif pada Kavling {$unit->code}.",
+            'data' => [
+                'user_id' => $newUser->id,
+                'name' => $newUser->name,
+                'unit_code' => $unit->code,
+            ],
+        ], 201);
     }
 }

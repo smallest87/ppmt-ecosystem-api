@@ -71,7 +71,7 @@
                 </div>
 
                 <form @submit.prevent="saveProfile()" class="space-y-5">
-                    <!-- Sakelar Privasi (Privacy Toggles) -->
+                    <!-- Sakelar Privasi -->
                     <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
                         <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">Pengaturan Privasi Direktori Warga</h3>
 
@@ -147,7 +147,7 @@
                 </form>
             </section>
 
-            <!-- Kolom Kanan (5 Kolom): Antrean Validasi, Undangan Unit, & Manajemen Pengurus -->
+            <!-- Kolom Kanan (5 Kolom) -->
             <div class="lg:col-span-5 space-y-6">
 
                 <!-- Panel 1: Antrean Verifikasi Sosial -->
@@ -238,7 +238,7 @@
                     </div>
                 </section>
 
-                <!-- Panel 3: Penyematan Jabatan & Hak Akses (Khusus Operator Aplikasi / Ketua Paguyuban) -->
+                <!-- Panel 3: Penyematan Jabatan & Hak Akses -->
                 <section x-show="user?.is_global_governor"
                          class="bg-indigo-50/60 rounded-2xl p-5 shadow-sm border border-indigo-200 space-y-4">
                     <div class="border-b border-indigo-200/70 pb-3">
@@ -315,6 +315,79 @@
                     </div>
                 </section>
 
+                <!-- Panel 4: Pendaftaran Langsung Tetangga Terkenal (Assisted Onboarding) -->
+                <section x-show="user?.is_global_governor"
+                         class="bg-emerald-50/60 rounded-2xl p-5 shadow-sm border border-emerald-200 space-y-4">
+                    <div class="border-b border-emerald-200/70 pb-3">
+                        <h2 class="text-base font-bold text-emerald-950">Daftarkan Tetangga Terkenal</h2>
+                        <p class="text-xs text-emerald-800">Daftarkan tetangga yang sudah Anda kenal secara langsung ke kavlingnya (otomatis terverifikasi atas jaminan Anda).</p>
+                    </div>
+
+                    <form @submit.prevent="submitAssistedRegister()" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Kavling Tetangga *</label>
+                            <select x-model="assistForm.unit_code" required class="w-full rounded-xl border-slate-300 text-xs">
+                                <option value="">-- Pilih Kavling PPMT --</option>
+                                <template x-for="u in allUnits" :key="u.id">
+                                    <option :value="u.code" x-text="u.code + ' (' + u.zone + ')'"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap Tetangga *</label>
+                            <input type="text" x-model="assistForm.name" required placeholder="Contoh: Pak Ahmad"
+                                   class="w-full rounded-xl border-slate-300 text-xs">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor WhatsApp Tetangga *</label>
+                            <input type="tel" x-model="assistForm.phone" required placeholder="0812xxxxxxxx"
+                                   class="w-full rounded-xl border-slate-300 text-xs">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Entitas</label>
+                                <select x-model="assistForm.entity_type" @change="assistForm.sub_role = assistForm.entity_type === 'owner' ? 'primary_owner' : 'primary_resident'"
+                                        class="w-full rounded-xl border-slate-300 text-xs">
+                                    <option value="owner">Pemilik Rumah</option>
+                                    <option value="resident">Penghuni</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Peran</label>
+                                <select x-model="assistForm.sub_role" class="w-full rounded-xl border-slate-300 text-xs">
+                                    <template x-if="assistForm.entity_type === 'owner'">
+                                        <optgroup label="Pemilik">
+                                            <option value="primary_owner">Pemilik Utama</option>
+                                            <option value="co_owner">Pemilik Bersama</option>
+                                        </optgroup>
+                                    </template>
+                                    <template x-if="assistForm.entity_type === 'resident'">
+                                        <optgroup label="Penghuni">
+                                            <option value="primary_resident">Penghuni Utama</option>
+                                            <option value="family_member">Anggota Keluarga</option>
+                                            <option value="tenant">Penyewa / Kontrak</option>
+                                        </optgroup>
+                                    </template>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Kata Sandi Sementara (Min. 8 Karakter) *</label>
+                            <input type="text" x-model="assistForm.password" required minlength="8" placeholder="Contoh: ppmt12345"
+                                   class="w-full rounded-xl border-slate-300 text-xs font-mono">
+                        </div>
+
+                        <button type="submit"
+                                class="w-full py-2 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold transition">
+                            Daftarkan &amp; Aktifkan Warga
+                        </button>
+                    </form>
+                </section>
+
             </div>
         </div>
     </div>
@@ -333,6 +406,7 @@ function ppmtDashboard() {
         generatedInviteUrl: '',
         verifiedResidents: [],
         governanceList: [],
+        allUnits: [],
         profileForm: {
             nik: '',
             kk: '',
@@ -353,6 +427,14 @@ function ppmtDashboard() {
             role_code: 'koordinator_zona',
             scope_type: 'zone',
             scope_value: 'ZONA-1'
+        },
+        assistForm: {
+            unit_code: '',
+            name: '',
+            phone: '',
+            entity_type: 'owner',
+            sub_role: 'primary_owner',
+            password: ''
         },
 
         async init() {
@@ -417,9 +499,10 @@ function ppmtDashboard() {
         },
 
         async loadGovernanceData() {
-            const [govRes, dirRes] = await Promise.all([
+            const [govRes, dirRes, unitsRes] = await Promise.all([
                 fetch('/api/v1/governance/roles', { headers: this.headers() }),
-                fetch('/api/v1/residents/directory', { headers: this.headers() })
+                fetch('/api/v1/residents/directory', { headers: this.headers() }),
+                fetch('/api/v1/public/units')
             ]);
             if (govRes.ok) {
                 const govJson = await govRes.json();
@@ -428,6 +511,10 @@ function ppmtDashboard() {
             if (dirRes.ok) {
                 const dirJson = await dirRes.json();
                 this.verifiedResidents = dirJson.data || [];
+            }
+            if (unitsRes.ok) {
+                const unitsJson = await unitsRes.json();
+                this.allUnits = (unitsJson.data || []).filter(u => u.unit_type !== 'fasum');
             }
         },
 
@@ -474,6 +561,27 @@ function ppmtDashboard() {
             } else {
                 this.toastType = 'error';
                 this.toastMessage = json.message || 'Gagal mencabut jabatan.';
+            }
+        },
+
+        async submitAssistedRegister() {
+            const res = await fetch('/api/v1/governance/assisted-register', {
+                method: 'POST',
+                headers: this.headers(),
+                body: JSON.stringify(this.assistForm)
+            });
+            const json = await res.json();
+            if (res.ok) {
+                this.toastType = 'success';
+                this.toastMessage = json.message;
+                this.assistForm.unit_code = '';
+                this.assistForm.name = '';
+                this.assistForm.phone = '';
+                this.assistForm.password = '';
+                await this.loadGovernanceData();
+            } else {
+                this.toastType = 'error';
+                this.toastMessage = json.message || 'Gagal mendaftarkan tetangga.';
             }
         },
 

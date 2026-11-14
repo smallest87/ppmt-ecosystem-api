@@ -59,6 +59,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/governance/roles', [GovernanceController::class, 'index']);
             Route::post('/governance/assign', [GovernanceController::class, 'assign']);
             Route::delete('/governance/roles/{role}', [GovernanceController::class, 'revoke']);
+            Route::post('/governance/assisted-register', [GovernanceController::class, 'assistedRegister']);
         });
     });
 });
