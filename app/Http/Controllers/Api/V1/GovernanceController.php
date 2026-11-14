@@ -54,6 +54,7 @@ class GovernanceController extends Controller
         $validated = $request->validate([
             'target_user_id' => ['required', 'integer', 'exists:users,id'],
             'role_code' => ['required', Rule::in([
+                'admin',
                 'operator_aplikasi',
                 'ketua_paguyuban',
                 'sekretaris_paguyuban',
@@ -65,6 +66,14 @@ class GovernanceController extends Controller
             'scope_type' => ['required', Rule::in(['global', 'zone', 'block'])],
             'scope_value' => ['nullable', 'string', 'max:30'],
         ]);
+
+        if (in_array($validated['role_code'], ['admin', 'operator_aplikasi'], true)
+            && ! $actor->hasGovernanceRole('admin')
+            && ! $actor->hasGovernanceRole('operator_aplikasi')) {
+            return response()->json([
+                'message' => 'Hanya Admin atau Operator Aplikasi aktif yang dapat menetapkan jabatan Admin baru.',
+            ], 403);
+        }
 
         // Kunci pengaman: Hanya operator_aplikasi yang boleh mengangkat operator_aplikasi baru
         if ($validated['role_code'] === 'operator_aplikasi' && ! $actor->hasGovernanceRole('operator_aplikasi')) {

@@ -36,6 +36,10 @@ class VerificationController extends Controller
                 ->where('unit_id', $unit->id)
                 ->update(['is_approved' => true]);
 
+            $membership = $targetUser->unitMemberships()
+                ->where('unit_id', $unit->id)
+                ->first();
+
             $method = match ($voucher->profile->global_role) {
                 'admin' => 'genesis_seed',
                 'koordinator_blok' => 'coordinator_approval',
@@ -49,7 +53,9 @@ class VerificationController extends Controller
                 'method' => $method,
             ]);
 
-            $unit->update(['occupancy_status' => 'occupied']);
+            $unit->update([
+                'occupancy_status' => $membership?->sub_role === 'tenant' ? 'rented' : 'occupied',
+            ]);
         });
 
         return response()->json([

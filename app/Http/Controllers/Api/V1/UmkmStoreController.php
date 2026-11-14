@@ -14,12 +14,32 @@ class UmkmStoreController extends Controller
     public function index(Request $request): JsonResponse
     {
         $stores = UmkmStore::query()
-            ->with(['unit:id,code,block,zone', 'owner:id,name'])
+            ->with([
+                'unit:id,code,block,zone',
+                'owner:id,name',
+                'owner.profile:user_id,display_name,privacy_settings',
+            ])
             ->when($request->query('category'), fn ($q, $cat) => $q->where('category', $cat))
             ->when($request->query('status'), fn ($q, $status) => $q->where('status', $status))
             ->orderByRaw("CASE status WHEN 'open' THEN 1 WHEN 'open_po' THEN 2 ELSE 3 END")
             ->latest()
-            ->get();
+            ->get()
+            ->map(function (UmkmStore $store) {
+                $ownerProfile = $store->owner?->profile;
+                $privacy = $ownerProfile?->privacy_settings ?? [];
+                $showFullName = (bool) ($privacy['show_full_name'] ?? false);
+
+                $publicOwnerName = $ownerProfile?->display_name
+                    ?: ($showFullName ? $store->owner?->name : explode(' ', trim((string) $store->owner?->name))[0]);
+
+                $data = $store->toArray();
+                $data['owner'] = [
+                    'id' => $store->owner?->id,
+                    'name' => $publicOwnerName,
+                ];
+
+                return $data;
+            });
 
         return response()->json([
             'total' => $stores->count(),

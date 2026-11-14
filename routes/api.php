@@ -25,21 +25,25 @@ Route::prefix('v1')->group(function () {
                 'data' => [
                     'id' => $user->id,
                     'name' => $user->name,
+                    'display_name' => $user->profile?->display_name,
+                    'phone' => $user->profile?->phone,
                     'global_role' => $user->profile?->global_role,
                     'is_verified' => $user->profile?->is_verified,
                     'reputation_badge' => $user->profile?->reputation_badge,
-                    'is_operator_aplikasi' => $user->hasGovernanceRole('operator_aplikasi'),
+                    'is_operator_aplikasi' => $user->hasGovernanceRole('admin') || $user->hasGovernanceRole('operator_aplikasi'),
                     'is_global_governor' => $user->isGlobalGovernor(),
+                    'has_admin_access' => $user->hasAdminAccess(),
                     'governance_roles' => $user->governanceRoles->map(fn ($r) => [
                         'id' => $r->id,
                         'role_code' => $r->role_code,
                         'display_label' => $r->display_label,
                     ]),
                     'vehicles' => $user->profile?->vehicles ?? [],
-                    'privacy_settings' => $user->profile?->privacy_settings ?? [
+                    'privacy_settings' => array_merge([
                         'show_phone' => false,
                         'show_ownership' => false,
-                    ],
+                        'show_full_name' => false,
+                    ], $user->profile?->privacy_settings ?? []),
                     'has_nik' => ! empty($user->profile?->nik_encrypted),
                     'has_kk' => ! empty($user->profile?->kk_encrypted),
                     'has_identity_docs' => ! empty($user->profile?->nik_encrypted) && ! empty($user->profile?->kk_encrypted),
@@ -54,6 +58,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/verifications/approve', [VerificationController::class, 'approve']);
             Route::post('/units/{unit_code}/invites', [UnitInviteController::class, 'store']);
             Route::patch('/profile', [ProfileController::class, 'updateProgressiveProfile']);
+            Route::patch('/memberships/{membership}', [ProfileController::class, 'updateMembershipRole']);
             Route::get('/residents/directory', [ProfileController::class, 'directory']);
             Route::get('/umkm/stores', [UmkmStoreController::class, 'index']);
             Route::post('/umkm/stores', [UmkmStoreController::class, 'store']);

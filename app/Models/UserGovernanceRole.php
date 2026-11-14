@@ -36,6 +36,7 @@ class UserGovernanceRole extends Model
     public function getDisplayLabelAttribute(): string
     {
         $names = [
+            'admin' => 'Admin Sistem',
             'operator_aplikasi' => 'Operator Aplikasi',
             'ketua_paguyuban' => 'Ketua Paguyuban',
             'sekretaris_paguyuban' => 'Sekretaris Paguyuban',

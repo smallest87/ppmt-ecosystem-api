@@ -11,7 +11,7 @@
 
     <!-- Navbar Utama -->
     <header class="bg-emerald-950 text-white shadow-md sticky top-0 z-40"
-            x-data="{ hasToken: !!localStorage.getItem('ppmt_token') }">
+            x-data="ppmtNavbar()" x-init="init()">
         <div class="max-w-6xl mx-auto px-4 py-3.5 flex items-center justify-between">
             <a href="/" class="flex items-center gap-2.5">
                 <div class="w-9 h-9 rounded-lg bg-emerald-500 flex items-center justify-center font-bold text-white shadow">
@@ -41,14 +41,20 @@
                 </template>
 
                 <template x-if="hasToken">
-                    <div class="flex items-center gap-2 sm:gap-3">
-                        <a href="/dashboard" class="px-3 py-1.5 rounded-lg hover:bg-emerald-900 transition">
+                    <div class="flex items-center gap-1.5 sm:gap-2.5">
+                        <a href="/dashboard"
+                           class="px-3 py-1.5 rounded-lg hover:bg-emerald-900 transition {{ request()->is('dashboard') ? 'bg-emerald-900 text-white font-semibold' : 'text-emerald-100' }}">
                             Portal Warga
                         </a>
-                        <a href="/komunitas" class="px-3 py-1.5 rounded-lg hover:bg-emerald-900 transition">
+                        <a href="/komunitas"
+                           class="px-3 py-1.5 rounded-lg hover:bg-emerald-900 transition {{ request()->is('komunitas') ? 'bg-emerald-900 text-white font-semibold' : 'text-emerald-100' }}">
                             Komunitas &amp; Peta
                         </a>
-                        <button @click="localStorage.removeItem('ppmt_token'); window.location.href='/'"
+                        <a x-show="hasAdminAccess" x-cloak href="/admin"
+                           class="px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 {{ request()->is('admin') ? 'bg-amber-400 text-slate-950 font-bold' : 'bg-indigo-600/90 hover:bg-indigo-600 text-white font-semibold' }}">
+                            <span>&#9733; Admin</span>
+                        </a>
+                        <button @click="logout()"
                                 class="px-3 py-1.5 rounded-lg bg-rose-600/90 hover:bg-rose-600 text-xs transition cursor-pointer">
                             Keluar
                         </button>
@@ -70,6 +76,42 @@
             <div>Poncokusumo &bull; Turen, Kabupaten Malang</div>
         </div>
     </footer>
+
+    <script>
+    function ppmtNavbar() {
+        return {
+            hasToken: !!localStorage.getItem('ppmt_token'),
+            hasAdminAccess: sessionStorage.getItem('ppmt_has_admin') === '1',
+
+            async init() {
+                const token = localStorage.getItem('ppmt_token');
+                if (!token) return;
+
+                try {
+                    const res = await fetch('/api/v1/me', {
+                        headers: {
+                            'Authorization': 'Bearer ' + token,
+                            'Accept': 'application/json'
+                        }
+                    });
+                    if (res.ok) {
+                        const json = await res.json();
+                        this.hasAdminAccess = Boolean(json.data?.has_admin_access);
+                        sessionStorage.setItem('ppmt_has_admin', this.hasAdminAccess ? '1' : '0');
+                    }
+                } catch (e) {
+                    // Abaikan gangguan jaringan sementara
+                }
+            },
+
+            logout() {
+                localStorage.removeItem('ppmt_token');
+                sessionStorage.removeItem('ppmt_has_admin');
+                window.location.href = '/';
+            }
+        }
+    }
+    </script>
 
 </body>
 </html>

@@ -49,7 +49,7 @@ class User extends Authenticatable
 
     public function hasGovernanceRole(string $roleCode, ?string $scopeType = null, ?string $scopeValue = null): bool
     {
-        if ($roleCode === 'operator_aplikasi' && $this->profile?->global_role === 'admin') {
+        if (in_array($roleCode, ['admin', 'operator_aplikasi'], true) && $this->profile?->global_role === 'admin') {
             return true;
         }
 
@@ -67,8 +67,17 @@ class User extends Authenticatable
         }
 
         return $this->governanceRoles()
-            ->whereIn('role_code', ['operator_aplikasi', 'ketua_paguyuban'])
+            ->whereIn('role_code', ['admin', 'operator_aplikasi', 'ketua_paguyuban'])
             ->exists();
+    }
+
+    public function hasAdminAccess(): bool
+    {
+        if (in_array($this->profile?->global_role, ['admin', 'koordinator_blok'], true)) {
+            return true;
+        }
+
+        return $this->governanceRoles()->exists();
     }
 
     public function canVouchUnit(Unit $unit): bool
@@ -81,12 +90,10 @@ class User extends Authenticatable
             return true;
         }
 
-        // Cek apakah menjabat koordinator_zona pada zona unit tersebut
         if ($this->hasGovernanceRole('koordinator_zona', 'zone', $unit->zone)) {
             return true;
         }
 
-        // Cek apakah menjabat koordinator_blok pada blok unit tersebut (atau legacy global_role koordinator_blok)
         if ($this->hasGovernanceRole('koordinator_blok', 'block', $unit->block)) {
             return true;
         }
@@ -102,7 +109,6 @@ class User extends Authenticatable
             }
         }
 
-        // Cek apakah Pemilik Utama unit tersebut
         return $this->unitMemberships()
             ->where('unit_id', $unit->id)
             ->where('entity_type', 'owner')
