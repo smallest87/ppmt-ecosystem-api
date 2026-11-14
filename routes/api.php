@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\VerificationController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\UnitInviteController;
 use App\Http\Controllers\Api\V1\UmkmStoreController;
+use App\Http\Controllers\Api\V1\GovernanceController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -18,7 +19,7 @@ Route::prefix('v1')->group(function () {
     // 2. Endpoint Terautentikasi Dasar (Termasuk akun Pending untuk cek status profil)
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', function (Request $request) {
-            $user = $request->user()->load(['profile', 'unitMemberships.unit']);
+            $user = $request->user()->load(['profile', 'unitMemberships.unit', 'governanceRoles']);
 
             return response()->json([
                 'data' => [
@@ -27,6 +28,13 @@ Route::prefix('v1')->group(function () {
                     'global_role' => $user->profile?->global_role,
                     'is_verified' => $user->profile?->is_verified,
                     'reputation_badge' => $user->profile?->reputation_badge,
+                    'is_operator_aplikasi' => $user->hasGovernanceRole('operator_aplikasi'),
+                    'is_global_governor' => $user->isGlobalGovernor(),
+                    'governance_roles' => $user->governanceRoles->map(fn ($r) => [
+                        'id' => $r->id,
+                        'role_code' => $r->role_code,
+                        'display_label' => $r->display_label,
+                    ]),
                     'vehicles' => $user->profile?->vehicles ?? [],
                     'privacy_settings' => $user->profile?->privacy_settings ?? [
                         'show_phone' => false,
@@ -48,6 +56,9 @@ Route::prefix('v1')->group(function () {
             Route::get('/umkm/stores', [UmkmStoreController::class, 'index']);
             Route::post('/umkm/stores', [UmkmStoreController::class, 'store']);
             Route::patch('/umkm/stores/{store}/status', [UmkmStoreController::class, 'updateStatus']);
+            Route::get('/governance/roles', [GovernanceController::class, 'index']);
+            Route::post('/governance/assign', [GovernanceController::class, 'assign']);
+            Route::delete('/governance/roles/{role}', [GovernanceController::class, 'revoke']);
         });
     });
 });

@@ -25,28 +25,33 @@
              class="bg-amber-50 border-l-4 border-amber-500 p-5 rounded-r-2xl shadow-sm space-y-1">
             <h2 class="font-bold text-amber-900 text-base">⏳ Akun Anda Menunggu Verifikasi Sosial Tetangga</h2>
             <p class="text-xs sm:text-sm text-amber-800 leading-relaxed">
-                Demi keamanan lingkungan PPMT, akses ke Direktori Warga dan Pasar Tetangga baru dibuka setelah klaim kavling Anda disahkan oleh <strong>Koordinator Blok</strong> zona terkait atau <strong>Pemilik Utama</strong> unit Anda.
+                Demi keamanan lingkungan PPMT, akses ke Direktori Warga dan Pasar Tetangga baru dibuka setelah klaim kavling Anda disahkan oleh <strong>Koordinator Zona/Blok</strong> terkait atau <strong>Pemilik Utama</strong> unit Anda.
             </p>
         </div>
 
-        <!-- Header Profil & Badge Reputasi -->
+        <!-- Header Profil, Badge Reputasi, & Lencana Jabatan Pengurus -->
         <section class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div class="space-y-1">
+            <div class="space-y-1.5">
                 <div class="flex flex-wrap items-center gap-2">
                     <h1 class="text-2xl font-extrabold text-slate-900" x-text="user?.name"></h1>
                     <span :class="badgeColorClass(user?.reputation_badge?.color)"
                           class="px-3 py-0.5 rounded-full text-xs font-bold border"
                           x-text="'Level ' + (user?.reputation_badge?.level ?? 0) + ' • ' + (user?.reputation_badge?.label ?? '')">
                     </span>
+                    <template x-for="gov in (user?.governance_roles || [])" :key="gov.id">
+                        <span class="px-3 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-900 border border-indigo-300"
+                              x-text="'★ ' + gov.display_label">
+                        </span>
+                    </template>
                 </div>
                 <p class="text-xs text-slate-500">
-                    Peran Sistem: <strong class="uppercase text-slate-700" x-text="user?.global_role?.replace('_', ' ')"></strong>
+                    Status Dasar: <strong class="uppercase text-slate-700" x-text="(user?.global_role || '').replace('_', ' ')"></strong>
                 </p>
             </div>
 
             <!-- Daftar Unit Hunian Terkait -->
             <div class="flex flex-wrap gap-2">
-                <template x-for="m in user?.memberships" :key="m.id">
+                <template x-for="m in (user?.memberships || [])" :key="m.id">
                     <div class="px-3.5 py-2 rounded-xl bg-slate-100 border border-slate-200 text-xs">
                         <div class="font-bold text-slate-900" x-text="'Kavling ' + m.unit.code + ' (' + m.unit.zone + ')'"></div>
                         <div class="text-slate-500 capitalize" x-text="m.entity_type + ' • ' + m.sub_role.replace('_', ' ')"></div>
@@ -89,7 +94,7 @@
                         </label>
                     </div>
 
-                    <!-- Data Kendaraan (Menaikkan ke Level 2: Warga Aktif) -->
+                    <!-- Data Kendaraan -->
                     <div class="space-y-2">
                         <div class="flex items-center justify-between">
                             <label class="text-xs font-bold text-slate-700">Data Kendaraan Penghuni (Untuk Keamanan Gerbang)</label>
@@ -116,7 +121,7 @@
                         </template>
                     </div>
 
-                    <!-- Identitas Terenkripsi AES-256 (Menaikkan ke Level 3: Warga Terpercaya) -->
+                    <!-- Identitas Terenkripsi AES-256 -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">
@@ -142,10 +147,10 @@
                 </form>
             </section>
 
-            <!-- Kolom Kanan (5 Kolom): Antrean Validasi & Undangan Unit -->
+            <!-- Kolom Kanan (5 Kolom): Antrean Validasi, Undangan Unit, & Manajemen Pengurus -->
             <div class="lg:col-span-5 space-y-6">
 
-                <!-- Panel 1: Antrean Verifikasi Sosial (Jika Ada) -->
+                <!-- Panel 1: Antrean Verifikasi Sosial -->
                 <section x-show="pendingApprovals.length > 0"
                          class="bg-amber-50/70 rounded-2xl p-5 shadow-sm border border-amber-300 space-y-3">
                     <div class="flex items-center justify-between">
@@ -222,7 +227,6 @@
                         </button>
                     </form>
 
-                    <!-- Hasil Link Undangan Siap Salin -->
                     <div x-show="generatedInviteUrl" class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 space-y-2">
                         <div class="text-[11px] font-semibold text-emerald-900">Tautan Undangan Siap Dikirim via WhatsApp:</div>
                         <input type="text" readonly :value="generatedInviteUrl"
@@ -231,6 +235,83 @@
                                 class="w-full py-1.5 rounded-lg bg-emerald-700 text-white text-xs font-semibold">
                             Salin Tautan Undangan
                         </button>
+                    </div>
+                </section>
+
+                <!-- Panel 3: Penyematan Jabatan & Hak Akses (Khusus Operator Aplikasi / Ketua Paguyuban) -->
+                <section x-show="user?.is_global_governor"
+                         class="bg-indigo-50/60 rounded-2xl p-5 shadow-sm border border-indigo-200 space-y-4">
+                    <div class="border-b border-indigo-200/70 pb-3">
+                        <h2 class="text-base font-bold text-indigo-950">Penyematan Jabatan &amp; Hak Akses</h2>
+                        <p class="text-xs text-indigo-800">Satu warga dapat merangkap lebih dari satu jabatan tata kelola lingkungan.</p>
+                    </div>
+
+                    <form @submit.prevent="assignGovernance()" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Warga Terverifikasi *</label>
+                            <select x-model="govForm.target_user_id" required class="w-full rounded-xl border-slate-300 text-xs">
+                                <option value="">-- Pilih Warga PPMT --</option>
+                                <template x-for="r in verifiedResidents" :key="r.id">
+                                    <option :value="r.id" x-text="r.name + ' (' + r.units.map(u => u.unit_code).join(', ') + ')'"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Jabatan yang Disematkan *</label>
+                            <select x-model="govForm.role_code" @change="updateGovScopeDefault()" class="w-full rounded-xl border-slate-300 text-xs">
+                                <option value="koordinator_zona">Koordinator Zona</option>
+                                <option value="koordinator_blok">Koordinator Blok</option>
+                                <option value="ketua_paguyuban">Ketua Paguyuban</option>
+                                <option value="sekretaris_paguyuban">Sekretaris Paguyuban</option>
+                                <option value="bendahara_paguyuban">Bendahara Paguyuban</option>
+                                <option value="keamanan_lingkungan">Keamanan Lingkungan</option>
+                                <option value="operator_aplikasi" x-show="user?.is_operator_aplikasi">Operator Aplikasi</option>
+                            </select>
+                        </div>
+
+                        <div x-show="govForm.role_code === 'koordinator_zona'">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Cakupan Zona *</label>
+                            <select x-model="govForm.scope_value" class="w-full rounded-xl border-slate-300 text-xs">
+                                <option value="ZONA-1">ZONA-1 (R1-R2, A-1..16)</option>
+                                <option value="ZONA-2">ZONA-2 (B-1..24)</option>
+                                <option value="ZONA-3">ZONA-3 (A-17..25, C-1..14)</option>
+                                <option value="ZONA-4">ZONA-4 (C-15..22, D-1..17)</option>
+                            </select>
+                        </div>
+
+                        <div x-show="govForm.role_code === 'koordinator_blok'">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Cakupan Blok *</label>
+                            <select x-model="govForm.scope_value" class="w-full rounded-xl border-slate-300 text-xs">
+                                <option value="R">Blok R (Ruko)</option>
+                                <option value="A">Blok A</option>
+                                <option value="B">Blok B</option>
+                                <option value="C">Blok C</option>
+                                <option value="D">Blok D</option>
+                            </select>
+                        </div>
+
+                        <button type="submit"
+                                class="w-full py-2 px-4 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-semibold transition">
+                            Sematkan Jabatan
+                        </button>
+                    </form>
+
+                    <!-- Daftar Jabatan Aktif -->
+                    <div class="space-y-2 pt-2 border-t border-indigo-200/70">
+                        <div class="text-[11px] font-bold uppercase tracking-wider text-indigo-900">Pengurus Aktif Saat Ini</div>
+                        <template x-for="item in governanceList" :key="item.id">
+                            <div class="bg-white p-2.5 rounded-xl border border-indigo-100 flex items-center justify-between gap-2 text-xs">
+                                <div>
+                                    <div class="font-bold text-slate-900" x-text="item.user_name + ' (' + item.unit_codes + ')'"></div>
+                                    <div class="text-indigo-700 font-semibold" x-text="item.display_label"></div>
+                                </div>
+                                <button type="button" @click="revokeGovernance(item.id)"
+                                        class="px-2 py-1 rounded text-[11px] text-rose-600 hover:bg-rose-50 font-semibold">
+                                    Cabut
+                                </button>
+                            </div>
+                        </template>
                     </div>
                 </section>
 
@@ -250,6 +331,8 @@ function ppmtDashboard() {
         toastType: 'success',
         pendingApprovals: [],
         generatedInviteUrl: '',
+        verifiedResidents: [],
+        governanceList: [],
         profileForm: {
             nik: '',
             kk: '',
@@ -265,6 +348,12 @@ function ppmtDashboard() {
             sub_role: 'family_member',
             member_valid_until: ''
         },
+        govForm: {
+            target_user_id: '',
+            role_code: 'koordinator_zona',
+            scope_type: 'zone',
+            scope_value: 'ZONA-1'
+        },
 
         async init() {
             if (!this.token) {
@@ -274,6 +363,9 @@ function ppmtDashboard() {
             await this.loadMe();
             if (this.user?.is_verified) {
                 await this.loadPendingApprovals();
+                if (this.user?.is_global_governor) {
+                    await this.loadGovernanceData();
+                }
             }
         },
 
@@ -321,6 +413,67 @@ function ppmtDashboard() {
             if (res.ok) {
                 const json = await res.json();
                 this.pendingApprovals = json.data || [];
+            }
+        },
+
+        async loadGovernanceData() {
+            const [govRes, dirRes] = await Promise.all([
+                fetch('/api/v1/governance/roles', { headers: this.headers() }),
+                fetch('/api/v1/residents/directory', { headers: this.headers() })
+            ]);
+            if (govRes.ok) {
+                const govJson = await govRes.json();
+                this.governanceList = govJson.data || [];
+            }
+            if (dirRes.ok) {
+                const dirJson = await dirRes.json();
+                this.verifiedResidents = dirJson.data || [];
+            }
+        },
+
+        updateGovScopeDefault() {
+            if (this.govForm.role_code === 'koordinator_zona') {
+                this.govForm.scope_type = 'zone';
+                this.govForm.scope_value = 'ZONA-1';
+            } else if (this.govForm.role_code === 'koordinator_blok') {
+                this.govForm.scope_type = 'block';
+                this.govForm.scope_value = 'A';
+            } else {
+                this.govForm.scope_type = 'global';
+                this.govForm.scope_value = '';
+            }
+        },
+
+        async assignGovernance() {
+            const res = await fetch('/api/v1/governance/assign', {
+                method: 'POST',
+                headers: this.headers(),
+                body: JSON.stringify(this.govForm)
+            });
+            const json = await res.json();
+            if (res.ok) {
+                this.toastType = 'success';
+                this.toastMessage = json.message;
+                await Promise.all([this.loadMe(), this.loadGovernanceData()]);
+            } else {
+                this.toastType = 'error';
+                this.toastMessage = json.message || 'Gagal menyematkan jabatan.';
+            }
+        },
+
+        async revokeGovernance(roleId) {
+            const res = await fetch(`/api/v1/governance/roles/${roleId}`, {
+                method: 'DELETE',
+                headers: this.headers()
+            });
+            const json = await res.json();
+            if (res.ok) {
+                this.toastType = 'success';
+                this.toastMessage = json.message;
+                await Promise.all([this.loadMe(), this.loadGovernanceData()]);
+            } else {
+                this.toastType = 'error';
+                this.toastMessage = json.message || 'Gagal mencabut jabatan.';
             }
         },
 

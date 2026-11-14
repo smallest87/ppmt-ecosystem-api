@@ -41,4 +41,73 @@ class User extends Authenticatable
     {
         return $this->hasMany(UnitMembership::class);
     }
+
+    public function governanceRoles(): HasMany
+    {
+        return $this->hasMany(UserGovernanceRole::class)->where('is_active', true);
+    }
+
+    public function hasGovernanceRole(string $roleCode, ?string $scopeType = null, ?string $scopeValue = null): bool
+    {
+        if ($roleCode === 'operator_aplikasi' && $this->profile?->global_role === 'admin') {
+            return true;
+        }
+
+        return $this->governanceRoles()
+            ->where('role_code', $roleCode)
+            ->when($scopeType, fn ($q) => $q->where('scope_type', $scopeType))
+            ->when($scopeValue, fn ($q) => $q->where('scope_value', $scopeValue))
+            ->exists();
+    }
+
+    public function isGlobalGovernor(): bool
+    {
+        if ($this->profile?->global_role === 'admin') {
+            return true;
+        }
+
+        return $this->governanceRoles()
+            ->whereIn('role_code', ['operator_aplikasi', 'ketua_paguyuban'])
+            ->exists();
+    }
+
+    public function canVouchUnit(Unit $unit): bool
+    {
+        if (! $this->profile || ! $this->profile->is_verified) {
+            return false;
+        }
+
+        if ($this->isGlobalGovernor()) {
+            return true;
+        }
+
+        // Cek apakah menjabat koordinator_zona pada zona unit tersebut
+        if ($this->hasGovernanceRole('koordinator_zona', 'zone', $unit->zone)) {
+            return true;
+        }
+
+        // Cek apakah menjabat koordinator_blok pada blok unit tersebut (atau legacy global_role koordinator_blok)
+        if ($this->hasGovernanceRole('koordinator_blok', 'block', $unit->block)) {
+            return true;
+        }
+
+        if ($this->profile->global_role === 'koordinator_blok') {
+            $isCoordinatorZone = $this->unitMemberships()
+                ->where('is_approved', true)
+                ->whereHas('unit', fn ($q) => $q->where('zone', $unit->zone))
+                ->exists();
+
+            if ($isCoordinatorZone) {
+                return true;
+            }
+        }
+
+        // Cek apakah Pemilik Utama unit tersebut
+        return $this->unitMemberships()
+            ->where('unit_id', $unit->id)
+            ->where('entity_type', 'owner')
+            ->where('sub_role', 'primary_owner')
+            ->where('is_approved', true)
+            ->exists();
+    }
 }

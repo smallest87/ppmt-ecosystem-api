@@ -59,35 +59,57 @@ class VerificationController extends Controller
 
     public function pending(Request $request): JsonResponse
     {
-        $voucher =$request->user();
-        $profile =$voucher->profile;
+        $voucher = $request->user();
+        $profile = $voucher->profile;
 
-        if (! $profile \vert{}\vert{} !$profile->is_verified) {
+        if (! $profile || ! $profile->is_verified) {
             return response()->json(['data' => []]);
         }
 
-        // Ambil unit_id yang dikelola oleh voucher (sebagai admin, koordinator zona, atau primary_owner)
         $query = UnitMembership::query()
             ->where('is_approved', false)
             ->with(['user:id,name', 'user.profile:user_id,phone', 'unit:id,code,block,zone']);
 
-        if ($profile->global_role === 'koordinator_blok') {
-            $zones =$voucher->unitMemberships()
-                ->where('is_approved', true)
-                ->with('unit:id,zone')
-                ->get()
-                ->pluck('unit.zone')
-                ->unique();
+        if (! $voucher->isGlobalGovernor()) {
+            $managedZones = $voucher->governanceRoles()
+                ->where('role_code', 'koordinator_zona')
+                ->pluck('scope_value')
+                ->filter();
 
-            $query->whereHas('unit', fn ($q) => $q->whereIn('zone',$zones));
-        } elseif ($profile->global_role !== 'admin') {
-            $ownedUnitIds =$voucher->unitMemberships()
+            $managedBlocks = $voucher->governanceRoles()
+                ->where('role_code', 'koordinator_blok')
+                ->pluck('scope_value')
+                ->filter();
+
+            if ($profile->global_role === 'koordinator_blok') {
+                $legacyZones = $voucher->unitMemberships()
+                    ->where('is_approved', true)
+                    ->with('unit:id,zone')
+                    ->get()
+                    ->pluck('unit.zone');
+                $managedZones = $managedZones->merge($legacyZones)->unique();
+            }
+
+            $ownedUnitIds = $voucher->unitMemberships()
                 ->where('entity_type', 'owner')
                 ->where('sub_role', 'primary_owner')
                 ->where('is_approved', true)
                 ->pluck('unit_id');
 
-            $query->whereIn('unit_id',$ownedUnitIds);
+            $query->where(function ($q) use ($managedZones, $managedBlocks, $ownedUnitIds) {
+                if ($managedZones->isNotEmpty()) {
+                    $q->orWhereHas('unit', fn ($uq) => $uq->whereIn('zone', $managedZones));
+                }
+                if ($managedBlocks->isNotEmpty()) {
+                    $q->orWhereHas('unit', fn ($uq) => $uq->whereIn('block', $managedBlocks));
+                }
+                if ($ownedUnitIds->isNotEmpty()) {
+                    $q->orWhereIn('unit_id', $ownedUnitIds);
+                }
+                if ($managedZones->isEmpty() && $managedBlocks->isEmpty() && $ownedUnitIds->isEmpty()) {
+                    $q->whereRaw('1 = 0');
+                }
+            });
         }
 
         $pendingList = $query->latest()->get()->map(fn ($m) => [
