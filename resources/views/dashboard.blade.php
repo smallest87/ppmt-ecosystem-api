@@ -3,7 +3,7 @@
 @section('title', 'Portal & Profil Warga — PPMT Digital')
 
 @section('content')
-<div x-data="ppmtDashboard()" x-init="init()" class="max-w-6xl mx-auto px-4 py-8 space-y-6">
+<div x-data="ppmtDashboard()" x-init="init()" @keydown.escape.window="closeModal()" class="max-w-6xl mx-auto px-4 py-8 space-y-6">
 
     <!-- Loading State -->
     <div x-show="loading" class="bg-white rounded-2xl p-12 text-center text-slate-500 border border-slate-200">
@@ -17,7 +17,7 @@
              :class="toastType === 'error' ? 'bg-rose-50 text-rose-800 border-rose-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'"
              class="p-4 rounded-xl border text-sm font-medium flex justify-between items-center shadow-sm">
             <span x-text="toastMessage"></span>
-            <button @click="toastMessage = ''" class="text-xs opacity-70 hover:opacity-100">✕</button>
+            <button @click="toastMessage = ''" class="text-xs opacity-70 hover:opacity-100 cursor-pointer">✕</button>
         </div>
 
         <!-- Banner Peringatan Akun Pending -->
@@ -60,7 +60,7 @@
                 <template x-for="m in (user?.memberships || [])" :key="m.id">
                     <div class="px-3.5 py-2 rounded-xl bg-slate-100 border border-slate-200 text-xs">
                         <div class="font-bold text-slate-900" x-text="'Kavling ' + m.unit.code + ' (' + m.unit.zone + ')'"></div>
-                        <div class="text-slate-500 capitalize" x-text="m.entity_type + ' • ' + m.sub_role.replace('_', ' ')"></div>
+                        <div class="text-slate-500" x-text="formatMembershipSummary(m)"></div>
                     </div>
                 </template>
             </div>
@@ -69,262 +69,240 @@
         <!-- Konten Utama (Hanya aktif jika sudah terverifikasi) -->
         <div x-show="user?.is_verified" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-            <!-- Kolom Kiri (7 Kolom): Kekuasaan Warga Atas Profil & Privasi -->
-            <section class="lg:col-span-7 bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-6">
-                <div class="border-b border-slate-100 pb-3">
-                    <h2 class="text-lg font-bold text-slate-900">Pengaturan Profil &amp; Privasi Warga</h2>
-                    <p class="text-xs text-slate-500">Anda memiliki kendali penuh atas identitas tampilan, privasi kontak, kendaraan, dan keamanan akun Anda.</p>
-                </div>
+            <!-- Kolom Kiri (7 Kolom) -->
+            <div class="lg:col-span-7 space-y-6">
 
-                <form @submit.prevent="saveProfile()" class="space-y-6">
-
-                    <!-- 1. Identitas Dasar & Display Name -->
-                    <div class="space-y-3">
-                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">1. Identitas &amp; Nama Panggilan Lingkungan</h3>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1">
-                                    Display Name (Nama Tampilan Publik)
-                                </label>
-                                <input type="text" x-model="profileForm.display_name" placeholder="Contoh: Pak Julian / Mas Budi"
-                                       class="w-full rounded-xl border-slate-300 text-xs">
-                                <p class="text-[11px] text-slate-500 mt-1">Nama akrab yang tampil di Direktori &amp; Pasar Tetangga.</p>
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1">
-                                    Nama Lengkap Resmi (Privat) *
-                                </label>
-                                <input type="text" x-model="profileForm.name" required
-                                       class="w-full rounded-xl border-slate-300 text-xs">
-                                <p class="text-[11px] text-slate-500 mt-1">Tersimpan privat kecuali Anda mengizinkannya di bawah.</p>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">
-                                Nomor WhatsApp Aktif (Digunakan untuk Masuk Akun) *
-                            </label>
-                            <input type="tel" x-model="profileForm.phone" required
-                                   class="w-full rounded-xl border-slate-300 text-xs">
-                        </div>
+                <!-- ========================================================= -->
+                <!-- KARTU 1: IDENTITAS & KEAMANAN AKUN (Interactive Rows)      -->
+                <!-- ========================================================= -->
+                <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100">
+                        <h2 class="text-base font-bold text-slate-900">1. Identitas &amp; Keamanan Akun</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Klik pada salah satu baris di bawah ini untuk memperbarui data Anda.</p>
                     </div>
 
-                    <!-- 2. Sakelar Privasi -->
-                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">2. Kontrol Privasi di Direktori Warga</h3>
-
-                        <label class="flex items-center justify-between cursor-pointer gap-3">
-                            <div>
-                                <div class="text-sm font-semibold text-slate-800">Tampilkan Nama Lengkap Resmi ke Tetangga</div>
-                                <div class="text-xs text-slate-500">Jika dimatikan, tetangga hanya melihat <strong>Display Name</strong> Anda.</div>
+                    <div class="divide-y divide-slate-100">
+                        <!-- Baris: Nama Panggilan Lingkungan -->
+                        <button type="button" @click="openModal('display_name')"
+                                class="w-full px-6 py-4 flex items-center justify-between gap-4 text-left hover:bg-slate-50/90 transition cursor-pointer group">
+                            <div class="space-y-0.5">
+                                <div class="text-xs font-medium text-slate-500">Nama Panggilan Lingkungan (Tampilan Publik)</div>
+                                <div class="text-sm font-semibold text-slate-900"
+                                     x-text="user?.display_name || 'Belum diatur (menggunakan nama lengkap)'"></div>
                             </div>
-                            <input type="checkbox" x-model="profileForm.privacy_settings.show_full_name"
-                                   class="w-5 h-5 rounded text-emerald-600 focus:ring-emerald-600 shrink-0">
-                        </label>
+                            <span class="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition text-lg font-medium shrink-0">&rsaquo;</span>
+                        </button>
 
-                        <label class="flex items-center justify-between cursor-pointer pt-2.5 border-t border-slate-200 gap-3">
-                            <div>
+                        <!-- Baris: Nama Lengkap Resmi -->
+                        <button type="button" @click="openModal('name')"
+                                class="w-full px-6 py-4 flex items-center justify-between gap-4 text-left hover:bg-slate-50/90 transition cursor-pointer group">
+                            <div class="space-y-0.5">
+                                <div class="text-xs font-medium text-slate-500">Nama Lengkap Resmi (Privat)</div>
+                                <div class="text-sm font-semibold text-slate-900" x-text="user?.name"></div>
+                            </div>
+                            <span class="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition text-lg font-medium shrink-0">&rsaquo;</span>
+                        </button>
+
+                        <!-- Baris: Nomor WhatsApp Login -->
+                        <button type="button" @click="openModal('phone')"
+                                class="w-full px-6 py-4 flex items-center justify-between gap-4 text-left hover:bg-slate-50/90 transition cursor-pointer group">
+                            <div class="space-y-0.5">
+                                <div class="text-xs font-medium text-slate-500">Nomor WhatsApp Aktif (ID Masuk Akun)</div>
+                                <div class="text-sm font-semibold text-slate-900 font-mono" x-text="user?.phone"></div>
+                            </div>
+                            <span class="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition text-lg font-medium shrink-0">&rsaquo;</span>
+                        </button>
+
+                        <!-- Baris: Kata Sandi -->
+                        <button type="button" @click="openModal('password')"
+                                class="w-full px-6 py-4 flex items-center justify-between gap-4 text-left hover:bg-slate-50/90 transition cursor-pointer group">
+                            <div class="space-y-0.5">
+                                <div class="text-xs font-medium text-slate-500">Kata Sandi Akun</div>
+                                <div class="text-sm font-semibold text-slate-900 tracking-widest">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</div>
+                            </div>
+                            <span class="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition text-lg font-medium shrink-0">&rsaquo;</span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- ========================================================= -->
+                <!-- KARTU 2: KONTROL PRIVASI DIREKTORI (Instant Toggle Switch) -->
+                <!-- ========================================================= -->
+                <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
+                        <div>
+                            <h2 class="text-base font-bold text-slate-900">2. Kontrol Privasi di Direktori Warga</h2>
+                            <p class="text-xs text-slate-500 mt-0.5">Atur visibilitas informasi Anda bagi sesama warga terverifikasi. Perubahan tersimpan otomatis.</p>
+                        </div>
+                        <span x-show="privacyStatusText"
+                              x-text="privacyStatusText"
+                              class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                        </span>
+                    </div>
+
+                    <div class="divide-y divide-slate-100">
+                        <!-- Sakelar 1: Nama Lengkap Resmi -->
+                        <div @click="togglePrivacy('show_full_name')"
+                             class="px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/80 transition cursor-pointer select-none">
+                            <div class="space-y-0.5">
+                                <div class="text-sm font-semibold text-slate-800">Tampilkan Nama Lengkap Resmi ke Tetangga</div>
+                                <div class="text-xs text-slate-500">Jika dimatikan, tetangga hanya melihat <strong>Nama Panggilan Lingkungan</strong> Anda.</div>
+                            </div>
+                            <button type="button"
+                                    role="switch"
+                                    :aria-checked="privacySettings.show_full_name"
+                                    :disabled="savingPrivacy"
+                                    :class="privacySettings.show_full_name ? '!bg-emerald-600' : '!bg-slate-300'"
+                                    class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full bg-slate-300 border border-slate-300/80 transition-colors duration-200 focus:outline-none cursor-pointer">
+                                <span :class="privacySettings.show_full_name ? 'translate-x-5' : 'translate-x-0.5'"
+                                      class="inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200"></span>
+                            </button>
+                        </div>
+
+                        <!-- Sakelar 2: Nomor WhatsApp -->
+                        <div @click="togglePrivacy('show_phone')"
+                             class="px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/80 transition cursor-pointer select-none">
+                            <div class="space-y-0.5">
                                 <div class="text-sm font-semibold text-slate-800">Tampilkan Nomor WhatsApp ke Tetangga</div>
                                 <div class="text-xs text-slate-500">Jika dimatikan, nomor WA Anda disamarkan dari warga umum di direktori.</div>
                             </div>
-                            <input type="checkbox" x-model="profileForm.privacy_settings.show_phone"
-                                   class="w-5 h-5 rounded text-emerald-600 focus:ring-emerald-600 shrink-0">
-                        </label>
+                            <button type="button"
+                                    role="switch"
+                                    :aria-checked="privacySettings.show_phone"
+                                    :disabled="savingPrivacy"
+                                    :class="privacySettings.show_phone ? '!bg-emerald-600' : '!bg-slate-300'"
+                                    class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full bg-slate-300 border border-slate-300/80 transition-colors duration-200 focus:outline-none cursor-pointer">
+                                <span :class="privacySettings.show_phone ? 'translate-x-5' : 'translate-x-0.5'"
+                                      class="inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200"></span>
+                            </button>
+                        </div>
 
-                        <label class="flex items-center justify-between cursor-pointer pt-2.5 border-t border-slate-200 gap-3">
-                            <div>
+                        <!-- Sakelar 3: Status Kepemilikan Rumah -->
+                        <div @click="togglePrivacy('show_ownership')"
+                             class="px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/80 transition cursor-pointer select-none">
+                            <div class="space-y-0.5">
                                 <div class="text-sm font-semibold text-slate-800">Tampilkan Status Kepemilikan Rumah</div>
                                 <div class="text-xs text-slate-500">Menampilkan apakah Anda pemilik atau penyewa pada direktori internal.</div>
                             </div>
-                            <input type="checkbox" x-model="profileForm.privacy_settings.show_ownership"
-                                   class="w-5 h-5 rounded text-emerald-600 focus:ring-emerald-600 shrink-0">
-                        </label>
-                    </div>
-
-                    <!-- 3. Data Kendaraan & Identitas Terenkripsi AES-256 -->
-                    <div class="space-y-4 pt-2 border-t border-slate-100">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">3. Kendaraan &amp; Dokumen Terenkripsi</h3>
-                            <button type="button" @click="addVehicle()"
-                                    class="text-xs font-semibold text-emerald-700 hover:underline cursor-pointer">
-                                + Tambah Kendaraan
+                            <button type="button"
+                                    role="switch"
+                                    :aria-checked="privacySettings.show_ownership"
+                                    :disabled="savingPrivacy"
+                                    :class="privacySettings.show_ownership ? '!bg-emerald-600' : '!bg-slate-300'"
+                                    class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full bg-slate-300 border border-slate-300/80 transition-colors duration-200 focus:outline-none cursor-pointer">
+                                <span :class="privacySettings.show_ownership ? 'translate-x-5' : 'translate-x-0.5'"
+                                      class="inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200"></span>
                             </button>
                         </div>
+                    </div>
+                </section>
 
-                        <template x-for="(v, idx) in profileForm.vehicles" :key="idx">
-                            <div class="flex gap-2 items-center">
-                                <select x-model="v.type" class="rounded-xl border-slate-300 text-xs">
-                                    <option value="mobil">Mobil</option>
-                                    <option value="motor">Motor</option>
-                                    <option value="sepeda">Sepeda</option>
-                                </select>
-                                <input type="text" x-model="v.plate" placeholder="Nomor Polisi (Contoh: N 1234 AB)"
-                                       class="flex-1 rounded-xl border-slate-300 text-xs uppercase">
-                                <button type="button" @click="profileForm.vehicles.splice(idx, 1)"
-                                        class="px-2.5 py-1.5 text-xs text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer">
-                                    Hapus
-                                </button>
-                            </div>
-                        </template>
+                <!-- ========================================================= -->
+                <!-- KARTU 3: DOKUMEN TERENKRIPSI & KENDARAAN (Interactive Rows) -->
+                <!-- ========================================================= -->
+                <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100">
+                        <h2 class="text-base font-bold text-slate-900">3. Dokumen Terenkripsi &amp; Kendaraan</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">NIK dan Nomor KK dienkripsi penuh (AES-256) di server dan tidak pernah ditampilkan kembali dalam teks terbuka.</p>
+                    </div>
 
-                        <!-- Identitas Terenkripsi AES-256 (Sejajar Presisi) -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start pt-1">
-                            <div class="space-y-1.5">
-                                <div class="flex items-center justify-between gap-2 min-h-[24px]">
-                                    <label class="text-xs font-semibold text-slate-700">NIK (16 Digit • AES-256)</label>
+                    <div class="divide-y divide-slate-100">
+                        <!-- Baris: NIK -->
+                        <button type="button" @click="openModal('nik')"
+                                class="w-full px-6 py-4 flex items-center justify-between gap-4 text-left hover:bg-slate-50/90 transition cursor-pointer group">
+                            <div class="space-y-1">
+                                <div class="text-xs font-medium text-slate-500">Nomor Induk Kependudukan (NIK • 16 Digit)</div>
+                                <div class="flex items-center gap-2">
                                     <span x-show="user?.has_nik"
-                                          class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                                        &#10003; Data Sudah Ada
+                                          class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                        &#10003; Tersimpan Terenkripsi (AES-256)
                                     </span>
                                     <span x-show="!user?.has_nik"
-                                          class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
-                                        Belum Diisi
+                                          class="text-sm font-medium text-slate-400">
+                                        Belum diisi
                                     </span>
                                 </div>
-                                <input type="text" x-model="profileForm.nik" maxlength="16"
-                                       :placeholder="user?.has_nik ? '•••••••••••• (Ketik untuk memperbarui)' : 'Masukkan 16 digit NIK Anda'"
-                                       class="w-full rounded-xl border-slate-300 text-xs font-mono">
-                                <p x-show="user?.has_nik" class="text-[11px] text-slate-500">
-                                    NIK sudah tersimpan terenkripsi. Biarkan kosong jika tidak ingin mengubah.
-                                </p>
                             </div>
+                            <span class="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition text-lg font-medium shrink-0">&rsaquo;</span>
+                        </button>
 
-                            <div class="space-y-1.5">
-                                <div class="flex items-center justify-between gap-2 min-h-[24px]">
-                                    <label class="text-xs font-semibold text-slate-700">Nomor KK (16 Digit • AES-256)</label>
+                        <!-- Baris: Nomor KK -->
+                        <button type="button" @click="openModal('kk')"
+                                class="w-full px-6 py-4 flex items-center justify-between gap-4 text-left hover:bg-slate-50/90 transition cursor-pointer group">
+                            <div class="space-y-1">
+                                <div class="text-xs font-medium text-slate-500">Nomor Kartu Keluarga (KK • 16 Digit)</div>
+                                <div class="flex items-center gap-2">
                                     <span x-show="user?.has_kk"
-                                          class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                                        &#10003; Data Sudah Ada
+                                          class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                        &#10003; Tersimpan Terenkripsi (AES-256)
                                     </span>
                                     <span x-show="!user?.has_kk"
-                                          class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
-                                        Belum Diisi
+                                          class="text-sm font-medium text-slate-400">
+                                        Belum diisi
                                     </span>
                                 </div>
-                                <input type="text" x-model="profileForm.kk" maxlength="16"
-                                       :placeholder="user?.has_kk ? '•••••••••••• (Ketik untuk memperbarui)' : 'Masukkan 16 digit Nomor KK'"
-                                       class="w-full rounded-xl border-slate-300 text-xs font-mono">
-                                <p x-show="user?.has_kk" class="text-[11px] text-slate-500">
-                                    Nomor KK sudah tersimpan terenkripsi. Biarkan kosong jika tidak ingin mengubah.
-                                </p>
                             </div>
-                        </div>
-                    </div>
+                            <span class="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition text-lg font-medium shrink-0">&rsaquo;</span>
+                        </button>
 
-                    <!-- 4. Keamanan Akun (Ganti Kata Sandi) -->
-                    <div class="space-y-3 pt-3 border-t border-slate-100">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">4. Keamanan Akun &amp; Ganti Kata Sandi</h3>
-                            <button type="button" @click="showPasswordSection = !showPasswordSection"
-                                    class="text-xs font-semibold text-emerald-700 hover:underline cursor-pointer"
-                                    x-text="showPasswordSection ? 'Tutup Form Sandi' : 'Ubah Kata Sandi'">
-                            </button>
-                        </div>
-
-                        <div x-show="showPasswordSection" class="bg-amber-50/50 p-4 rounded-xl border border-amber-200/80 space-y-3">
-                            <p class="text-[11px] text-slate-600">Kosongkan seluruh kolom di bawah ini jika Anda tidak ingin mengganti kata sandi.</p>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1">Kata Sandi Saat Ini</label>
-                                <input type="password" x-model="profileForm.current_password" placeholder="••••••••"
-                                       class="w-full rounded-xl border-slate-300 text-xs">
-                            </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Kata Sandi Baru (Min. 8 Karakter)</label>
-                                    <input type="password" x-model="profileForm.new_password" minlength="8" placeholder="••••••••"
-                                           class="w-full rounded-xl border-slate-300 text-xs">
+                        <!-- Baris: Kendaraan Terdaftar -->
+                        <button type="button" @click="openModal('vehicles')"
+                                class="w-full px-6 py-4 flex items-center justify-between gap-4 text-left hover:bg-slate-50/90 transition cursor-pointer group">
+                            <div class="space-y-1.5">
+                                <div class="text-xs font-medium text-slate-500">Kendaraan Terdaftar di Kavling</div>
+                                <div x-show="(user?.vehicles || []).length > 0" class="flex flex-wrap gap-1.5">
+                                    <template x-for="(v, idx) in (user?.vehicles || [])" :key="idx">
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-800">
+                                            <span class="capitalize text-slate-500 font-medium" x-text="v.type + ':'"></span>
+                                            <span class="font-mono uppercase" x-text="v.plate || '-'"></span>
+                                        </span>
+                                    </template>
                                 </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Ulangi Kata Sandi Baru</label>
-                                    <input type="password" x-model="profileForm.new_password_confirmation" minlength="8" placeholder="••••••••"
-                                           class="w-full rounded-xl border-slate-300 text-xs">
+                                <div x-show="(user?.vehicles || []).length === 0" class="text-sm font-medium text-slate-400">
+                                    Belum ada kendaraan terdaftar
                                 </div>
                             </div>
-                        </div>
+                            <span class="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition text-lg font-medium shrink-0">&rsaquo;</span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- ========================================================= -->
+                <!-- KARTU 4: STATUS ENTITAS & PERAN DI KAVLING (Interactive)  -->
+                <!-- ========================================================= -->
+                <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100">
+                        <h2 class="text-base font-bold text-slate-900">4. Status Entitas &amp; Peran di Kavling</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Klik pada kavling di bawah ini untuk mengoreksi status kepemilikan atau peran hunian Anda.</p>
                     </div>
 
-                    <!-- 5. Status Kepemilikan / Keanggotaan Kavling (Entitas & Peran) -->
-                    <div class="space-y-3 pt-3 border-t border-slate-100">
-                        <div>
-                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">5. Status Entitas &amp; Peran di Kavling</h3>
-                            <p class="text-[11px] text-slate-500 mt-0.5">
-                                Koreksi jika terjadi salah pilih antara <strong>Pemilik Rumah</strong> atau <strong>Penghuni</strong>. Perubahan menjadi status Pemilik memerlukan pengesahan ulang Koordinator.
-                            </p>
-                        </div>
-
-                        <div class="space-y-3">
-                            <template x-for="m in membershipForms" :key="m.id">
-                                <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-xs font-bold text-slate-900"
-                                              x-text="'Kavling ' + m.unit_code + ' (' + m.zone + ')'"></span>
-                                        <span :class="m.is_approved ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-amber-100 text-amber-800 border-amber-200'"
+                    <div class="divide-y divide-slate-100">
+                        <template x-for="m in (user?.memberships || [])" :key="m.id">
+                            <button type="button" @click="openMembershipModal(m)"
+                                    class="w-full px-6 py-4 flex items-center justify-between gap-4 text-left hover:bg-slate-50/90 transition cursor-pointer group">
+                                <div class="space-y-1">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="text-sm font-bold text-slate-900"
+                                              x-text="'Kavling ' + m.unit?.code + ' (' + m.unit?.zone + ')'"></span>
+                                        <span :class="m.is_approved ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200'"
                                               class="px-2 py-0.5 rounded-full text-[10px] font-bold border"
                                               x-text="m.is_approved ? '✓ Disahkan' : '⏳ Menunggu Pengesahan'">
                                         </span>
                                     </div>
-
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                        <div>
-                                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Entitas</label>
-                                            <select x-model="m.entity_type"
-                                                    @change="m.sub_role = m.entity_type === 'owner' ? 'primary_owner' : 'primary_resident'"
-                                                    class="w-full rounded-xl border-slate-300 text-xs">
-                                                <option value="owner">Pemilik Rumah</option>
-                                                <option value="resident">Penghuni</option>
-                                            </select>
-                                        </div>
-
-                                        <div>
-                                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Peran Spesifik</label>
-                                            <select x-model="m.sub_role" class="w-full rounded-xl border-slate-300 text-xs">
-                                                <template x-if="m.entity_type === 'owner'">
-                                                    <optgroup label="Pemilik">
-                                                        <option value="primary_owner">Pemilik Utama</option>
-                                                        <option value="co_owner">Pemilik Bersama</option>
-                                                    </optgroup>
-                                                </template>
-                                                <template x-if="m.entity_type === 'resident'">
-                                                    <optgroup label="Penghuni">
-                                                        <option value="primary_resident">Penghuni Utama</option>
-                                                        <option value="family_member">Anggota Keluarga</option>
-                                                        <option value="co_resident">Penghuni Bersama</option>
-                                                        <option value="tenant">Penyewa / Kontrak</option>
-                                                        <option value="caretaker">Penjaga Rumah</option>
-                                                    </optgroup>
-                                                </template>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div x-show="m.sub_role === 'tenant'">
-                                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Batas Akhir Masa Sewa (Opsional)</label>
-                                        <input type="date" x-model="m.valid_until" class="w-full rounded-xl border-slate-300 text-xs">
-                                    </div>
-
-                                    <div class="flex justify-end">
-                                        <button type="button" @click="saveMembershipRole(m)" :disabled="m.saving"
-                                                class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold transition cursor-pointer">
-                                            <span x-show="!m.saving">Perbarui Status Kavling Ini</span>
-                                            <span x-show="m.saving">Menyimpan...</span>
-                                        </button>
+                                    <div class="text-xs text-slate-600 font-medium" x-text="formatMembershipSummary(m)"></div>
+                                    <div x-show="m.sub_role === 'tenant' && m.valid_until"
+                                         class="text-[11px] text-slate-500"
+                                         x-text="'Batas masa sewa: ' + (m.valid_until ? m.valid_until.slice(0, 10) : '-')">
                                     </div>
                                 </div>
-                            </template>
-                        </div>
+                                <span class="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition text-lg font-medium shrink-0">&rsaquo;</span>
+                            </button>
+                        </template>
                     </div>
+                </section>
+            </div>
 
-                    <button type="submit" :disabled="savingProfile"
-                            class="w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-bold shadow-sm transition cursor-pointer">
-                        <span x-show="!savingProfile">Simpan Perubahan Profil &amp; Privasi</span>
-                        <span x-show="savingProfile">Menyimpan Perubahan...</span>
-                    </button>
-                </form>
-            </section>
-
-            <!-- Kolom Kanan (5 Kolom): Antrean Validasi, Undangan Unit, & Manajemen Pengurus -->
+            <!-- Kolom Kanan (5 Kolom): Murni Aktivitas Komunitas Warga -->
             <div class="lg:col-span-5 space-y-6">
 
                 <!-- Panel 1: Antrean Verifikasi Sosial -->
@@ -342,7 +320,7 @@
                             <div class="bg-white p-3.5 rounded-xl border border-amber-200 flex items-center justify-between gap-2">
                                 <div class="text-xs space-y-0.5">
                                     <div class="font-bold text-slate-900" x-text="item.name + ' • Unit ' + item.unit_code"></div>
-                                    <div class="text-slate-500" x-text="item.phone + ' (' + item.sub_role.replace('_', ' ') + ')'"></div>
+                                    <div class="text-slate-500" x-text="item.phone + ' (' + subRoleLabel(item.sub_role) + ')'"></div>
                                 </div>
                                 <button type="button" @click="approveResident(item)"
                                         class="px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shrink-0 cursor-pointer">
@@ -415,157 +393,221 @@
                     </div>
                 </section>
 
-                <!-- Panel 3: Penyematan Jabatan & Hak Akses -->
-                <section x-show="user?.is_global_governor"
-                         class="bg-indigo-50/60 rounded-2xl p-5 shadow-sm border border-indigo-200 space-y-4">
-                    <div class="border-b border-indigo-200/70 pb-3">
-                        <h2 class="text-base font-bold text-indigo-950">Penyematan Jabatan &amp; Hak Akses</h2>
-                        <p class="text-xs text-indigo-800">Satu warga dapat merangkap lebih dari satu jabatan tata kelola lingkungan.</p>
-                    </div>
-
-                    <form @submit.prevent="assignGovernance()" class="space-y-3">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Warga Terverifikasi *</label>
-                            <select x-model="govForm.target_user_id" required class="w-full rounded-xl border-slate-300 text-xs">
-                                <option value="">-- Pilih Warga PPMT --</option>
-                                <template x-for="r in verifiedResidents" :key="r.id">
-                                    <option :value="r.id" x-text="(r.display_name || r.name) + ' (' + r.units.map(u => u.unit_code).join(', ') + ')'"></option>
-                                </template>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Jabatan yang Disematkan *</label>
-                            <select x-model="govForm.role_code" @change="updateGovScopeDefault()" class="w-full rounded-xl border-slate-300 text-xs">
-                                <option value="koordinator_zona">Koordinator Zona</option>
-                                <option value="koordinator_blok">Koordinator Blok</option>
-                                <option value="ketua_paguyuban">Ketua Paguyuban</option>
-                                <option value="sekretaris_paguyuban">Sekretaris Paguyuban</option>
-                                <option value="bendahara_paguyuban">Bendahara Paguyuban</option>
-                                <option value="keamanan_lingkungan">Keamanan Lingkungan</option>
-                                <option value="operator_aplikasi" x-show="user?.is_operator_aplikasi">Operator Aplikasi</option>
-                            </select>
-                        </div>
-
-                        <div x-show="govForm.role_code === 'koordinator_zona'">
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Cakupan Zona *</label>
-                            <select x-model="govForm.scope_value" class="w-full rounded-xl border-slate-300 text-xs">
-                                <option value="ZONA-1">ZONA-1 (R1-R2, A-1..16)</option>
-                                <option value="ZONA-2">ZONA-2 (B-1..24)</option>
-                                <option value="ZONA-3">ZONA-3 (A-17..25, C-1..14)</option>
-                                <option value="ZONA-4">ZONA-4 (C-15..22, D-1..17)</option>
-                            </select>
-                        </div>
-
-                        <div x-show="govForm.role_code === 'koordinator_blok'">
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Cakupan Blok *</label>
-                            <select x-model="govForm.scope_value" class="w-full rounded-xl border-slate-300 text-xs">
-                                <option value="R">Blok R (Ruko)</option>
-                                <option value="A">Blok A</option>
-                                <option value="B">Blok B</option>
-                                <option value="C">Blok C</option>
-                                <option value="D">Blok D</option>
-                            </select>
-                        </div>
-
-                        <button type="submit"
-                                class="w-full py-2 px-4 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-semibold transition cursor-pointer">
-                            Sematkan Jabatan
-                        </button>
-                    </form>
-
-                    <!-- Daftar Jabatan Aktif -->
-                    <div class="space-y-2 pt-2 border-t border-indigo-200/70">
-                        <div class="text-[11px] font-bold uppercase tracking-wider text-indigo-900">Pengurus Aktif Saat Ini</div>
-                        <template x-for="item in governanceList" :key="item.id">
-                            <div class="bg-white p-2.5 rounded-xl border border-indigo-100 flex items-center justify-between gap-2 text-xs">
-                                <div>
-                                    <div class="font-bold text-slate-900" x-text="item.user_name + ' (' + item.unit_codes + ')'"></div>
-                                    <div class="text-indigo-700 font-semibold" x-text="item.display_label"></div>
-                                </div>
-                                <button type="button" @click="revokeGovernance(item.id)"
-                                        class="px-2 py-1 rounded text-[11px] text-rose-600 hover:bg-rose-50 font-semibold cursor-pointer">
-                                    Cabut
-                                </button>
-                            </div>
-                        </template>
-                    </div>
-                </section>
-
-                <!-- Panel 4: Pendaftaran Langsung Tetangga Terkenal (Assisted Onboarding) -->
-                <section x-show="user?.is_global_governor"
-                         class="bg-emerald-50/60 rounded-2xl p-5 shadow-sm border border-emerald-200 space-y-4">
-                    <div class="border-b border-emerald-200/70 pb-3">
-                        <h2 class="text-base font-bold text-emerald-950">Daftarkan Tetangga Terkenal</h2>
-                        <p class="text-xs text-emerald-800">Daftarkan tetangga yang sudah Anda kenal secara langsung ke kavlingnya (otomatis terverifikasi atas jaminan Anda).</p>
-                    </div>
-
-                    <form @submit.prevent="submitAssistedRegister()" class="space-y-3">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Kavling Tetangga *</label>
-                            <select x-model="assistForm.unit_code" required class="w-full rounded-xl border-slate-300 text-xs">
-                                <option value="">-- Pilih Kavling PPMT --</option>
-                                <template x-for="u in allUnits" :key="u.id">
-                                    <option :value="u.code" x-text="u.code + ' (' + u.zone + ')'"></option>
-                                </template>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap Tetangga *</label>
-                            <input type="text" x-model="assistForm.name" required placeholder="Contoh: Pak Ahmad"
-                                   class="w-full rounded-xl border-slate-300 text-xs">
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor WhatsApp Tetangga *</label>
-                            <input type="tel" x-model="assistForm.phone" required placeholder="0812xxxxxxxx"
-                                   class="w-full rounded-xl border-slate-300 text-xs">
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1">Entitas</label>
-                                <select x-model="assistForm.entity_type" @change="assistForm.sub_role = assistForm.entity_type === 'owner' ? 'primary_owner' : 'primary_resident'"
-                                        class="w-full rounded-xl border-slate-300 text-xs">
-                                    <option value="owner">Pemilik Rumah</option>
-                                    <option value="resident">Penghuni</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1">Peran</label>
-                                <select x-model="assistForm.sub_role" class="w-full rounded-xl border-slate-300 text-xs">
-                                    <template x-if="assistForm.entity_type === 'owner'">
-                                        <optgroup label="Pemilik">
-                                            <option value="primary_owner">Pemilik Utama</option>
-                                            <option value="co_owner">Pemilik Bersama</option>
-                                        </optgroup>
-                                    </template>
-                                    <template x-if="assistForm.entity_type === 'resident'">
-                                        <optgroup label="Penghuni">
-                                            <option value="primary_resident">Penghuni Utama</option>
-                                            <option value="family_member">Anggota Keluarga</option>
-                                            <option value="tenant">Penyewa / Kontrak</option>
-                                        </optgroup>
-                                    </template>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Kata Sandi Sementara (Min. 8 Karakter) *</label>
-                            <input type="text" x-model="assistForm.password" required minlength="8" placeholder="Contoh: ppmt12345"
-                                   class="w-full rounded-xl border-slate-300 text-xs font-mono">
-                        </div>
-
-                        <button type="submit"
-                                class="w-full py-2 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold transition cursor-pointer">
-                            Daftarkan &amp; Aktifkan Warga
-                        </button>
-                    </form>
-                </section>
-
             </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- POPUP MODAL TERFOKUS (KARTU 1, KARTU 3, & KARTU 4)                    -->
+    <!-- ===================================================================== -->
+    <div x-show="activeModal !== null"
+         x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-[1px]">
+        <div @click.away="closeModal()"
+             class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden">
+
+            <!-- Header Modal -->
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-base font-bold text-slate-900" x-text="modalTitle"></h3>
+                <button type="button" @click="closeModal()" class="text-slate-400 hover:text-slate-700 text-sm cursor-pointer">✕</button>
+            </div>
+
+            <!-- Isi Modal -->
+            <form @submit.prevent="submitModal()" class="p-6 space-y-4">
+                <div x-show="modalError"
+                     class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 font-medium"
+                     x-text="modalError"></div>
+
+                <!-- Modal: Nama Panggilan Lingkungan -->
+                <template x-if="activeModal === 'display_name'">
+                    <div class="space-y-2">
+                        <label class="block text-xs font-semibold text-slate-700">Nama Panggilan Lingkungan</label>
+                        <input type="text" x-model="modalForm.display_name" placeholder="Contoh: Pak Julian / Mas Budi"
+                               class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600" autofocus>
+                        <p class="text-[11px] text-slate-500 leading-relaxed">
+                            Nama akrab ini akan ditampilkan kepada tetangga di Direktori Warga &amp; Pasar Tetangga menggantikan nama lengkap resmi Anda (kecuali Anda mengizinkan nama resmi ditampilkan).
+                        </p>
+                    </div>
+                </template>
+
+                <!-- Modal: Nama Lengkap Resmi -->
+                <template x-if="activeModal === 'name'">
+                    <div class="space-y-2">
+                        <label class="block text-xs font-semibold text-slate-700">Nama Lengkap Resmi *</label>
+                        <input type="text" x-model="modalForm.name" required
+                               class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600" autofocus>
+                        <p class="text-[11px] text-slate-500 leading-relaxed">
+                            Gunakan nama asli sesuai identitas resmi untuk keperluan administrasi paguyuban dan keabsahan verifikasi komunitas.
+                        </p>
+                    </div>
+                </template>
+
+                <!-- Modal: Nomor WhatsApp Login -->
+                <template x-if="activeModal === 'phone'">
+                    <div class="space-y-2">
+                        <label class="block text-xs font-semibold text-slate-700">Nomor WhatsApp Aktif *</label>
+                        <input type="tel" x-model="modalForm.phone" required placeholder="0812xxxxxxxx"
+                               class="w-full rounded-xl border-slate-300 text-sm font-mono focus:border-emerald-600 focus:ring-emerald-600" autofocus>
+                        <p class="text-[11px] text-amber-700 bg-amber-50 p-2.5 rounded-lg border border-amber-200 leading-relaxed">
+                            Perhatian: Nomor ini juga digunakan sebagai identitas masuk (login) akun Anda pada sesi berikutnya.
+                        </p>
+                    </div>
+                </template>
+
+                <!-- Modal: Ganti Kata Sandi -->
+                <template x-if="activeModal === 'password'">
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Kata Sandi Saat Ini *</label>
+                            <input type="password" x-model="modalForm.current_password" required placeholder="••••••••"
+                                   class="w-full rounded-xl border-slate-300 text-sm" autofocus>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Kata Sandi Baru (Min. 8 Karakter) *</label>
+                            <input type="password" x-model="modalForm.new_password" required minlength="8" placeholder="••••••••"
+                                   class="w-full rounded-xl border-slate-300 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Ulangi Kata Sandi Baru *</label>
+                            <input type="password" x-model="modalForm.new_password_confirmation" required minlength="8" placeholder="••••••••"
+                                   class="w-full rounded-xl border-slate-300 text-sm">
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Modal: NIK (16 Digit AES-256) -->
+                <template x-if="activeModal === 'nik'">
+                    <div class="space-y-2">
+                        <label class="block text-xs font-semibold text-slate-700">NIK Baru (16 Digit Angka) *</label>
+                        <input type="text" x-model="modalForm.nik" required minlength="16" maxlength="16"
+                               inputmode="numeric" pattern="[0-9]{16}"
+                               placeholder="3507xxxxxxxxxxxx"
+                               class="w-full rounded-xl border-slate-300 text-sm font-mono focus:border-emerald-600 focus:ring-emerald-600" autofocus>
+                        <p class="text-[11px] text-slate-500 leading-relaxed">
+                            Demi keamanan privasi, NIK yang sudah tersimpan tidak pernah ditampilkan kembali. Masukkan 16 digit NIK baru jika Anda ingin menyimpan atau menggantinya.
+                        </p>
+                    </div>
+                </template>
+
+                <!-- Modal: Nomor KK (16 Digit AES-256) -->
+                <template x-if="activeModal === 'kk'">
+                    <div class="space-y-2">
+                        <label class="block text-xs font-semibold text-slate-700">Nomor KK Baru (16 Digit Angka) *</label>
+                        <input type="text" x-model="modalForm.kk" required minlength="16" maxlength="16"
+                               inputmode="numeric" pattern="[0-9]{16}"
+                               placeholder="3507xxxxxxxxxxxx"
+                               class="w-full rounded-xl border-slate-300 text-sm font-mono focus:border-emerald-600 focus:ring-emerald-600" autofocus>
+                        <p class="text-[11px] text-slate-500 leading-relaxed">
+                            Nomor Kartu Keluarga dienkripsi dengan standar AES-256 dan hanya digunakan untuk keabsahan pendataan internal warga PPMT.
+                        </p>
+                    </div>
+                </template>
+
+                <!-- Modal: Kelola Kendaraan -->
+                <template x-if="activeModal === 'vehicles'">
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-700">Daftar Kendaraan Kavling</span>
+                            <button type="button" @click="modalForm.vehicles.push({ type: 'motor', plate: '' })"
+                                    class="text-xs font-bold text-emerald-700 hover:underline cursor-pointer">
+                                + Tambah Baris
+                            </button>
+                        </div>
+
+                        <div x-show="modalForm.vehicles.length === 0"
+                             class="p-4 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-center text-xs text-slate-500">
+                            Belum ada kendaraan. Klik <strong>+ Tambah Baris</strong> untuk mendaftarkan plat nomor kendaraan Anda.
+                        </div>
+
+                        <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                            <template x-for="(v, idx) in modalForm.vehicles" :key="idx">
+                                <div class="flex items-center gap-2">
+                                    <select x-model="v.type" class="rounded-xl border-slate-300 text-xs">
+                                        <option value="mobil">Mobil</option>
+                                        <option value="motor">Motor</option>
+                                        <option value="sepeda">Sepeda</option>
+                                    </select>
+                                    <input type="text" x-model="v.plate" required placeholder="N 1234 AB"
+                                           class="flex-1 rounded-xl border-slate-300 text-xs font-mono uppercase">
+                                    <button type="button" @click="modalForm.vehicles.splice(idx, 1)"
+                                            class="px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer">
+                                        Hapus
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                        <p class="text-[11px] text-slate-500 leading-relaxed">
+                            Data plat nomor membantu petugas keamanan lingkungan mengenali kendaraan milik warga dan mencegah salah tegur parkir.
+                        </p>
+                    </div>
+                </template>
+
+                <!-- Modal: Koreksi Status Entitas & Peran Kavling -->
+                <template x-if="activeModal === 'membership'">
+                    <div class="space-y-3">
+                        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+                            <span class="font-bold text-slate-900"
+                                  x-text="'Kavling ' + modalForm.membership.unit_code + ' (' + modalForm.membership.zone + ')'"></span>
+                            <span class="text-slate-500">Status Saat Ini</span>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Entitas di Kavling *</label>
+                            <select x-model="modalForm.membership.entity_type"
+                                    @change="modalForm.membership.sub_role = modalForm.membership.entity_type === 'owner' ? 'primary_owner' : 'primary_resident'"
+                                    class="w-full rounded-xl border-slate-300 text-sm">
+                                <option value="owner">Pemilik Rumah</option>
+                                <option value="resident">Penghuni</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Peran Spesifik *</label>
+                            <select x-model="modalForm.membership.sub_role" class="w-full rounded-xl border-slate-300 text-sm">
+                                <template x-if="modalForm.membership.entity_type === 'owner'">
+                                    <optgroup label="Pemilik">
+                                        <option value="primary_owner">Pemilik Utama</option>
+                                        <option value="co_owner">Pemilik Bersama</option>
+                                    </optgroup>
+                                </template>
+                                <template x-if="modalForm.membership.entity_type === 'resident'">
+                                    <optgroup label="Penghuni">
+                                        <option value="primary_resident">Penghuni Utama</option>
+                                        <option value="family_member">Anggota Keluarga</option>
+                                        <option value="co_resident">Penghuni Bersama</option>
+                                        <option value="tenant">Penyewa / Kontrak</option>
+                                        <option value="caretaker">Penjaga Rumah</option>
+                                    </optgroup>
+                                </template>
+                            </select>
+                        </div>
+
+                        <div x-show="modalForm.membership.sub_role === 'tenant'">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Batas Akhir Masa Sewa (Opsional)</label>
+                            <input type="date" x-model="modalForm.membership.valid_until"
+                                   class="w-full rounded-xl border-slate-300 text-sm">
+                        </div>
+
+                        <p x-show="modalForm.membership.entity_type === 'owner'"
+                           class="text-[11px] text-amber-800 bg-amber-50 p-2.5 rounded-lg border border-amber-200 leading-relaxed">
+                            Catatan: Perubahan status dari Penghuni menjadi <strong>Pemilik Rumah</strong> memerlukan pengesahan ulang oleh Koordinator Zona/Blok terkait.
+                        </p>
+                    </div>
+                </template>
+
+                <!-- Footer Tombol Modal -->
+                <div class="pt-2 flex items-center justify-end gap-2.5 border-t border-slate-100">
+                    <button type="button" @click="closeModal()"
+                            class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-semibold cursor-pointer">
+                        Batal
+                    </button>
+                    <button type="submit" :disabled="savingModal"
+                            class="px-5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-sm transition cursor-pointer">
+                        <span x-show="!savingModal">Simpan Perubahan</span>
+                        <span x-show="savingModal">Menyimpan...</span>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -576,50 +618,49 @@ function ppmtDashboard() {
         token: localStorage.getItem('ppmt_token'),
         user: null,
         loading: true,
-        savingProfile: false,
-        showPasswordSection: false,
+        savingPrivacy: false,
+        privacyStatusText: '',
+        privacyStatusTimer: null,
         toastMessage: '',
         toastType: 'success',
         pendingApprovals: [],
         generatedInviteUrl: '',
-        verifiedResidents: [],
-        governanceList: [],
-        allUnits: [],
-        profileForm: {
-            name: '',
+
+        // State Popup Modal (Kartu 1, Kartu 3, & Kartu 4)
+        activeModal: null,
+        modalError: '',
+        savingModal: false,
+        modalForm: {
             display_name: '',
+            name: '',
             phone: '',
-            nik: '',
-            kk: '',
             current_password: '',
             new_password: '',
             new_password_confirmation: '',
+            nik: '',
+            kk: '',
             vehicles: [],
-            privacy_settings: {
-                show_full_name: false,
-                show_phone: false,
-                show_ownership: false
+            membership: {
+                id: null,
+                unit_code: '',
+                zone: '',
+                entity_type: 'owner',
+                sub_role: 'primary_owner',
+                valid_until: ''
             }
         },
+
+        privacySettings: {
+            show_full_name: false,
+            show_phone: false,
+            show_ownership: false
+        },
+
         inviteForm: {
             unit_code: '',
             entity_type: 'resident',
             sub_role: 'family_member',
             member_valid_until: ''
-        },
-        govForm: {
-            target_user_id: '',
-            role_code: 'koordinator_zona',
-            scope_type: 'zone',
-            scope_value: 'ZONA-1'
-        },
-        assistForm: {
-            unit_code: '',
-            name: '',
-            phone: '',
-            entity_type: 'owner',
-            sub_role: 'primary_owner',
-            password: ''
         },
 
         async init() {
@@ -630,9 +671,6 @@ function ppmtDashboard() {
             await this.loadMe();
             if (this.user?.is_verified) {
                 await this.loadPendingApprovals();
-                if (this.user?.is_global_governor) {
-                    await this.loadGovernanceData();
-                }
             }
         },
 
@@ -644,6 +682,210 @@ function ppmtDashboard() {
             };
         },
 
+        subRoleLabel(role) {
+            const labels = {
+                'primary_owner': 'Pemilik Utama',
+                'co_owner': 'Pemilik Bersama',
+                'primary_resident': 'Penghuni Utama',
+                'family_member': 'Anggota Keluarga',
+                'co_resident': 'Penghuni Bersama',
+                'tenant': 'Penyewa / Kontrak',
+                'caretaker': 'Penjaga Rumah'
+            };
+            return labels[role] || role;
+        },
+
+        formatMembershipSummary(m) {
+            const entityLabel = m.entity_type === 'owner' ? 'Pemilik Rumah' : 'Penghuni';
+            return `${entityLabel} • ${this.subRoleLabel(m.sub_role)}`;
+        },
+
+        get modalTitle() {
+            const titles = {
+                'display_name': 'Ubah Nama Panggilan Lingkungan',
+                'name': 'Koreksi Nama Lengkap Resmi',
+                'phone': 'Ubah Nomor WhatsApp Login',
+                'password': 'Ubah Kata Sandi Akun',
+                'nik': 'Perbarui NIK (Terenkripsi AES-256)',
+                'kk': 'Perbarui Nomor KK (Terenkripsi AES-256)',
+                'vehicles': 'Kelola Kendaraan Terdaftar',
+                'membership': 'Koreksi Status Entitas & Peran Kavling'
+            };
+            return titles[this.activeModal] || '';
+        },
+
+        openModal(type) {
+            this.modalError = '';
+            const existingVehicles = Array.isArray(this.user?.vehicles)
+                ? JSON.parse(JSON.stringify(this.user.vehicles))
+                : [];
+
+            if (type === 'vehicles' && existingVehicles.length === 0) {
+                existingVehicles.push({ type: 'motor', plate: '' });
+            }
+
+            this.modalForm = {
+                display_name: this.user?.display_name || '',
+                name: this.user?.name || '',
+                phone: this.user?.phone || '',
+                current_password: '',
+                new_password: '',
+                new_password_confirmation: '',
+                nik: '',
+                kk: '',
+                vehicles: existingVehicles,
+                membership: {
+                    id: null,
+                    unit_code: '',
+                    zone: '',
+                    entity_type: 'owner',
+                    sub_role: 'primary_owner',
+                    valid_until: ''
+                }
+            };
+            this.activeModal = type;
+        },
+
+        openMembershipModal(m) {
+            this.openModal('membership');
+            this.modalForm.membership = {
+                id: m.id,
+                unit_code: m.unit?.code || '',
+                zone: m.unit?.zone || '',
+                entity_type: m.entity_type,
+                sub_role: m.sub_role,
+                valid_until: m.valid_until ? m.valid_until.slice(0, 10) : ''
+            };
+        },
+
+        closeModal() {
+            this.activeModal = null;
+            this.modalError = '';
+        },
+
+        async submitModal() {
+            this.savingModal = true;
+            this.modalError = '';
+
+            try {
+                if (this.activeModal === 'membership') {
+                    const m = this.modalForm.membership;
+                    const res = await fetch(`/api/v1/memberships/${m.id}`, {
+                        method: 'PATCH',
+                        headers: this.headers(),
+                        body: JSON.stringify({
+                            entity_type: m.entity_type,
+                            sub_role: m.sub_role,
+                            valid_until: m.sub_role === 'tenant' ? (m.valid_until || null) : null
+                        })
+                    });
+                    const json = await res.json();
+
+                    if (!res.ok) {
+                        this.modalError = json.message || 'Gagal memperbarui status kavling.';
+                        return;
+                    }
+
+                    this.closeModal();
+                    this.toastType = 'success';
+                    this.toastMessage = json.message || 'Status keanggotaan kavling berhasil diperbarui.';
+                    await this.loadMe();
+                    return;
+                }
+
+                const payload = {
+                    name: this.user.name,
+                    display_name: this.user.display_name,
+                    phone: this.user.phone
+                };
+
+                if (this.activeModal === 'display_name') {
+                    payload.display_name = this.modalForm.display_name;
+                } else if (this.activeModal === 'name') {
+                    payload.name = this.modalForm.name;
+                } else if (this.activeModal === 'phone') {
+                    payload.phone = this.modalForm.phone;
+                } else if (this.activeModal === 'password') {
+                    payload.current_password = this.modalForm.current_password;
+                    payload.new_password = this.modalForm.new_password;
+                    payload.new_password_confirmation = this.modalForm.new_password_confirmation;
+                } else if (this.activeModal === 'nik') {
+                    payload.nik = this.modalForm.nik;
+                } else if (this.activeModal === 'kk') {
+                    payload.kk = this.modalForm.kk;
+                } else if (this.activeModal === 'vehicles') {
+                    payload.vehicles = this.modalForm.vehicles
+                        .filter(v => (v.plate || '').trim() !== '')
+                        .map(v => ({
+                            type: v.type || 'motor',
+                            plate: v.plate.trim().toUpperCase()
+                        }));
+                }
+
+                const res = await fetch('/api/v1/profile', {
+                    method: 'PATCH',
+                    headers: this.headers(),
+                    body: JSON.stringify(payload)
+                });
+                const json = await res.json();
+
+                if (!res.ok) {
+                    this.modalError = json.message || 'Gagal menyimpan perubahan.';
+                    return;
+                }
+
+                this.closeModal();
+                this.toastType = 'success';
+                this.toastMessage = json.message || 'Data berhasil diperbarui.';
+                await this.loadMe();
+            } catch (e) {
+                this.modalError = 'Terjadi gangguan koneksi saat menyimpan.';
+            } finally {
+                this.savingModal = false;
+            }
+        },
+
+        async togglePrivacy(key) {
+            if (this.savingPrivacy) return;
+
+            const previousValue = Boolean(this.privacySettings[key]);
+            this.privacySettings[key] = !previousValue;
+            this.savingPrivacy = true;
+            this.privacyStatusText = 'Menyimpan...';
+
+            try {
+                const res = await fetch('/api/v1/profile', {
+                    method: 'PATCH',
+                    headers: this.headers(),
+                    body: JSON.stringify({
+                        name: this.user.name,
+                        display_name: this.user.display_name,
+                        phone: this.user.phone,
+                        privacy_settings: this.privacySettings
+                    })
+                });
+
+                if (!res.ok) {
+                    throw new Error('Gagal memperbarui pengaturan privasi');
+                }
+
+                this.user.privacy_settings = { ...this.privacySettings };
+                this.privacyStatusText = '✓ Tersimpan';
+
+                clearTimeout(this.privacyStatusTimer);
+                this.privacyStatusTimer = setTimeout(() => {
+                    this.privacyStatusText = '';
+                }, 2200);
+            } catch (e) {
+                this.privacySettings[key] = previousValue;
+                this.privacyStatusText = '';
+                this.toastType = 'error';
+                this.toastMessage = 'Gagal menyimpan pengaturan privasi. Periksa koneksi Anda.';
+            } finally {
+                this.savingPrivacy = false;
+            }
+        },
+
         async loadMe() {
             try {
                 const res = await fetch('/api/v1/me', { headers: this.headers() });
@@ -651,27 +893,13 @@ function ppmtDashboard() {
                 const json = await res.json();
                 this.user = json.data;
 
-                this.profileForm.name = this.user.name || '';
-                this.profileForm.display_name = this.user.display_name || '';
-                this.profileForm.phone = this.user.phone || '';
-                this.profileForm.vehicles = Array.isArray(this.user.vehicles) ? this.user.vehicles : [];
-                this.profileForm.privacy_settings = {
+                this.privacySettings = {
                     show_full_name: Boolean(this.user.privacy_settings?.show_full_name),
                     show_phone: Boolean(this.user.privacy_settings?.show_phone),
                     show_ownership: Boolean(this.user.privacy_settings?.show_ownership)
                 };
-                this.membershipForms = (this.user.memberships || []).map(m => ({
-                    id: m.id,
-                    unit_code: m.unit?.code || '',
-                    zone: m.unit?.zone || '',
-                    entity_type: m.entity_type,
-                    sub_role: m.sub_role,
-                    valid_until: m.valid_until ? m.valid_until.slice(0, 10) : '',
-                    is_approved: Boolean(m.is_approved),
-                    saving: false
-                }));
 
-                if (this.manageableUnits.length > 0) {
+                if (this.manageableUnits.length > 0 && !this.inviteForm.unit_code) {
                     this.inviteForm.unit_code = this.manageableUnits[0].unit.code;
                 }
             } catch (e) {
@@ -694,168 +922,6 @@ function ppmtDashboard() {
             if (res.ok) {
                 const json = await res.json();
                 this.pendingApprovals = json.data || [];
-            }
-        },
-
-        async loadGovernanceData() {
-            const [govRes, dirRes, unitsRes] = await Promise.all([
-                fetch('/api/v1/governance/roles', { headers: this.headers() }),
-                fetch('/api/v1/residents/directory', { headers: this.headers() }),
-                fetch('/api/v1/public/units')
-            ]);
-            if (govRes.ok) {
-                const govJson = await govRes.json();
-                this.governanceList = govJson.data || [];
-            }
-            if (dirRes.ok) {
-                const dirJson = await dirRes.json();
-                this.verifiedResidents = dirJson.data || [];
-            }
-            if (unitsRes.ok) {
-                const unitsJson = await unitsRes.json();
-                this.allUnits = (unitsJson.data || []).filter(u => u.unit_type !== 'fasum');
-            }
-        },
-
-        updateGovScopeDefault() {
-            if (this.govForm.role_code === 'koordinator_zona') {
-                this.govForm.scope_type = 'zone';
-                this.govForm.scope_value = 'ZONA-1';
-            } else if (this.govForm.role_code === 'koordinator_blok') {
-                this.govForm.scope_type = 'block';
-                this.govForm.scope_value = 'A';
-            } else {
-                this.govForm.scope_type = 'global';
-                this.govForm.scope_value = '';
-            }
-        },
-
-        async assignGovernance() {
-            const res = await fetch('/api/v1/governance/assign', {
-                method: 'POST',
-                headers: this.headers(),
-                body: JSON.stringify(this.govForm)
-            });
-            const json = await res.json();
-            if (res.ok) {
-                this.toastType = 'success';
-                this.toastMessage = json.message;
-                await Promise.all([this.loadMe(), this.loadGovernanceData()]);
-            } else {
-                this.toastType = 'error';
-                this.toastMessage = json.message || 'Gagal menyematkan jabatan.';
-            }
-        },
-
-        async revokeGovernance(roleId) {
-            const res = await fetch(`/api/v1/governance/roles/${roleId}`, {
-                method: 'DELETE',
-                headers: this.headers()
-            });
-            const json = await res.json();
-            if (res.ok) {
-                this.toastType = 'success';
-                this.toastMessage = json.message;
-                await Promise.all([this.loadMe(), this.loadGovernanceData()]);
-            } else {
-                this.toastType = 'error';
-                this.toastMessage = json.message || 'Gagal mencabut jabatan.';
-            }
-        },
-
-        async submitAssistedRegister() {
-            const res = await fetch('/api/v1/governance/assisted-register', {
-                method: 'POST',
-                headers: this.headers(),
-                body: JSON.stringify(this.assistForm)
-            });
-            const json = await res.json();
-            if (res.ok) {
-                this.toastType = 'success';
-                this.toastMessage = json.message;
-                this.assistForm.unit_code = '';
-                this.assistForm.name = '';
-                this.assistForm.phone = '';
-                this.assistForm.password = '';
-                await this.loadGovernanceData();
-            } else {
-                this.toastType = 'error';
-                this.toastMessage = json.message || 'Gagal mendaftarkan tetangga.';
-            }
-        },
-
-        addVehicle() {
-            this.profileForm.vehicles.push({ type: 'motor', plate: '' });
-        },
-
-        async saveProfile() {
-            this.savingProfile = true;
-            this.toastMessage = '';
-            const payload = {
-                name: this.profileForm.name,
-                display_name: this.profileForm.display_name,
-                phone: this.profileForm.phone,
-                vehicles: this.profileForm.vehicles,
-                privacy_settings: this.profileForm.privacy_settings
-            };
-            if (this.profileForm.nik) payload.nik = this.profileForm.nik;
-            if (this.profileForm.kk) payload.kk = this.profileForm.kk;
-            if (this.profileForm.new_password) {
-                payload.current_password = this.profileForm.current_password;
-                payload.new_password = this.profileForm.new_password;
-                payload.new_password_confirmation = this.profileForm.new_password_confirmation;
-            }
-
-            try {
-                const res = await fetch('/api/v1/profile', {
-                    method: 'PATCH',
-                    headers: this.headers(),
-                    body: JSON.stringify(payload)
-                });
-                const json = await res.json();
-                if (!res.ok) {
-                    this.toastType = 'error';
-                    this.toastMessage = json.message || 'Gagal menyimpan profil.';
-                    return;
-                }
-                this.profileForm.nik = '';
-                this.profileForm.kk = '';
-                this.profileForm.current_password = '';
-                this.profileForm.new_password = '';
-                this.profileForm.new_password_confirmation = '';
-                this.showPasswordSection = false;
-                this.toastType = 'success';
-                this.toastMessage = json.message;
-                await this.loadMe();
-            } finally {
-                this.savingProfile = false;
-            }
-        },
-
-        async saveMembershipRole(m) {
-            m.saving = true;
-            this.toastMessage = '';
-            try {
-                const res = await fetch(`/api/v1/memberships/${m.id}`, {
-                    method: 'PATCH',
-                    headers: this.headers(),
-                    body: JSON.stringify({
-                        entity_type: m.entity_type,
-                        sub_role: m.sub_role,
-                        valid_until: m.sub_role === 'tenant' ? (m.valid_until || null) : null
-                    })
-                });
-                const json = await res.json();
-                if (!res.ok) {
-                    this.toastType = 'error';
-                    this.toastMessage = json.message || 'Gagal memperbarui status entitas dan peran.';
-                    return;
-                }
-                this.toastType = 'success';
-                this.toastMessage = json.message;
-                await this.loadMe();
-            } finally {
-                m.saving = false;
             }
         },
 
