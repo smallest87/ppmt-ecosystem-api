@@ -402,18 +402,18 @@
     <!-- ===================================================================== -->
     <div x-show="activeModal !== null"
          x-cloak
-         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-[1px]">
+         class="fixed inset-0 z-50 !mt-0 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-[1px] overflow-y-auto">
         <div @click.away="closeModal()"
-             class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden">
+             class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-[calc(100vw-1.5rem)] sm:max-w-md max-h-[90dvh] flex flex-col overflow-hidden my-auto">
 
             <!-- Header Modal -->
-            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                <h3 class="text-base font-bold text-slate-900" x-text="modalTitle"></h3>
-                <button type="button" @click="closeModal()" class="text-slate-400 hover:text-slate-700 text-sm cursor-pointer">✕</button>
+            <div class="px-5 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3 shrink-0">
+                <h3 class="text-base font-bold text-slate-900 leading-snug" x-text="modalTitle"></h3>
+                <button type="button" @click="closeModal()" class="text-slate-400 hover:text-slate-700 text-sm p-1 cursor-pointer shrink-0">✕</button>
             </div>
 
             <!-- Isi Modal -->
-            <form @submit.prevent="submitModal()" class="p-6 space-y-4">
+            <form @submit.prevent="submitModal()" class="p-5 sm:p-6 space-y-4 overflow-y-auto">
                 <div x-show="modalError"
                      class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 font-medium"
                      x-text="modalError"></div>
