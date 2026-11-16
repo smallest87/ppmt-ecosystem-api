@@ -36,10 +36,9 @@
                         Profil Lingkungan
                     </a>
                     <button type="button"
-                            @click="window.dispatchEvent(new CustomEvent('open-warga-modal', { detail: 'choose' }))"
-                            class="px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs sm:text-sm font-bold transition shadow-sm cursor-pointer">
-                        <span class="hidden sm:inline">Saya Warga Perumahan</span>
-                        <span class="sm:hidden">Masuk Warga</span>
+                            @click="window.dispatchEvent(new CustomEvent('open-warga-modal', { detail: 'login' }))"
+                            class="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs sm:text-sm font-bold transition shadow-sm cursor-pointer">
+                        Masuk
                     </button>
                 </nav>
             </template>

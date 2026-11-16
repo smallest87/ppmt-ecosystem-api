@@ -2,7 +2,7 @@
 
 @section('content')
 <div x-data="ppmtPublicHome()" x-init="init()"
-     @open-warga-modal.window="openModal($event.detail || 'choose')"
+     @open-warga-modal.window="openModal($event.detail || 'login')"
      @keydown.escape.window="modalOpen = false">
 
     <!-- HERO SECTION PUBLIK -->
@@ -23,9 +23,9 @@
                 <!-- Tombol Aksi Kontekstual (Tamu vs Warga Sudah Login) -->
                 <div class="pt-2 flex flex-wrap items-center gap-3">
                     <template x-if="!hasToken">
-                        <button type="button" @click="openModal('choose')"
+                        <button type="button" @click="openModal('login')"
                                 class="px-6 py-3.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-sm shadow-lg transition cursor-pointer">
-                            Saya Warga Perumahan &rarr;
+                            Masuk &rarr;
                         </button>
                     </template>
 
@@ -164,9 +164,9 @@
                         <p class="text-xs text-slate-600 leading-relaxed">
                             Masuk ke portal untuk mengakses peta kavling internal, direktori warga, pengaturan privasi, dan Pasar Tetangga UMKM—atau ajukan pendaftaran jika Anda warga baru yang belum terdaftar.
                         </p>
-                        <button type="button" @click="openModal('choose')"
+                        <button type="button" @click="openModal('login')"
                                 class="w-full py-3 px-4 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-sm shadow transition cursor-pointer">
-                            Saya Warga Perumahan
+                            Masuk
                         </button>
                     </div>
                 </template>
@@ -197,19 +197,19 @@
     </section>
 
     <!-- ===================================================================== -->
-    <!-- MODAL POPUP: SAYA WARGA PERUMAHAN (HANYA UNTUK TAMU / BELUM LOGIN)    -->
+    <!-- MODAL POPUP: MASUK / PENDAFTARAN WARGA BARU                           -->
     <!-- ===================================================================== -->
     <div x-show="modalOpen"
          x-cloak
          class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
 
         <div @click.away="modalOpen = false"
-             class="bg-white w-full max-w-[calc(100vw-1.5rem)] sm:max-w-lg max-h-[90dvh] flex flex-col rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto">
+             class="bg-white w-full max-w-[calc(100vw-1.5rem)] sm:max-w-md max-h-[90dvh] flex flex-col rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto">
 
             <!-- Header Modal -->
             <div class="bg-emerald-950 text-white px-5 sm:px-6 py-4 flex items-center justify-between shrink-0">
                 <div>
-                    <h3 class="font-bold text-base">Portal Akses Warga PPMT</h3>
+                    <h3 class="font-bold text-base" x-text="modalStep === 'register' ? 'Pendaftaran Warga Baru PPMT' : 'Masuk ke Portal Warga'"></h3>
                     <p class="text-[11px] text-emerald-200">Perumahan Pesona Mandiri Turen</p>
                 </div>
                 <button type="button" @click="modalOpen = false"
@@ -227,43 +227,11 @@
                      x-text="alertMessage">
                 </div>
 
-                <!-- LANGKAH 1: PILIHAN JALUR WARGA -->
-                <div x-show="modalStep === 'choose'" class="space-y-4">
-                    <p class="text-xs sm:text-sm text-slate-600">
-                        Silakan pilih status akses Anda untuk melanjutkan ke sistem internal warga PPMT:
-                    </p>
-
-                    <button type="button" @click="switchStep('login')"
-                            class="w-full text-left p-4 rounded-xl border-2 border-emerald-600 bg-emerald-50/60 hover:bg-emerald-50 transition flex items-center justify-between gap-3 cursor-pointer">
-                        <div>
-                            <div class="font-bold text-sm text-emerald-950">Saya Sudah Punya Akun (Masuk Portal)</div>
-                            <div class="text-xs text-emerald-800 mt-0.5">Masuk menggunakan Nomor WhatsApp dan kata sandi yang sudah terdaftar.</div>
-                        </div>
-                        <span class="text-emerald-700 font-bold text-lg">&rarr;</span>
-                    </button>
-
-                    <button type="button" @click="switchStep('register')"
-                            class="w-full text-left p-4 rounded-xl border border-slate-300 hover:border-amber-500 hover:bg-amber-50/40 transition flex items-center justify-between gap-3 cursor-pointer">
-                        <div>
-                            <div class="font-bold text-sm text-slate-900">Saya Warga PPMT, Namun Belum Terdaftar</div>
-                            <div class="text-xs text-slate-600 mt-0.5">Ajukan pendaftaran kavling baru atau gunakan kode undangan dari keluarga/pemilik rumah.</div>
-                        </div>
-                        <span class="text-slate-500 font-bold text-lg">&rarr;</span>
-                    </button>
-                </div>
-
-                <!-- LANGKAH 2A: FORM MASUK (LOGIN) -->
+                <!-- MODE 1: FORM MASUK SEDERHANA (DEFAULT) -->
                 <div x-show="modalStep === 'login'" class="space-y-4">
-                    <div class="flex items-center justify-between border-b border-slate-100 pb-2">
-                        <h4 class="font-bold text-sm text-slate-900">Masuk ke Akun Warga</h4>
-                        <button type="button" @click="switchStep('choose')" class="text-xs text-emerald-700 hover:underline cursor-pointer">
-                            &larr; Ganti Pilihan
-                        </button>
-                    </div>
-
                     <form @submit.prevent="submitLogin()" class="space-y-4">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor WhatsApp Terdaftar</label>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor WhatsApp</label>
                             <input type="tel" x-model="loginForm.phone" required placeholder="0812xxxxxxxx"
                                    class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
                         </div>
@@ -275,22 +243,23 @@
                         </div>
 
                         <button type="submit" :disabled="submitting"
-                                class="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-sm shadow transition disabled:opacity-50 cursor-pointer">
-                            <span x-show="!submitting">Masuk ke Portal Warga</span>
+                                class="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm shadow transition disabled:opacity-50 cursor-pointer">
+                            <span x-show="!submitting">Masuk</span>
                             <span x-show="submitting">Memverifikasi...</span>
                         </button>
                     </form>
-                </div>
 
-                <!-- LANGKAH 2B: FORM PENDAFTARAN WARGA BARU -->
-                <div x-show="modalStep === 'register'" class="space-y-4">
-                    <div class="flex items-center justify-between border-b border-slate-100 pb-2">
-                        <h4 class="font-bold text-sm text-slate-900">Pendaftaran Warga Baru PPMT</h4>
-                        <button type="button" @click="switchStep('choose')" class="text-xs text-emerald-700 hover:underline cursor-pointer">
-                            &larr; Ganti Pilihan
+                    <div class="pt-3 border-t border-slate-100 text-center text-xs text-slate-600">
+                        Belum punya akun warga?
+                        <button type="button" @click="switchStep('register')"
+                                class="font-bold text-emerald-700 hover:text-emerald-800 hover:underline ml-0.5 cursor-pointer">
+                            Ajukan pendaftaran di sini
                         </button>
                     </div>
+                </div>
 
+                <!-- MODE 2: FORM PENDAFTARAN WARGA BARU -->
+                <div x-show="modalStep === 'register'" class="space-y-4">
                     <form @submit.prevent="submitClaim()" class="space-y-3.5">
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Nomor Kavling Anda *</label>
@@ -361,11 +330,19 @@
                         </div>
 
                         <button type="submit" :disabled="submitting"
-                                class="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-sm shadow transition disabled:opacity-50 cursor-pointer">
+                                class="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm shadow transition disabled:opacity-50 cursor-pointer">
                             <span x-show="!submitting">Kirim Pengajuan Pendaftaran</span>
                             <span x-show="submitting">Memproses Pendaftaran...</span>
                         </button>
                     </form>
+
+                    <div class="pt-3 border-t border-slate-100 text-center text-xs text-slate-600">
+                        Sudah punya akun warga?
+                        <button type="button" @click="switchStep('login')"
+                                class="font-bold text-emerald-700 hover:text-emerald-800 hover:underline ml-0.5 cursor-pointer">
+                            Masuk di sini
+                        </button>
+                    </div>
                 </div>
 
             </div>
@@ -378,7 +355,7 @@ function ppmtPublicHome() {
     return {
         hasToken: !!localStorage.getItem('ppmt_token'),
         modalOpen: false,
-        modalStep: 'choose', // 'choose' | 'login' | 'register'
+        modalStep: 'login', // 'login' | 'register'
         selectableUnits: [],
         unitsLoaded: false,
         submitting: false,
@@ -402,7 +379,7 @@ function ppmtPublicHome() {
             const params = new URLSearchParams(window.location.search);
             const hasInviteParam = Boolean(params.get('invite'));
 
-            // Jika warga membuka link undangan (?unit=C-21&invite=xxxx), izinkan form registrasi terbuka
+            // Jika warga membuka link undangan (?unit=C-21&invite=xxxx), langsung buka form registrasi
             if (hasInviteParam) {
                 if (params.get('unit')) this.claimForm.unit_code = params.get('unit');
                 this.claimForm.invite_token = params.get('invite');
@@ -410,8 +387,7 @@ function ppmtPublicHome() {
             }
         },
 
-        async openModal(step = 'choose', bypassAuthGuard = false) {
-            // Cegah penumpukan login/registrasi jika warga sudah memiliki sesi aktif
+        async openModal(step = 'login', bypassAuthGuard = false) {
             if (this.hasToken && !bypassAuthGuard) {
                 window.location.href = '/dashboard';
                 return;
