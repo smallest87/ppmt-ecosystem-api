@@ -26,6 +26,7 @@ Route::prefix('v1')->group(function () {
                     'id' => $user->id,
                     'name' => $user->name,
                     'display_name' => $user->profile?->display_name,
+                    'username' => $user->profile?->username,
                     'phone' => $user->profile?->phone,
                     'global_role' => $user->profile?->global_role,
                     'is_verified' => $user->profile?->is_verified,

@@ -20,15 +20,44 @@ class ProfileController extends Controller
         $user = $request->user();
         $profile = $user->profile;
 
+        // Normalisasi nilai kosong menjadi null sebelum validasi
+        $mergeData = [];
+        if ($request->has('phone')) {
+            $mergeData['phone'] = $request->filled('phone') ? trim((string) $request->input('phone')) : null;
+        }
+        if ($request->has('username')) {
+            $mergeData['username'] = $request->filled('username') ? strtolower(trim((string) $request->input('username'))) : null;
+        }
+        if (! empty($mergeData)) {
+            $request->merge($mergeData);
+        }
+
+        // Tentukan nilai efektif setelah perubahan untuk memastikan minimal salah satu terisi
+        $effectivePhone = $request->has('phone') ? $request->input('phone') : $profile->phone;
+        $effectiveUsername = $request->has('username') ? $request->input('username') : $profile->username;
+
+        if (empty($effectivePhone) && empty($effectiveUsername)) {
+            return response()->json([
+                'message' => 'Minimal Nomor WhatsApp atau Username harus tetap terisi agar Anda dapat masuk ke akun.',
+            ], 422);
+        }
+
         $validated = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:150'],
             'display_name' => ['nullable', 'string', 'max:100'],
             'phone' => [
-                'sometimes',
-                'required',
+                'nullable',
                 'string',
                 'max:20',
+                'regex:/^[0-9+]{8,20}$/',
                 Rule::unique('resident_profiles', 'phone')->ignore($profile->id),
+            ],
+            'username' => [
+                'nullable',
+                'string',
+                'max:40',
+                'regex:/^(?=.*[a-z])[a-z0-9._]{3,40}$/',
+                Rule::unique('resident_profiles', 'username')->ignore($profile->id),
             ],
             'current_password' => ['nullable', 'required_with:new_password', 'string'],
             'new_password' => ['nullable', 'string', 'min:8', 'confirmed'],
@@ -41,6 +70,11 @@ class ProfileController extends Controller
             'privacy_settings.show_phone' => ['sometimes', 'boolean'],
             'privacy_settings.show_ownership' => ['sometimes', 'boolean'],
             'privacy_settings.show_full_name' => ['sometimes', 'boolean'],
+        ], [
+            'phone.regex' => 'Nomor WhatsApp harus berupa angka 8–20 digit.',
+            'phone.unique' => 'Nomor WhatsApp ini sudah digunakan akun warga lain.',
+            'username.regex' => 'Username minimal 3 karakter, wajib mengandung huruf, dan hanya boleh huruf kecil, angka, titik (.), atau garis bawah (_).',
+            'username.unique' => 'Username ini sudah digunakan warga lain, silakan pilih yang berbeda.',
         ]);
 
         if (! empty($validated['new_password'])) {
@@ -57,14 +91,26 @@ class ProfileController extends Controller
             $user->name = $validated['name'];
         }
 
-        if (isset($validated['phone']) && $validated['phone'] !== $profile->phone) {
+        if (array_key_exists('phone', $validated)) {
             $profile->phone = $validated['phone'];
-            $user->email = $validated['phone'] . '@ppmt.local';
+        }
+
+        if (array_key_exists('username', $validated)) {
+            $profile->username = $validated['username'];
+        }
+
+        // Sinkronkan email sintetis dengan identitas utama yang aktif
+        $syntheticIdentifier = $profile->phone ?: $profile->username;
+        if ($syntheticIdentifier) {
+            $user->email = $syntheticIdentifier . '@ppmt.local';
         }
 
         $user->save();
 
-        $updates = [];
+        $updates = [
+            'phone' => $profile->phone,
+            'username' => $profile->username,
+        ];
 
         if (array_key_exists('display_name', $validated)) {
             $updates['display_name'] = $validated['display_name'] ?: null;
@@ -98,6 +144,7 @@ class ProfileController extends Controller
                 'name' => $user->name,
                 'display_name' => $profile->display_name,
                 'phone' => $profile->phone,
+                'username' => $profile->username,
                 'reputation_badge' => $profile->reputation_badge,
                 'privacy_settings' => $profile->privacy_settings,
                 'has_identity_docs' => ! empty($profile->nik_encrypted) && ! empty($profile->kk_encrypted),

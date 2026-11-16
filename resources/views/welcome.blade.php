@@ -231,8 +231,8 @@
                 <div x-show="modalStep === 'login'" class="space-y-4">
                     <form @submit.prevent="submitLogin()" class="space-y-4">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor WhatsApp</label>
-                            <input type="tel" x-model="loginForm.phone" required placeholder="0812xxxxxxxx"
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor WhatsApp atau Username</label>
+                            <input type="text" x-model="loginForm.login_id" required placeholder="0812xxxxxxxx atau username"
                                    class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
                         </div>
 
@@ -261,15 +261,30 @@
                 <!-- MODE 2: FORM PENDAFTARAN WARGA BARU -->
                 <div x-show="modalStep === 'register'" class="space-y-4">
                     <form @submit.prevent="submitClaim()" class="space-y-3.5">
-                        <!-- 1. Nomor WhatsApp (Paling Awal) -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor WhatsApp Aktif *</label>
-                            <input type="tel" x-model="claimForm.phone" required placeholder="0812xxxxxxxx"
-                                   class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
-                            <p class="text-[11px] text-slate-500 mt-1">Digunakan sebagai ID masuk akun &amp; verifikasi grup WA warga.</p>
+                        <!-- 1. Kredensial Masuk: Nomor WhatsApp & Username (Isi salah satu atau keduanya) -->
+                        <div class="space-y-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">
+                                    Nomor WhatsApp Aktif <span class="text-slate-400 font-normal">(Opsional jika isi Username)</span>
+                                </label>
+                                <input type="tel" x-model="claimForm.phone" placeholder="0812xxxxxxxx"
+                                       class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">
+                                    Username <span class="text-slate-400 font-normal">(Opsional jika isi No. WA)</span>
+                                </label>
+                                <input type="text"
+                                       x-model="claimForm.username"
+                                       @input="claimForm.username = (claimForm.username || '').toLowerCase().replace(/[^a-z0-9._]/g, '')"
+                                       placeholder="Contoh: budi.c21"
+                                       class="w-full rounded-xl border-slate-300 text-sm font-mono lowercase focus:border-emerald-600 focus:ring-emerald-600">
+                            </div>
+                            <p class="text-[11px] text-slate-500">Isi minimal salah satu (Nomor WA atau Username) untuk login ke akun.</p>
                         </div>
 
-                        <!-- 2. Kata Sandi (Berpasangan dengan Nomor WA) -->
+                        <!-- 2. Kata Sandi -->
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Buat Kata Sandi (Minimal 8 Karakter) *</label>
                             <input type="password" x-model="claimForm.password" required minlength="8" placeholder="••••••••"
@@ -391,13 +406,14 @@ function ppmtPublicHome() {
             unit_number: '',
             name: '',
             phone: '',
+            username: '',
             entity_type: 'owner',
             sub_role: 'primary_owner',
             password: '',
             invite_token: ''
         },
         loginForm: {
-            phone: '',
+            login_id: '',
             password: ''
         },
 
@@ -448,6 +464,12 @@ function ppmtPublicHome() {
         async submitClaim() {
             this.alertMessage = '';
 
+            if (!this.claimForm.phone && !this.claimForm.username) {
+                this.alertType = 'error';
+                this.alertMessage = 'Isi minimal Nomor WhatsApp atau Username untuk masuk ke akun.';
+                return;
+            }
+
             if (!this.claimForm.block) {
                 this.alertType = 'error';
                 this.alertMessage = 'Silakan pilih huruf Blok (A, B, C, atau D) terlebih dahulu.';
@@ -465,7 +487,8 @@ function ppmtPublicHome() {
             try {
                 const payload = {
                     name: this.claimForm.name,
-                    phone: this.claimForm.phone,
+                    phone: this.claimForm.phone || null,
+                    username: this.claimForm.username || null,
                     password: this.claimForm.password,
                     unit_code: `${this.claimForm.block}-${cleanNumber}`,
                     entity_type: this.claimForm.entity_type,

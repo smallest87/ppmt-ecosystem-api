@@ -56,11 +56,24 @@
                     <span class="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition text-lg font-medium shrink-0">&rsaquo;</span>
                 </button>
 
+                <button type="button" @click="openModal('username')"
+                        class="w-full px-6 py-4 flex items-center justify-between gap-4 text-left hover:bg-slate-50/90 transition cursor-pointer group">
+                    <div class="space-y-0.5">
+                        <div class="text-xs font-medium text-slate-500">Username (ID Masuk Alternatif)</div>
+                        <div class="text-sm font-semibold font-mono"
+                             :class="user?.username ? 'text-slate-900' : 'text-slate-400 font-sans font-medium'"
+                             x-text="user?.username || 'Belum diatur (opsional)'"></div>
+                    </div>
+                    <span class="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition text-lg font-medium shrink-0">&rsaquo;</span>
+                </button>
+
                 <button type="button" @click="openModal('phone')"
                         class="w-full px-6 py-4 flex items-center justify-between gap-4 text-left hover:bg-slate-50/90 transition cursor-pointer group">
                     <div class="space-y-0.5">
                         <div class="text-xs font-medium text-slate-500">Nomor WhatsApp Aktif (ID Masuk Akun)</div>
-                        <div class="text-sm font-semibold text-slate-900 font-mono" x-text="user?.phone"></div>
+                        <div class="text-sm font-semibold font-mono"
+                             :class="user?.phone ? 'text-slate-900' : 'text-slate-400 font-sans font-medium'"
+                             x-text="user?.phone || 'Belum diatur (opsional jika punya Username)'"></div>
                     </div>
                     <span class="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition text-lg font-medium shrink-0">&rsaquo;</span>
                 </button>
@@ -283,13 +296,27 @@
                     </div>
                 </template>
 
+                <template x-if="activeModal === 'username'">
+                    <div class="space-y-2">
+                        <label class="block text-xs font-semibold text-slate-700">Username (ID Masuk Alternatif)</label>
+                        <input type="text"
+                               x-model="modalForm.username"
+                               @input="modalForm.username = (modalForm.username || '').toLowerCase().replace(/[^a-z0-9._]/g, '')"
+                               placeholder="Contoh: julian.c21"
+                               class="w-full rounded-xl border-slate-300 text-sm font-mono lowercase focus:border-emerald-600 focus:ring-emerald-600" autofocus>
+                        <p class="text-[11px] text-slate-500 leading-relaxed">
+                            Minimal 3 karakter, wajib mengandung huruf, dan hanya boleh huruf kecil, angka, titik (.), atau garis bawah (_). Dapat digunakan untuk masuk selain Nomor WhatsApp.
+                        </p>
+                    </div>
+                </template>
+
                 <template x-if="activeModal === 'phone'">
                     <div class="space-y-2">
-                        <label class="block text-xs font-semibold text-slate-700">Nomor WhatsApp Aktif *</label>
-                        <input type="tel" x-model="modalForm.phone" required placeholder="0812xxxxxxxx"
+                        <label class="block text-xs font-semibold text-slate-700">Nomor WhatsApp Aktif</label>
+                        <input type="tel" x-model="modalForm.phone" placeholder="0812xxxxxxxx"
                                class="w-full rounded-xl border-slate-300 text-sm font-mono focus:border-emerald-600 focus:ring-emerald-600" autofocus>
                         <p class="text-[11px] text-amber-700 bg-amber-50 p-2.5 rounded-lg border border-amber-200 leading-relaxed">
-                            Perhatian: Nomor ini juga digunakan sebagai identitas masuk (login) akun Anda pada sesi berikutnya.
+                            Perhatian: Nomor ini juga digunakan sebagai identitas masuk (login) akun Anda. Kosongkan hanya jika akun Anda sudah memiliki Username.
                         </p>
                     </div>
                 </template>
@@ -458,6 +485,7 @@ function ppmtSettings() {
         modalForm: {
             display_name: '',
             name: '',
+            username: '',
             phone: '',
             current_password: '',
             new_password: '',
@@ -507,6 +535,7 @@ function ppmtSettings() {
             const titles = {
                 'display_name': 'Ubah Nama Panggilan Lingkungan',
                 'name': 'Koreksi Nama Lengkap Resmi',
+                'username': 'Atur Username Login Alternatif',
                 'phone': 'Ubah Nomor WhatsApp Login',
                 'password': 'Ubah Kata Sandi Akun',
                 'nik': 'Perbarui NIK (Terenkripsi AES-256)',
@@ -528,6 +557,7 @@ function ppmtSettings() {
             this.modalForm = {
                 display_name: this.user?.display_name || '',
                 name: this.user?.name || '',
+                username: this.user?.username || '',
                 phone: this.user?.phone || '',
                 current_password: '',
                 new_password: '',
@@ -587,12 +617,14 @@ function ppmtSettings() {
                 const payload = {
                     name: this.user.name,
                     display_name: this.user.display_name,
-                    phone: this.user.phone
+                    phone: this.user.phone || null,
+                    username: this.user.username || null
                 };
 
                 if (this.activeModal === 'display_name') payload.display_name = this.modalForm.display_name;
                 else if (this.activeModal === 'name') payload.name = this.modalForm.name;
-                else if (this.activeModal === 'phone') payload.phone = this.modalForm.phone;
+                else if (this.activeModal === 'username') payload.username = this.modalForm.username || null;
+                else if (this.activeModal === 'phone') payload.phone = this.modalForm.phone || null;
                 else if (this.activeModal === 'password') {
                     payload.current_password = this.modalForm.current_password;
                     payload.new_password = this.modalForm.new_password;
@@ -640,7 +672,8 @@ function ppmtSettings() {
                     body: JSON.stringify({
                         name: this.user.name,
                         display_name: this.user.display_name,
-                        phone: this.user.phone,
+                        phone: this.user.phone || null,
+                        username: this.user.username || null,
                         privacy_settings: this.privacySettings
                     })
                 });

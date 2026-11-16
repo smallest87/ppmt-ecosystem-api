@@ -24,9 +24,29 @@ class AuthClaimController extends Controller
             $request->merge(['unit_code' => $normalizedCode]);
         }
 
+        $request->merge([
+            'phone' => $request->filled('phone') ? trim((string) $request->input('phone')) : null,
+            'username' => $request->filled('username') ? strtolower(trim((string) $request->input('username'))) : null,
+        ]);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:150'],
-            'phone' => ['required', 'string', 'max:20', 'unique:resident_profiles,phone'],
+            'phone' => [
+                'nullable',
+                'required_without:username',
+                'string',
+                'max:20',
+                'regex:/^[0-9+]{8,20}$/',
+                'unique:resident_profiles,phone',
+            ],
+            'username' => [
+                'nullable',
+                'required_without:phone',
+                'string',
+                'max:40',
+                'regex:/^(?=.*[a-z])[a-z0-9._]{3,40}$/',
+                'unique:resident_profiles,username',
+            ],
             'password' => ['required', 'string', 'min:8'],
             'unit_code' => [
                 'required',
@@ -40,6 +60,12 @@ class AuthClaimController extends Controller
             ])],
             'invite_token' => ['nullable', 'string'],
         ], [
+            'phone.required_without' => 'Isi minimal Nomor WhatsApp atau Username untuk masuk ke akun.',
+            'username.required_without' => 'Isi minimal Username atau Nomor WhatsApp untuk masuk ke akun.',
+            'phone.regex' => 'Nomor WhatsApp harus berupa angka 8–20 digit.',
+            'username.regex' => 'Username minimal 3 karakter, wajib mengandung huruf, dan hanya boleh huruf kecil, angka, titik (.), atau garis bawah (_).',
+            'phone.unique' => 'Nomor WhatsApp ini sudah terdaftar pada akun warga lain.',
+            'username.unique' => 'Username ini sudah digunakan warga lain, silakan pilih yang berbeda.',
             'unit_code.exists' => 'Nomor kavling tidak ditemukan. Periksa kembali pilihan Blok dan Nomor Rumah Anda.',
         ]);
 
@@ -60,15 +86,17 @@ class AuthClaimController extends Controller
 
         $user = DB::transaction(function () use ($validated, $unit, $invite) {
             $isAutoVerified = ! is_null($invite);
+            $syntheticIdentifier = $validated['phone'] ?: $validated['username'];
 
             $user = User::create([
                 'name' => $validated['name'],
-                'email' => $validated['phone'] . '@ppmt.local',
+                'email' => $syntheticIdentifier . '@ppmt.local',
                 'password' => Hash::make($validated['password']),
             ]);
 
             $user->profile()->create([
                 'phone' => $validated['phone'],
+                'username' => $validated['username'],
                 'global_role' => 'warga_ppmt',
                 'is_verified' => $isAutoVerified,
                 'privacy_settings' => [
@@ -126,15 +154,28 @@ class AuthClaimController extends Controller
 
     public function login(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'phone' => ['required', 'string'],
-            'password' => ['required', 'string'],
+        $rawIdentifier = $request->input('login_id', $request->input('phone'));
+        $request->merge([
+            'login_id' => is_string($rawIdentifier) ? trim($rawIdentifier) : '',
         ]);
 
-        $user = User::whereHas('profile', fn ($q) => $q->where('phone', $validated['phone']))->first();
+        $validated = $request->validate([
+            'login_id' => ['required', 'string'],
+            'password' => ['required', 'string'],
+        ], [
+            'login_id.required' => 'Masukkan Nomor WhatsApp atau Username Anda.',
+        ]);
+
+        $identifier = $validated['login_id'];
+        $lowerIdentifier = strtolower($identifier);
+
+        $user = User::whereHas('profile', function ($q) use ($identifier, $lowerIdentifier) {
+            $q->where('phone', $identifier)
+              ->orWhere('username', $lowerIdentifier);
+        })->first();
 
         if (! $user || ! Hash::check($validated['password'], $user->password)) {
-            return response()->json(['message' => 'Nomor WhatsApp atau kata sandi salah.'], 401);
+            return response()->json(['message' => 'Nomor WhatsApp / Username atau kata sandi salah.'], 401);
         }
 
         $token = $user->createToken('ppmt-client')->plainTextToken;

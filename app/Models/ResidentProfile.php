@@ -9,6 +9,7 @@ class ResidentProfile extends Model
 {
     protected $fillable = [
         'user_id',
+        'username',
         'display_name',
         'phone',
         'global_role',

@@ -44,7 +44,7 @@
             </div>
         </section>
 
-        <!-- Grid 3 Kolom / 2 Bagian Utama -->
+        <!-- Grid 2 Bagian Utama -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
             <!-- Kolom Kiri (5 Kolom): Antrean Verifikasi Sosial & Assisted Onboarding -->
@@ -67,7 +67,7 @@
                             <div class="bg-amber-50/60 p-3.5 rounded-xl border border-amber-200 flex items-center justify-between gap-2">
                                 <div class="text-xs space-y-0.5">
                                     <div class="font-bold text-slate-900" x-text="item.name + ' • Unit ' + item.unit_code"></div>
-                                    <div class="text-slate-600" x-text="item.phone + ' (' + item.sub_role.replace('_', ' ') + ')'"></div>
+                                    <div class="text-slate-600" x-text="(item.phone || item.username || '-') + ' (' + item.sub_role.replace('_', ' ') + ')'"></div>
                                 </div>
                                 <button type="button" @click="approveResident(item)"
                                         class="px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shrink-0 cursor-pointer">
@@ -87,14 +87,30 @@
                     </div>
 
                     <form @submit.prevent="submitAssistedRegister()" class="space-y-3">
-                        <!-- 1. Nomor WhatsApp (Kunci Login Utama) -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor WhatsApp Tetangga *</label>
-                            <input type="tel" x-model="assistForm.phone" required placeholder="0812xxxxxxxx"
-                                   class="w-full rounded-xl border-slate-300 text-xs">
+                        <!-- 1. Nomor WhatsApp & Username (Isi salah satu atau keduanya) -->
+                        <div class="space-y-2.5 p-3 rounded-xl bg-white/90 border border-emerald-200">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">
+                                    Nomor WhatsApp Tetangga <span class="text-slate-400 font-normal">(Opsional jika isi Username)</span>
+                                </label>
+                                <input type="tel" x-model="assistForm.phone" placeholder="0812xxxxxxxx"
+                                       class="w-full rounded-xl border-slate-300 text-xs">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">
+                                    Username <span class="text-slate-400 font-normal">(Opsional jika isi No. WA)</span>
+                                </label>
+                                <input type="text"
+                                       x-model="assistForm.username"
+                                       @input="assistForm.username = (assistForm.username || '').toLowerCase().replace(/[^a-z0-9._]/g, '')"
+                                       placeholder="Contoh: paksugeng.b12a"
+                                       class="w-full rounded-xl border-slate-300 text-xs font-mono lowercase">
+                            </div>
+                            <p class="text-[11px] text-emerald-800">Isi minimal salah satu untuk dipakai masuk ke aplikasi.</p>
                         </div>
 
-                        <!-- 2. Kata Sandi Sementara (Berpasangan dengan Nomor WA) -->
+                        <!-- 2. Kata Sandi Sementara -->
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Kata Sandi Sementara (Min. 8 Karakter) *</label>
                             <input type="text" x-model="assistForm.password" required minlength="8" placeholder="Contoh: ppmt12345"
@@ -125,7 +141,8 @@
                         <div class="grid grid-cols-2 gap-2">
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1">Entitas</label>
-                                <select x-model="assistForm.entity_type" @change="assistForm.sub_role = assistForm.entity_type === 'owner' ? 'primary_owner' : 'primary_resident'"
+                                <select x-model="assistForm.entity_type"
+                                        @change="assistForm.sub_role = assistForm.entity_type === 'owner' ? 'primary_owner' : 'primary_resident'"
                                         class="w-full rounded-xl border-slate-300 text-xs">
                                     <option value="owner">Pemilik Rumah</option>
                                     <option value="resident">Penghuni</option>
@@ -268,6 +285,7 @@ function ppmtAdminPanel() {
             unit_code: '',
             name: '',
             phone: '',
+            username: '',
             entity_type: 'owner',
             sub_role: 'primary_owner',
             password: ''
@@ -396,10 +414,26 @@ function ppmtAdminPanel() {
         },
 
         async submitAssistedRegister() {
+            if (!this.assistForm.phone && !this.assistForm.username) {
+                this.toastType = 'error';
+                this.toastMessage = 'Isi minimal Nomor WhatsApp atau Username untuk warga tersebut.';
+                return;
+            }
+
+            const payload = {
+                unit_code: this.assistForm.unit_code,
+                name: this.assistForm.name,
+                phone: this.assistForm.phone || null,
+                username: this.assistForm.username || null,
+                entity_type: this.assistForm.entity_type,
+                sub_role: this.assistForm.sub_role,
+                password: this.assistForm.password
+            };
+
             const res = await fetch('/api/v1/governance/assisted-register', {
                 method: 'POST',
                 headers: this.headers(),
-                body: JSON.stringify(this.assistForm)
+                body: JSON.stringify(payload)
             });
             const json = await res.json();
             if (res.ok) {
@@ -408,6 +442,7 @@ function ppmtAdminPanel() {
                 this.assistForm.unit_code = '';
                 this.assistForm.name = '';
                 this.assistForm.phone = '';
+                this.assistForm.username = '';
                 this.assistForm.password = '';
                 await this.loadGovernanceData();
             } else {

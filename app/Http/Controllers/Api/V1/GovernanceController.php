@@ -143,16 +143,43 @@ class GovernanceController extends Controller
             ], 403);
         }
 
+        $request->merge([
+            'phone' => $request->filled('phone') ? trim((string) $request->input('phone')) : null,
+            'username' => $request->filled('username') ? strtolower(trim((string) $request->input('username'))) : null,
+        ]);
+
         $validated = $request->validate([
             'unit_code' => ['required', 'string', 'exists:units,code'],
             'name' => ['required', 'string', 'max:150'],
-            'phone' => ['required', 'string', 'max:20', 'unique:resident_profiles,phone'],
+            'phone' => [
+                'nullable',
+                'required_without:username',
+                'string',
+                'max:20',
+                'regex:/^[0-9+]{8,20}$/',
+                'unique:resident_profiles,phone',
+            ],
+            'username' => [
+                'nullable',
+                'required_without:phone',
+                'string',
+                'max:40',
+                'regex:/^(?=.*[a-z])[a-z0-9._]{3,40}$/',
+                'unique:resident_profiles,username',
+            ],
             'password' => ['required', 'string', 'min:8'],
             'entity_type' => ['required', Rule::in(['owner', 'resident'])],
             'sub_role' => ['required', Rule::in([
                 'primary_owner', 'co_owner',
                 'primary_resident', 'family_member', 'co_resident', 'tenant', 'caretaker',
             ])],
+        ], [
+            'phone.required_without' => 'Isi minimal Nomor WhatsApp atau Username untuk warga tersebut.',
+            'username.required_without' => 'Isi minimal Username atau Nomor WhatsApp untuk warga tersebut.',
+            'phone.regex' => 'Nomor WhatsApp harus berupa angka 8–20 digit.',
+            'username.regex' => 'Username minimal 3 karakter, wajib mengandung huruf, dan hanya boleh huruf kecil, angka, titik (.), atau garis bawah (_).',
+            'phone.unique' => 'Nomor WhatsApp ini sudah terdaftar di akun warga lain.',
+            'username.unique' => 'Username ini sudah digunakan warga lain.',
         ]);
 
         $unit = Unit::where('code', $validated['unit_code'])->firstOrFail();
@@ -162,14 +189,17 @@ class GovernanceController extends Controller
         }
 
         $newUser = DB::transaction(function () use ($validated, $unit, $actor) {
+            $syntheticIdentifier = $validated['phone'] ?: $validated['username'];
+
             $user = User::create([
                 'name' => $validated['name'],
-                'email' => $validated['phone'] . '@ppmt.local',
+                'email' => $syntheticIdentifier . '@ppmt.local',
                 'password' => Hash::make($validated['password']),
             ]);
 
             $user->profile()->create([
                 'phone' => $validated['phone'],
+                'username' => $validated['username'],
                 'global_role' => 'warga_ppmt',
                 'is_verified' => true,
                 'privacy_settings' => [
