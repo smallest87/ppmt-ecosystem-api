@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\UnitInviteController;
 use App\Http\Controllers\Api\V1\UmkmStoreController;
 use App\Http\Controllers\Api\V1\GovernanceController;
 use App\Http\Controllers\Api\V1\AnnouncementController;
+use App\Http\Controllers\Api\V1\MeetingMinuteController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -75,6 +76,12 @@ Route::prefix('v1')->group(function () {
             Route::post('/announcements', [AnnouncementController::class, 'store']);
             Route::patch('/announcements/{announcement}', [AnnouncementController::class, 'update']);
             Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy']);
+
+            // Arsip Notulensi Rapat & Tata Tertib
+            Route::get('/meeting-minutes', [MeetingMinuteController::class, 'index']);
+            Route::post('/meeting-minutes', [MeetingMinuteController::class, 'store']);
+            Route::patch('/meeting-minutes/{meetingMinute}', [MeetingMinuteController::class, 'update']);
+            Route::delete('/meeting-minutes/{meetingMinute}', [MeetingMinuteController::class, 'destroy']);
 
             // Tata Kelola Jabatan & Assisted Register
             Route::get('/governance/roles', [GovernanceController::class, 'index']);

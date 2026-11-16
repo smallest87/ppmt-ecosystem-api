@@ -5,7 +5,7 @@
 @section('subpage_back_url', '/dashboard')
 
 @section('content')
-<div x-data="ppmtAdminPanel()" x-init="init()" @keydown.escape.window="editingAnnouncement = null" class="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-6">
+<div x-data="ppmtAdminPanel()" x-init="init()" @keydown.escape.window="editingAnnouncement = null; editingMinute = null" class="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-6">
 
     <!-- Loading State -->
     <div x-show="loading" class="bg-white rounded-2xl p-12 text-center text-slate-500 border border-slate-200">
@@ -45,7 +45,7 @@
         </section>
 
         <!-- ================================================================= -->
-        <!-- MODUL KESEKRETARIATAN & KOMUNIKASI (Sekretaris & Ketua Paguyuban) -->
+        <!-- MODUL 1: PAPAN PENGUMUMAN PAGUYUBAN (Sekretaris & Ketua)          -->
         <!-- ================================================================= -->
         <section x-show="user?.can_manage_announcements"
                  class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -83,7 +83,7 @@
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Isi Pengumuman Lengkap *</label>
                         <textarea x-model="announcementForm.body"
                                   required
-                                  rows="5"
+                                  rows="4"
                                   placeholder="Tuliskan detail waktu, tempat, dan informasi penting bagi warga PPMT..."
                                   class="w-full rounded-xl border-slate-300 text-xs sm:text-sm focus:border-emerald-600 focus:ring-emerald-600"></textarea>
                     </div>
@@ -178,7 +178,148 @@
         </section>
 
         <!-- ================================================================= -->
-        <!-- MODUL VERIFIKASI WILAYAH & TATA KELOLA JABATAN                    -->
+        <!-- MODUL 2: ARSIP NOTULENSI RAPAT & TATA TERTIB (Sekretaris & Ketua) -->
+        <!-- ================================================================= -->
+        <section x-show="user?.can_manage_announcements"
+                 class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <!-- Form Catat Notulensi / Tata Tertib (5 Kolom) -->
+            <div class="lg:col-span-5 bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200 space-y-4">
+                <div class="border-b border-slate-100 pb-3">
+                    <h2 class="text-base font-bold text-slate-900">Catat Notulensi Rapat &amp; Tata Tertib</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Dokumentasikan hasil musyawarah warga atau aturan lingkungan agar menjadi rujukan resmi.</p>
+                </div>
+
+                <form @submit.prevent="createMinute()" class="space-y-3.5">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Judul Agenda / Dokumen *</label>
+                        <input type="text"
+                               x-model="minuteForm.title"
+                               required
+                               maxlength="180"
+                               placeholder="Contoh: Kesepakatan Musyawarah Keamanan & Iuran Bulanan"
+                               class="w-full rounded-xl border-slate-300 text-xs sm:text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Rapat / Penetapan *</label>
+                            <input type="date"
+                                   x-model="minuteForm.meeting_date"
+                                   required
+                                   class="w-full rounded-xl border-slate-300 text-xs sm:text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Kategori Dokumen *</label>
+                            <select x-model="minuteForm.category"
+                                    class="w-full rounded-xl border-slate-300 text-xs sm:text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                                <option value="musyawarah_warga">Musyawarah Warga</option>
+                                <option value="tata_tertib">Tata Tertib Lingkungan</option>
+                                <option value="rapat_pengurus">Rapat Pengurus</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Lokasi / Forum Pertemuan (Opsional)</label>
+                        <input type="text"
+                               x-model="minuteForm.location"
+                               maxlength="120"
+                               placeholder="Contoh: Fasum Tengah / Pos Utama PPMT"
+                               class="w-full rounded-xl border-slate-300 text-xs sm:text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Poin Kesepakatan &amp; Isi Lengkap *</label>
+                        <textarea x-model="minuteForm.decisions"
+                                  required
+                                  rows="5"
+                                  placeholder="Tuliskan poin-poin keputusan musyawarah, aturan yang disepakati, atau tindak lanjut pengurus..."
+                                  class="w-full rounded-xl border-slate-300 text-xs sm:text-sm focus:border-emerald-600 focus:ring-emerald-600"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Visibilitas Dokumen *</label>
+                        <select x-model="minuteForm.visibility"
+                                class="w-full rounded-xl border-slate-300 text-xs sm:text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                            <option value="public_residents">Terbuka untuk Semua Warga PPMT (Tampil di Komunitas)</option>
+                            <option value="internal_pengurus">Internal Pengurus Saja</option>
+                        </select>
+                    </div>
+
+                    <button type="submit"
+                            :disabled="savingMinute"
+                            class="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold shadow-sm transition disabled:opacity-50 cursor-pointer">
+                        <span x-show="!savingMinute">Simpan ke Arsip Notulensi</span>
+                        <span x-show="savingMinute">Menyimpan...</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Daftar Arsip Notulensi Rapat & Tata Tertib (7 Kolom) -->
+            <div class="lg:col-span-7 bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200 space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900">Arsip Notulensi Rapat &amp; Tata Tertib</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Rekam jejak keputusan resmi paguyuban yang tersusun kronologis.</p>
+                    </div>
+                    <span class="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold shrink-0"
+                          x-text="meetingMinutes.length + ' Dokumen'"></span>
+                </div>
+
+                <div x-show="meetingMinutes.length === 0"
+                     class="p-8 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-center text-xs text-slate-500">
+                    Belum ada catatan notulensi rapat atau tata tertib yang disimpan.
+                </div>
+
+                <div class="space-y-3">
+                    <template x-for="m in meetingMinutes" :key="m.id">
+                        <div class="p-4 rounded-xl border border-slate-200 bg-white space-y-2.5">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    <span :class="m.badgeClass"
+                                          class="px-2 py-0.5 rounded-md text-[10px] font-bold border"
+                                          x-text="m.category">
+                                    </span>
+                                    <span :class="m.visibility === 'public_residents' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-700 border-slate-300'"
+                                          class="px-2 py-0.5 rounded-md text-[10px] font-bold border"
+                                          x-text="m.visibility === 'public_residents' ? 'Terbuka Warga' : 'Internal Pengurus'">
+                                    </span>
+                                </div>
+                                <span class="text-[11px] font-medium text-slate-500"
+                                      x-text="m.meeting_date_formatted + (m.location ? ' • ' + m.location : '')">
+                                </span>
+                            </div>
+
+                            <div>
+                                <div class="text-sm font-bold text-slate-900" x-text="m.title"></div>
+                                <p class="text-xs text-slate-600 line-clamp-2 mt-1 leading-relaxed" x-text="m.excerpt"></p>
+                            </div>
+
+                            <div class="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                                <span class="text-[11px] text-slate-400" x-text="'Dicatat oleh: ' + m.author"></span>
+
+                                <div class="flex items-center gap-1.5">
+                                    <button type="button"
+                                            @click="openEditMinute(m)"
+                                            class="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold transition cursor-pointer">
+                                        Edit
+                                    </button>
+                                    <button type="button"
+                                            @click="deleteMinute(m)"
+                                            class="px-2.5 py-1 rounded-lg text-rose-600 hover:bg-rose-50 font-semibold transition cursor-pointer">
+                                        Hapus
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- MODUL 3: VERIFIKASI WILAYAH & TATA KELOLA JABATAN                 -->
         <!-- ================================================================= -->
         <div x-show="showVerificationPanel || user?.is_global_governor"
              class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -186,7 +327,7 @@
             <!-- Kolom Kiri (5 Kolom): Antrean Verifikasi Sosial & Assisted Onboarding -->
             <div class="lg:col-span-5 space-y-6">
 
-                <!-- Panel 1: Antrean Verifikasi Sosial (Hanya untuk Koordinator Wilayah & Global Governor) -->
+                <!-- Panel 1: Antrean Verifikasi Sosial -->
                 <section x-show="showVerificationPanel"
                          class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-3">
                     <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -448,6 +589,78 @@
             </form>
         </div>
     </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL EDIT NOTULENSI RAPAT & TATA TERTIB                              -->
+    <!-- ===================================================================== -->
+    <div x-show="editingMinute !== null"
+         x-cloak
+         class="fixed inset-0 z-50 !mt-0 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-[1px] overflow-y-auto">
+        <div @click.away="editingMinute = null"
+             class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-[calc(100vw-1.5rem)] sm:max-w-lg max-h-[90dvh] flex flex-col overflow-hidden my-auto">
+            <div class="px-5 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3 shrink-0">
+                <h3 class="text-base font-bold text-slate-900">Edit Notulensi Rapat &amp; Tata Tertib</h3>
+                <button type="button" @click="editingMinute = null" class="text-slate-400 hover:text-slate-700 text-sm p-1 cursor-pointer">✕</button>
+            </div>
+
+            <form @submit.prevent="saveEditedMinute()" class="p-5 sm:p-6 space-y-4 overflow-y-auto">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Judul Agenda / Dokumen *</label>
+                    <input type="text" x-model="editMinuteForm.title" required maxlength="180"
+                           class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Rapat / Penetapan *</label>
+                        <input type="date" x-model="editMinuteForm.meeting_date" required
+                               class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Kategori Dokumen *</label>
+                        <select x-model="editMinuteForm.category"
+                                class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                            <option value="musyawarah_warga">Musyawarah Warga</option>
+                            <option value="tata_tertib">Tata Tertib Lingkungan</option>
+                            <option value="rapat_pengurus">Rapat Pengurus</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Lokasi / Forum Pertemuan</label>
+                    <input type="text" x-model="editMinuteForm.location" maxlength="120"
+                           class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Poin Kesepakatan &amp; Isi Lengkap *</label>
+                    <textarea x-model="editMinuteForm.decisions" required rows="6"
+                              class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Visibilitas Dokumen *</label>
+                    <select x-model="editMinuteForm.visibility"
+                            class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                        <option value="public_residents">Terbuka untuk Semua Warga PPMT</option>
+                        <option value="internal_pengurus">Internal Pengurus Saja</option>
+                    </select>
+                </div>
+
+                <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+                    <button type="button" @click="editingMinute = null"
+                            class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold cursor-pointer">
+                        Batal
+                    </button>
+                    <button type="submit" :disabled="savingMinute"
+                            class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-sm cursor-pointer">
+                        Simpan Perubahan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -463,6 +676,8 @@ function ppmtAdminPanel() {
         { code: 'keamanan_lingkungan', label: 'Keamanan Lingkungan' }
     ];
 
+    const todayStr = new Date().toISOString().slice(0, 10);
+
     return {
         token: localStorage.getItem('ppmt_token'),
         user: null,
@@ -474,8 +689,11 @@ function ppmtAdminPanel() {
         governanceList: [],
         allUnits: [],
         announcements: [],
+        meetingMinutes: [],
         savingAnnouncement: false,
         editingAnnouncement: null,
+        savingMinute: false,
+        editingMinute: null,
         announcementForm: {
             title: '',
             category: 'info',
@@ -488,6 +706,23 @@ function ppmtAdminPanel() {
             category: 'info',
             body: '',
             is_pinned: false
+        },
+        minuteForm: {
+            title: '',
+            meeting_date: todayStr,
+            location: '',
+            category: 'musyawarah_warga',
+            decisions: '',
+            visibility: 'public_residents'
+        },
+        editMinuteForm: {
+            id: null,
+            title: '',
+            meeting_date: todayStr,
+            location: '',
+            category: 'musyawarah_warga',
+            decisions: '',
+            visibility: 'public_residents'
         },
         govForm: {
             target_user_id: '',
@@ -536,7 +771,7 @@ function ppmtAdminPanel() {
 
             const tasks = [this.loadPendingApprovals()];
             if (this.user?.can_manage_announcements) {
-                tasks.push(this.loadAnnouncements());
+                tasks.push(this.loadAnnouncements(), this.loadMeetingMinutes());
             }
             if (this.user?.is_global_governor) {
                 tasks.push(this.loadGovernanceData());
@@ -581,6 +816,14 @@ function ppmtAdminPanel() {
             if (res.ok) {
                 const json = await res.json();
                 this.announcements = json.data || [];
+            }
+        },
+
+        async loadMeetingMinutes() {
+            const res = await fetch('/api/v1/meeting-minutes', { headers: this.headers() });
+            if (res.ok) {
+                const json = await res.json();
+                this.meetingMinutes = json.data || [];
             }
         },
 
@@ -652,14 +895,10 @@ function ppmtAdminPanel() {
                 headers: this.headers(),
                 body: JSON.stringify({ is_pinned: !item.is_pinned })
             });
-            const json = await res.json();
             if (res.ok) {
                 this.toastType = 'success';
                 this.toastMessage = item.is_pinned ? 'Sematkan pengumuman dilepas.' : 'Pengumuman disematkan di urutan teratas.';
                 await this.loadAnnouncements();
-            } else {
-                this.toastType = 'error';
-                this.toastMessage = json.message || 'Gagal mengubah status sematan.';
             }
         },
 
@@ -669,14 +908,10 @@ function ppmtAdminPanel() {
                 headers: this.headers(),
                 body: JSON.stringify({ is_published: !item.is_published })
             });
-            const json = await res.json();
             if (res.ok) {
                 this.toastType = 'success';
                 this.toastMessage = item.is_published ? 'Pengumuman diarsipkan dari beranda warga.' : 'Pengumuman kembali ditayangkan.';
                 await this.loadAnnouncements();
-            } else {
-                this.toastType = 'error';
-                this.toastMessage = json.message || 'Gagal mengubah status tayang.';
             }
         },
 
@@ -690,9 +925,92 @@ function ppmtAdminPanel() {
                 this.toastType = 'success';
                 this.toastMessage = json.message;
                 await this.loadAnnouncements();
-            } else {
-                this.toastType = 'error';
-                this.toastMessage = json.message || 'Gagal menghapus pengumuman.';
+            }
+        },
+
+        async createMinute() {
+            this.savingMinute = true;
+            try {
+                const res = await fetch('/api/v1/meeting-minutes', {
+                    method: 'POST',
+                    headers: this.headers(),
+                    body: JSON.stringify(this.minuteForm)
+                });
+                const json = await res.json();
+                if (res.ok) {
+                    this.toastType = 'success';
+                    this.toastMessage = json.message;
+                    this.minuteForm = {
+                        title: '',
+                        meeting_date: todayStr,
+                        location: '',
+                        category: 'musyawarah_warga',
+                        decisions: '',
+                        visibility: 'public_residents'
+                    };
+                    await this.loadMeetingMinutes();
+                } else {
+                    this.toastType = 'error';
+                    this.toastMessage = json.message || 'Gagal menyimpan notulensi.';
+                }
+            } finally {
+                this.savingMinute = false;
+            }
+        },
+
+        openEditMinute(m) {
+            this.editMinuteForm = {
+                id: m.id,
+                title: m.title,
+                meeting_date: m.meeting_date,
+                location: m.location || '',
+                category: m.category_code,
+                decisions: m.decisions,
+                visibility: m.visibility
+            };
+            this.editingMinute = m;
+        },
+
+        async saveEditedMinute() {
+            this.savingMinute = true;
+            try {
+                const res = await fetch(`/api/v1/meeting-minutes/${this.editMinuteForm.id}`, {
+                    method: 'PATCH',
+                    headers: this.headers(),
+                    body: JSON.stringify({
+                        title: this.editMinuteForm.title,
+                        meeting_date: this.editMinuteForm.meeting_date,
+                        location: this.editMinuteForm.location || null,
+                        category: this.editMinuteForm.category,
+                        decisions: this.editMinuteForm.decisions,
+                        visibility: this.editMinuteForm.visibility
+                    })
+                });
+                const json = await res.json();
+                if (res.ok) {
+                    this.editingMinute = null;
+                    this.toastType = 'success';
+                    this.toastMessage = json.message;
+                    await this.loadMeetingMinutes();
+                } else {
+                    this.toastType = 'error';
+                    this.toastMessage = json.message || 'Gagal memperbarui notulensi.';
+                }
+            } finally {
+                this.savingMinute = false;
+            }
+        },
+
+        async deleteMinute(m) {
+            const res = await fetch(`/api/v1/meeting-minutes/${m.id}`, {
+                method: 'DELETE',
+                headers: this.headers()
+            });
+            const json = await res.json();
+            if (res.ok) {
+                this.toastType = 'success';
+                this.toastMessage = json.message;
+                await this.loadMeetingMinutes();
             }
         },
 

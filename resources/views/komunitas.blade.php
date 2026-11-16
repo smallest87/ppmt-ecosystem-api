@@ -3,28 +3,33 @@
 @section('title', 'Komunitas, UMKM & Peta Kavling — PPMT Digital')
 
 @section('content')
-<div x-data="ppmtCommunity()" x-init="init()" class="max-w-6xl mx-auto px-4 py-8 space-y-6">
+<div x-data="ppmtCommunity()" x-init="init()" @keydown.escape.window="selectedMinute = null" class="max-w-6xl mx-auto px-4 py-8 space-y-6">
 
-    <!-- Tab Switcher Utama (3 Tab Internal Terproteksi) -->
+    <!-- Tab Switcher Utama (4 Tab Internal Terproteksi) -->
     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
         <div>
             <h1 class="text-xl font-extrabold text-slate-900">Komunitas &amp; Peta Lingkungan PPMT</h1>
-            <p class="text-xs text-slate-500">Eksklusif bagi warga terverifikasi &bull; Perlindungan privasi hunian &amp; ekonomi tetangga.</p>
+            <p class="text-xs text-slate-500">Eksklusif bagi warga terverifikasi &bull; Perlindungan privasi hunian, arsip musyawarah &amp; ekonomi tetangga.</p>
         </div>
-        <div class="grid grid-cols-3 bg-slate-100 p-1 rounded-xl text-xs font-bold shrink-0">
+        <div class="grid grid-cols-2 sm:grid-cols-4 bg-slate-100 p-1 rounded-xl text-xs font-bold shrink-0 gap-1 sm:gap-0">
             <button type="button" @click="tab = 'umkm'"
                     :class="tab === 'umkm' ? 'bg-emerald-700 text-white shadow' : 'text-slate-600 hover:text-slate-900'"
-                    class="px-3.5 py-2 rounded-lg transition cursor-pointer">
+                    class="px-3 py-2 rounded-lg transition cursor-pointer">
                 Pasar Tetangga
             </button>
             <button type="button" @click="tab = 'directory'"
                     :class="tab === 'directory' ? 'bg-emerald-700 text-white shadow' : 'text-slate-600 hover:text-slate-900'"
-                    class="px-3.5 py-2 rounded-lg transition cursor-pointer">
+                    class="px-3 py-2 rounded-lg transition cursor-pointer">
                 Direktori Warga
+            </button>
+            <button type="button" @click="tab = 'minutes'"
+                    :class="tab === 'minutes' ? 'bg-emerald-700 text-white shadow' : 'text-slate-600 hover:text-slate-900'"
+                    class="px-3 py-2 rounded-lg transition cursor-pointer">
+                Notulensi &amp; Tatib
             </button>
             <button type="button" @click="tab = 'siteplan'"
                     :class="tab === 'siteplan' ? 'bg-emerald-700 text-white shadow' : 'text-slate-600 hover:text-slate-900'"
-                    class="px-3.5 py-2 rounded-lg transition cursor-pointer">
+                    class="px-3 py-2 rounded-lg transition cursor-pointer">
                 Peta 91 Kavling
             </button>
         </div>
@@ -35,7 +40,7 @@
          :class="toastType === 'error' ? 'bg-rose-50 text-rose-800 border-rose-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'"
          class="p-4 rounded-xl border text-xs font-medium flex justify-between items-center">
         <span x-text="toastMessage"></span>
-        <button @click="toastMessage = ''">✕</button>
+        <button @click="toastMessage = ''" class="cursor-pointer">✕</button>
     </div>
 
     <!-- BAGIAN 1: PASAR TETANGGA (UMKM) -->
@@ -95,9 +100,9 @@
                                 <div class="flex items-center justify-between gap-2">
                                     <span class="text-[11px] font-semibold text-slate-500">Ubah Status:</span>
                                     <div class="flex gap-1">
-                                        <button type="button" @click="changeStoreStatus(store.id, 'open')" class="px-2 py-1 rounded text-[11px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100">Buka</button>
-                                        <button type="button" @click="changeStoreStatus(store.id, 'open_po')" class="px-2 py-1 rounded text-[11px] font-bold bg-amber-50 text-amber-700 hover:bg-amber-100">PO</button>
-                                        <button type="button" @click="changeStoreStatus(store.id, 'closed')" class="px-2 py-1 rounded text-[11px] font-bold bg-slate-100 text-slate-700 hover:bg-slate-200">Tutup</button>
+                                        <button type="button" @click="changeStoreStatus(store.id, 'open')" class="px-2 py-1 rounded text-[11px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 cursor-pointer">Buka</button>
+                                        <button type="button" @click="changeStoreStatus(store.id, 'open_po')" class="px-2 py-1 rounded text-[11px] font-bold bg-amber-50 text-amber-700 hover:bg-amber-100 cursor-pointer">PO</button>
+                                        <button type="button" @click="changeStoreStatus(store.id, 'closed')" class="px-2 py-1 rounded text-[11px] font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-pointer">Tutup</button>
                                     </div>
                                 </div>
                             </template>
@@ -155,7 +160,7 @@
                 </div>
 
                 <button type="submit"
-                        class="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-sm transition">
+                        class="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-sm transition cursor-pointer">
                     Publikasikan ke Pasar Tetangga
                 </button>
             </form>
@@ -201,7 +206,64 @@
         </div>
     </div>
 
-    <!-- BAGIAN 3: PETA 91 KAVLING INTERNAL (DIPINDAHKAN DARI HALAMAN PUBLIK DEMI PRIVASI) -->
+    <!-- BAGIAN 3: NOTULENSI MUSYAWARAH & TATA TERTIB PAGUYUBAN -->
+    <div x-show="tab === 'minutes'" class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+                <h2 class="text-lg font-bold text-slate-900">Arsip Notulensi Rapat &amp; Tata Tertib Lingkungan</h2>
+                <p class="text-xs text-slate-500">Dokumen kesepakatan musyawarah warga dan tata tertib yang berlaku di Perumahan Pesona Mandiri Turen.</p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <select x-model="filterMinuteCategory" class="rounded-xl border-slate-300 text-xs">
+                    <option value="">Semua Dokumen</option>
+                    <option value="musyawarah_warga">Musyawarah Warga</option>
+                    <option value="tata_tertib">Tata Tertib Lingkungan</option>
+                    <option value="rapat_pengurus">Rapat Pengurus</option>
+                </select>
+                <a x-show="me?.can_manage_announcements"
+                   href="/pengurus"
+                   class="px-3 py-2 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 text-xs font-bold transition">
+                    + Catat
+                </a>
+            </div>
+        </div>
+
+        <div x-show="filteredMinutes.length === 0"
+             class="p-10 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-center text-xs text-slate-500">
+            Belum ada arsip notulensi musyawarah atau tata tertib pada kategori ini.
+        </div>
+
+        <div class="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden" x-show="filteredMinutes.length > 0">
+            <template x-for="m in filteredMinutes" :key="m.id">
+                <button type="button"
+                        @click="selectedMinute = m"
+                        class="w-full px-5 py-4 flex items-start justify-between gap-4 text-left hover:bg-slate-50/90 transition cursor-pointer group">
+                    <div class="space-y-1.5 min-w-0">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span :class="m.badgeClass"
+                                  class="px-2 py-0.5 rounded-md text-[10px] font-bold border"
+                                  x-text="m.category">
+                            </span>
+                            <span x-show="m.visibility === 'internal_pengurus'"
+                                  class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-300">
+                                Internal Pengurus
+                            </span>
+                            <span class="text-[11px] text-slate-400 font-medium"
+                                  x-text="m.meeting_date_formatted + (m.location ? ' • ' + m.location : '')">
+                            </span>
+                        </div>
+                        <div class="text-sm font-bold text-slate-900 group-hover:text-emerald-800 transition leading-snug"
+                             x-text="m.title">
+                        </div>
+                        <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed" x-text="m.excerpt"></p>
+                    </div>
+                    <span class="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition text-lg font-medium shrink-0 mt-1">&rsaquo;</span>
+                </button>
+            </template>
+        </div>
+    </div>
+
+    <!-- BAGIAN 4: PETA 91 KAVLING INTERNAL -->
     <div x-show="tab === 'siteplan'" class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
             <div>
@@ -243,6 +305,41 @@
         </div>
     </div>
 
+    <!-- ===================================================================== -->
+    <!-- MODAL BACA DETAIL NOTULENSI / TATA TERTIB                             -->
+    <!-- ===================================================================== -->
+    <div x-show="selectedMinute !== null"
+         x-cloak
+         class="fixed inset-0 z-50 !mt-0 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-[1px] overflow-y-auto">
+        <div @click.away="selectedMinute = null"
+             class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-[calc(100vw-1.5rem)] sm:max-w-lg max-h-[90dvh] flex flex-col overflow-hidden my-auto">
+            <div class="px-5 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3 shrink-0">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span :class="selectedMinute?.badgeClass"
+                          class="px-2 py-0.5 rounded-md text-[10px] font-bold border"
+                          x-text="selectedMinute?.category"></span>
+                    <span class="text-xs text-slate-400" x-text="selectedMinute?.meeting_date_formatted"></span>
+                </div>
+                <button type="button" @click="selectedMinute = null" class="text-slate-400 hover:text-slate-700 text-sm p-1 cursor-pointer">✕</button>
+            </div>
+            <div class="p-5 sm:p-6 space-y-3 overflow-y-auto">
+                <h3 class="text-base sm:text-lg font-extrabold text-slate-900 leading-snug" x-text="selectedMinute?.title"></h3>
+                <div class="text-xs text-slate-500 space-y-0.5">
+                    <div x-show="selectedMinute?.location" x-text="'Lokasi / Forum: ' + selectedMinute?.location"></div>
+                    <div x-text="'Dicatat oleh: ' + (selectedMinute?.author || 'Sekretariat Paguyuban PPMT')"></div>
+                </div>
+                <p class="text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line pt-2 border-t border-slate-100"
+                   x-text="selectedMinute?.decisions"></p>
+            </div>
+            <div class="px-5 sm:px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex justify-end shrink-0">
+                <button type="button" @click="selectedMinute = null"
+                        class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold cursor-pointer">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <script>
@@ -254,8 +351,11 @@ function ppmtCommunity() {
         stores: [],
         residents: [],
         units: [],
+        meetingMinutes: [],
+        selectedMinute: null,
         filterCategory: '',
         filterStatus: '',
+        filterMinuteCategory: '',
         toastMessage: '',
         toastType: 'success',
         storeForm: {
@@ -287,7 +387,12 @@ function ppmtCommunity() {
                 this.storeForm.unit_code = this.me.memberships[0].unit.code;
             }
 
-            await Promise.all([this.loadStores(), this.loadDirectory(), this.loadUnits()]);
+            await Promise.all([
+                this.loadStores(),
+                this.loadDirectory(),
+                this.loadUnits(),
+                this.loadMeetingMinutes()
+            ]);
         },
 
         headers() {
@@ -296,6 +401,11 @@ function ppmtCommunity() {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             };
+        },
+
+        get filteredMinutes() {
+            if (!this.filterMinuteCategory) return this.meetingMinutes;
+            return this.meetingMinutes.filter(m => m.category_code === this.filterMinuteCategory);
         },
 
         async loadStores() {
@@ -315,6 +425,14 @@ function ppmtCommunity() {
             if (res.ok) {
                 const json = await res.json();
                 this.residents = json.data || [];
+            }
+        },
+
+        async loadMeetingMinutes() {
+            const res = await fetch('/api/v1/meeting-minutes', { headers: this.headers() });
+            if (res.ok) {
+                const json = await res.json();
+                this.meetingMinutes = json.data || [];
             }
         },
 
