@@ -45,6 +45,57 @@
         </section>
 
         <!-- ================================================================= -->
+        <!-- STATS STRIP: RINGKASAN KONDISI HUNIAN & ADMINISTRASI              -->
+        <!-- ================================================================= -->
+        <section x-show="registryStats !== null" class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm">
+                <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Kavling Terisi</div>
+                <div class="mt-1.5 flex items-baseline gap-1.5">
+                    <span class="text-2xl font-extrabold text-emerald-700" x-text="registryStats?.filled_units ?? 0"></span>
+                    <span class="text-xs font-semibold text-slate-400" x-text="'/ ' + (registryStats?.total_units ?? 0) + ' unit'"></span>
+                </div>
+                <div class="text-[11px] text-slate-500 mt-1"
+                     x-text="(registryStats?.occupied_units ?? 0) + ' Dihuni • ' + (registryStats?.rented_units ?? 0) + ' Disewa'">
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm">
+                <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Warga Terverifikasi</div>
+                <div class="mt-1.5 flex items-baseline gap-1.5">
+                    <span class="text-2xl font-extrabold text-slate-900" x-text="registryStats?.verified_residents ?? 0"></span>
+                    <span class="text-xs font-semibold text-slate-400">akun aktif</span>
+                </div>
+                <div class="text-[11px] text-slate-500 mt-1"
+                     x-text="(registryStats?.unclaimed_units ?? 0) + ' kavling belum terklaim'">
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm">
+                <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Antrean Verifikasi</div>
+                <div class="mt-1.5 flex items-baseline gap-1.5">
+                    <span :class="pendingApprovals.length > 0 ? 'text-amber-600' : 'text-slate-900'"
+                          class="text-2xl font-extrabold"
+                          x-text="pendingApprovals.length"></span>
+                    <span class="text-xs font-semibold text-slate-400">pendaftar</span>
+                </div>
+                <div class="text-[11px] text-slate-500 mt-1"
+                     x-text="(registryStats?.pending_units ?? 0) + ' kavling berstatus pending'">
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm">
+                <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Papan &amp; Arsip</div>
+                <div class="mt-1.5 flex items-baseline gap-1.5">
+                    <span class="text-2xl font-extrabold text-indigo-700" x-text="registryStats?.published_announcements ?? 0"></span>
+                    <span class="text-xs font-semibold text-slate-400">pengumuman</span>
+                </div>
+                <div class="text-[11px] text-slate-500 mt-1"
+                     x-text="(registryStats?.total_minutes ?? 0) + ' dokumen notulensi & tatib'">
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
         <!-- MODUL 1: PAPAN PENGUMUMAN PAGUYUBAN (Sekretaris & Ketua)          -->
         <!-- ================================================================= -->
         <section x-show="user?.can_manage_announcements"
@@ -532,6 +583,113 @@
             </section>
 
         </div>
+
+        <!-- ================================================================= -->
+        <!-- MODUL 4: BUKU INDUK & STATUS HUNIAN KAVLING (Seluruh Pengurus)    -->
+        <!-- ================================================================= -->
+        <section x-show="registryUnits.length > 0"
+                 class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200 space-y-4">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-base sm:text-lg font-bold text-slate-900">Buku Induk &amp; Status Hunian Kavling</h2>
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"
+                              x-text="filteredRegistryUnits.length + ' Kavling'"></span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-0.5"
+                       x-text="registryScopeIsCentral ? 'Menampilkan seluruh kavling hunian PPMT untuk pendataan & administrasi pengurus pusat.' : 'Menampilkan kavling hunian di dalam wilayah cakupan koordinasi Anda.'">
+                    </p>
+                </div>
+
+                <!-- Baris Filter & Pencarian -->
+                <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
+                    <input type="text"
+                           x-model="registrySearch"
+                           placeholder="Cari kavling / nama..."
+                           class="col-span-2 sm:w-44 rounded-xl border-slate-300 text-xs focus:border-emerald-600 focus:ring-emerald-600">
+
+                    <select x-model="registryFilterBlock" class="rounded-xl border-slate-300 text-xs">
+                        <option value="">Semua Blok</option>
+                        <option value="R">Blok R</option>
+                        <option value="A">Blok A</option>
+                        <option value="B">Blok B</option>
+                        <option value="C">Blok C</option>
+                        <option value="D">Blok D</option>
+                    </select>
+
+                    <select x-model="registryFilterZone" class="rounded-xl border-slate-300 text-xs">
+                        <option value="">Semua Zona</option>
+                        <option value="ZONA-1">ZONA-1</option>
+                        <option value="ZONA-2">ZONA-2</option>
+                        <option value="ZONA-3">ZONA-3</option>
+                        <option value="ZONA-4">ZONA-4</option>
+                    </select>
+
+                    <select x-model="registryFilterStatus" class="col-span-2 sm:col-span-1 rounded-xl border-slate-300 text-xs">
+                        <option value="">Semua Status</option>
+                        <option value="occupied">Berpenghuni</option>
+                        <option value="rented">Disewakan</option>
+                        <option value="pending">Menunggu Verifikasi</option>
+                        <option value="unclaimed">Belum Terklaim</option>
+                    </select>
+                </div>
+            </div>
+
+            <div x-show="filteredRegistryUnits.length === 0"
+                 class="p-8 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-center text-xs text-slate-500">
+                Tidak ada kavling yang cocok dengan kriteria pencarian atau filter saat ini.
+            </div>
+
+            <div x-show="filteredRegistryUnits.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                <template x-for="u in filteredRegistryUnits" :key="u.id">
+                    <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2.5 flex flex-col justify-between">
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2.5 py-1 rounded-lg bg-slate-900 text-white text-xs font-extrabold"
+                                          x-text="u.code"></span>
+                                    <span class="text-[11px] font-semibold text-slate-500" x-text="u.zone"></span>
+                                </div>
+                                <span :class="{
+                                        'bg-emerald-100 text-emerald-800 border-emerald-200': u.occupancy_status === 'occupied',
+                                        'bg-sky-100 text-sky-800 border-sky-200': u.occupancy_status === 'rented',
+                                        'bg-amber-100 text-amber-800 border-amber-300': u.occupancy_status === 'pending',
+                                        'bg-slate-200 text-slate-600 border-slate-300': u.occupancy_status === 'unclaimed'
+                                      }"
+                                      class="px-2 py-0.5 rounded-full text-[10px] font-bold border"
+                                      x-text="formatUnitStatus(u.occupancy_status)">
+                                </span>
+                            </div>
+
+                            <div x-show="u.members.length === 0" class="text-[11px] text-slate-400 italic py-1">
+                                Belum ada warga terdaftar pada kavling ini.
+                            </div>
+
+                            <div x-show="u.members.length > 0" class="space-y-1.5">
+                                <template x-for="m in u.members" :key="m.membership_id">
+                                    <div class="p-2.5 rounded-lg bg-white border border-slate-200/90 text-xs">
+                                        <div class="flex items-start justify-between gap-1.5">
+                                            <div class="font-bold text-slate-900 leading-snug" x-text="m.name"></div>
+                                            <span :class="m.is_approved ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-amber-700 bg-amber-50 border-amber-200'"
+                                                  class="px-1.5 py-0.5 rounded text-[9px] font-bold border shrink-0"
+                                                  x-text="m.is_approved ? 'Aktif' : 'Pending'">
+                                            </span>
+                                        </div>
+                                        <div class="text-[11px] text-slate-500 mt-0.5 flex flex-wrap items-center justify-between gap-1">
+                                            <span x-text="m.sub_role_label"></span>
+                                            <span class="font-mono text-[10px] text-slate-600" x-text="m.contact"></span>
+                                        </div>
+                                        <div x-show="m.valid_until" class="text-[10px] text-sky-700 font-semibold mt-0.5"
+                                             x-text="'Masa sewa s/d: ' + m.valid_until">
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </section>
     </div>
 
     <!-- ===================================================================== -->
@@ -690,6 +848,13 @@ function ppmtAdminPanel() {
         allUnits: [],
         announcements: [],
         meetingMinutes: [],
+        registryStats: null,
+        registryScopeIsCentral: false,
+        registryUnits: [],
+        registrySearch: '',
+        registryFilterBlock: '',
+        registryFilterZone: '',
+        registryFilterStatus: '',
         savingAnnouncement: false,
         editingAnnouncement: null,
         savingMinute: false,
@@ -754,6 +919,24 @@ function ppmtAdminPanel() {
             return ALL_ROLE_OPTIONS.filter(opt => allowed.includes(opt.code));
         },
 
+        get filteredRegistryUnits() {
+            const q = (this.registrySearch || '').trim().toLowerCase();
+            return this.registryUnits.filter(u => {
+                if (this.registryFilterBlock && u.block !== this.registryFilterBlock) return false;
+                if (this.registryFilterZone && u.zone !== this.registryFilterZone) return false;
+                if (this.registryFilterStatus && u.occupancy_status !== this.registryFilterStatus) return false;
+                if (q) {
+                    const matchCode = (u.code || '').toLowerCase().includes(q);
+                    const matchMember = (u.members || []).some(m =>
+                        (m.name || '').toLowerCase().includes(q) ||
+                        (m.contact || '').toLowerCase().includes(q)
+                    );
+                    if (!matchCode && !matchMember) return false;
+                }
+                return true;
+            });
+        },
+
         async init() {
             if (!this.token) {
                 window.location.href = '/';
@@ -769,7 +952,10 @@ function ppmtAdminPanel() {
                 this.updateGovScopeDefault();
             }
 
-            const tasks = [this.loadPendingApprovals()];
+            const tasks = [
+                this.loadPendingApprovals(),
+                this.loadOccupancyRegistry()
+            ];
             if (this.user?.can_manage_announcements) {
                 tasks.push(this.loadAnnouncements(), this.loadMeetingMinutes());
             }
@@ -811,6 +997,17 @@ function ppmtAdminPanel() {
             }
         },
 
+        async loadOccupancyRegistry() {
+            const res = await fetch('/api/v1/governance/occupancy-registry', { headers: this.headers() });
+            if (res.ok) {
+                const json = await res.json();
+                const data = json.data || {};
+                this.registryStats = data.stats || null;
+                this.registryScopeIsCentral = Boolean(data.scope_is_central);
+                this.registryUnits = data.units || [];
+            }
+        },
+
         async loadAnnouncements() {
             const res = await fetch('/api/v1/announcements?all=1', { headers: this.headers() });
             if (res.ok) {
@@ -840,7 +1037,7 @@ function ppmtAdminPanel() {
                     this.toastType = 'success';
                     this.toastMessage = json.message;
                     this.announcementForm = { title: '', category: 'info', body: '', is_pinned: false };
-                    await this.loadAnnouncements();
+                    await Promise.all([this.loadAnnouncements(), this.loadOccupancyRegistry()]);
                 } else {
                     this.toastType = 'error';
                     this.toastMessage = json.message || 'Gagal menerbitkan pengumuman.';
@@ -879,7 +1076,7 @@ function ppmtAdminPanel() {
                     this.editingAnnouncement = null;
                     this.toastType = 'success';
                     this.toastMessage = json.message;
-                    await this.loadAnnouncements();
+                    await Promise.all([this.loadAnnouncements(), this.loadOccupancyRegistry()]);
                 } else {
                     this.toastType = 'error';
                     this.toastMessage = json.message || 'Gagal memperbarui pengumuman.';
@@ -911,7 +1108,7 @@ function ppmtAdminPanel() {
             if (res.ok) {
                 this.toastType = 'success';
                 this.toastMessage = item.is_published ? 'Pengumuman diarsipkan dari beranda warga.' : 'Pengumuman kembali ditayangkan.';
-                await this.loadAnnouncements();
+                await Promise.all([this.loadAnnouncements(), this.loadOccupancyRegistry()]);
             }
         },
 
@@ -924,7 +1121,7 @@ function ppmtAdminPanel() {
             if (res.ok) {
                 this.toastType = 'success';
                 this.toastMessage = json.message;
-                await this.loadAnnouncements();
+                await Promise.all([this.loadAnnouncements(), this.loadOccupancyRegistry()]);
             }
         },
 
@@ -948,7 +1145,7 @@ function ppmtAdminPanel() {
                         decisions: '',
                         visibility: 'public_residents'
                     };
-                    await this.loadMeetingMinutes();
+                    await Promise.all([this.loadMeetingMinutes(), this.loadOccupancyRegistry()]);
                 } else {
                     this.toastType = 'error';
                     this.toastMessage = json.message || 'Gagal menyimpan notulensi.';
@@ -1010,7 +1207,7 @@ function ppmtAdminPanel() {
             if (res.ok) {
                 this.toastType = 'success';
                 this.toastMessage = json.message;
-                await this.loadMeetingMinutes();
+                await Promise.all([this.loadMeetingMinutes(), this.loadOccupancyRegistry()]);
             }
         },
 
@@ -1119,7 +1316,7 @@ function ppmtAdminPanel() {
                 this.assistForm.phone = '';
                 this.assistForm.username = '';
                 this.assistForm.password = '';
-                await this.loadGovernanceData();
+                await Promise.all([this.loadGovernanceData(), this.loadOccupancyRegistry()]);
             } else {
                 this.toastType = 'error';
                 this.toastMessage = json.message || 'Gagal mendaftarkan tetangga.';
@@ -1139,7 +1336,7 @@ function ppmtAdminPanel() {
             if (res.ok) {
                 this.toastType = 'success';
                 this.toastMessage = json.message;
-                await this.loadPendingApprovals();
+                await Promise.all([this.loadPendingApprovals(), this.loadOccupancyRegistry()]);
             } else {
                 this.toastType = 'error';
                 this.toastMessage = json.message || 'Gagal mengesahkan warga.';

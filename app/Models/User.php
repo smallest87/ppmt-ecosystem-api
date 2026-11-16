@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -78,6 +79,81 @@ class User extends Authenticatable
     public function canManageAnnouncements(): bool
     {
         return $this->isSekretarisPaguyuban() || $this->isKetuaPaguyuban();
+    }
+
+    public function hasCentralOccupancyAccess(): bool
+    {
+        if ($this->isGlobalGovernor()) {
+            return true;
+        }
+
+        return $this->governanceRoles()
+            ->whereIn('role_code', [
+                'sekretaris_paguyuban',
+                'bendahara_paguyuban',
+                'keamanan_lingkungan',
+            ])
+            ->exists();
+    }
+
+    public function canViewOccupancyRegistry(): bool
+    {
+        return $this->hasAdminAccess();
+    }
+
+    /**
+     * Query unit hunian (non-fasum) yang berada dalam wewenang pengurus ini.
+     */
+    public function accessibleUnitsQuery(): Builder
+    {
+        $query = Unit::query()->where('unit_type', '!=', 'fasum');
+
+        if ($this->hasCentralOccupancyAccess()) {
+            return $query;
+        }
+
+        $zones = $this->governanceRoles()
+            ->where('role_code', 'koordinator_zona')
+            ->where('scope_type', 'zone')
+            ->pluck('scope_value')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $blocks = $this->governanceRoles()
+            ->where('role_code', 'koordinator_blok')
+            ->where('scope_type', 'block')
+            ->pluck('scope_value')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($this->profile?->global_role === 'koordinator_blok') {
+            $legacyZones = $this->unitMemberships()
+                ->where('is_approved', true)
+                ->with('unit:id,zone')
+                ->get()
+                ->pluck('unit.zone')
+                ->filter()
+                ->unique()
+                ->all();
+            $zones = array_values(array_unique(array_merge($zones, $legacyZones)));
+        }
+
+        if (empty($zones) && empty($blocks)) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(function (Builder $q) use ($zones, $blocks) {
+            if (! empty($zones)) {
+                $q->orWhereIn('zone', $zones);
+            }
+            if (! empty($blocks)) {
+                $q->orWhereIn('block', $blocks);
+            }
+        });
     }
 
     /**

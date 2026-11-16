@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Unit extends Model
 {
@@ -22,5 +23,10 @@ class Unit extends Model
         return [
             'map_coordinates' => 'array',
         ];
+    }
+
+    public function memberships(): HasMany
+    {
+        return $this->hasMany(UnitMembership::class);
     }
 }

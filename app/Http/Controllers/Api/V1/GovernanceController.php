@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Announcement;
+use App\Models\MeetingMinute;
 use App\Models\User;
 use App\Models\UserGovernanceRole;
 use App\Models\Unit;
@@ -15,6 +17,99 @@ use Illuminate\Validation\Rule;
 
 class GovernanceController extends Controller
 {
+    public function occupancyRegistry(Request $request): JsonResponse
+    {
+        $actor = $request->user();
+
+        if (! $actor->canViewOccupancyRegistry()) {
+            return response()->json([
+                'message' => 'Akses ditolak. Hanya pengurus aktif PPMT yang dapat mengakses buku induk hunian.',
+            ], 403);
+        }
+
+        $units = $actor->accessibleUnitsQuery()
+            ->with([
+                'memberships' => fn ($q) => $q->orderByDesc('is_approved')->orderByDesc('is_primary_contact'),
+                'memberships.user:id,name',
+                'memberships.user.profile:id,user_id,display_name,phone,username,is_verified',
+            ])
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+
+        $subRoleLabels = [
+            'primary_owner' => 'Pemilik Utama',
+            'co_owner' => 'Pemilik Bersama',
+            'primary_resident' => 'Penghuni Utama',
+            'family_member' => 'Anggota Keluarga',
+            'co_resident' => 'Penghuni Bersama',
+            'tenant' => 'Penyewa / Kontrak',
+            'caretaker' => 'Penjaga Rumah',
+        ];
+
+        $totalUnits = $units->count();
+        $occupiedCount = $units->where('occupancy_status', 'occupied')->count();
+        $rentedCount = $units->where('occupancy_status', 'rented')->count();
+        $pendingCount = $units->where('occupancy_status', 'pending')->count();
+        $unclaimedCount = $units->where('occupancy_status', 'unclaimed')->count();
+
+        $verifiedResidentIds = $units->flatMap(function (Unit $unit) {
+            return $unit->memberships
+                ->filter(fn ($m) => $m->is_approved && $m->user?->profile?->is_verified)
+                ->pluck('user_id');
+        })->unique()->count();
+
+        $formattedUnits = $units->map(function (Unit $unit) use ($subRoleLabels) {
+            $members = $unit->memberships->map(function ($m) use ($subRoleLabels) {
+                $fullName = $m->user?->name ?? 'Warga';
+                $displayName = $m->user?->profile?->display_name;
+
+                return [
+                    'membership_id' => $m->id,
+                    'user_id' => $m->user_id,
+                    'name' => $displayName && $displayName !== $fullName
+                        ? "{$fullName} ({$displayName})"
+                        : $fullName,
+                    'contact' => $m->user?->profile?->phone ?: ($m->user?->profile?->username ? '@' . $m->user->profile->username : '-'),
+                    'entity_type' => $m->entity_type,
+                    'sub_role' => $m->sub_role,
+                    'sub_role_label' => $subRoleLabels[$m->sub_role] ?? $m->sub_role,
+                    'is_approved' => (bool) $m->is_approved,
+                    'is_primary_contact' => (bool) $m->is_primary_contact,
+                    'valid_until' => $m->valid_until?->format('d M Y'),
+                ];
+            })->values();
+
+            return [
+                'id' => $unit->id,
+                'code' => $unit->code,
+                'block' => $unit->block,
+                'zone' => $unit->zone,
+                'unit_type' => $unit->unit_type,
+                'occupancy_status' => $unit->occupancy_status,
+                'members' => $members,
+            ];
+        })->values();
+
+        return response()->json([
+            'data' => [
+                'scope_is_central' => $actor->hasCentralOccupancyAccess(),
+                'stats' => [
+                    'total_units' => $totalUnits,
+                    'filled_units' => $occupiedCount + $rentedCount,
+                    'occupied_units' => $occupiedCount,
+                    'rented_units' => $rentedCount,
+                    'pending_units' => $pendingCount,
+                    'unclaimed_units' => $unclaimedCount,
+                    'verified_residents' => $verifiedResidentIds,
+                    'published_announcements' => Announcement::where('is_published', true)->count(),
+                    'total_minutes' => MeetingMinute::count(),
+                ],
+                'units' => $formattedUnits,
+            ],
+        ]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $actor = $request->user();
@@ -70,7 +165,6 @@ class GovernanceController extends Controller
             'scope_value' => ['nullable', 'string', 'max:30'],
         ]);
 
-        // Penegakan hierarki wewenang penyematan jabatan
         if (! $actor->canAssignGovernanceRole($validated['role_code'])) {
             $reason = $validated['role_code'] === 'ketua_paguyuban'
                 ? 'Jabatan Ketua Paguyuban hanya dapat ditetapkan oleh Admin Sistem / Operator Aplikasi berdasarkan hasil musyawarah warga.'
@@ -128,7 +222,6 @@ class GovernanceController extends Controller
             ], 403);
         }
 
-        // Kunci pengaman: Mencegah sistem kehilangan seluruh Admin / Operator Aplikasi aktif
         if (in_array($role->role_code, ['admin', 'operator_aplikasi'], true)) {
             $activeAdminCount = UserGovernanceRole::whereIn('role_code', ['admin', 'operator_aplikasi'])
                 ->where('is_active', true)

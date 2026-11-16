@@ -83,7 +83,8 @@ Route::prefix('v1')->group(function () {
             Route::patch('/meeting-minutes/{meetingMinute}', [MeetingMinuteController::class, 'update']);
             Route::delete('/meeting-minutes/{meetingMinute}', [MeetingMinuteController::class, 'destroy']);
 
-            // Tata Kelola Jabatan & Assisted Register
+            // Tata Kelola Jabatan, Buku Induk & Assisted Register
+            Route::get('/governance/occupancy-registry', [GovernanceController::class, 'occupancyRegistry']);
             Route::get('/governance/roles', [GovernanceController::class, 'index']);
             Route::post('/governance/assign', [GovernanceController::class, 'assign']);
             Route::delete('/governance/roles/{role}', [GovernanceController::class, 'revoke']);
