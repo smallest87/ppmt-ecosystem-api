@@ -183,35 +183,63 @@
                     </div>
                 </section>
 
-                <!-- Panel 2: Status Iuran Lingkungan Kavling (Mockup) -->
+                <!-- Panel 2: Status Iuran Sampah & Saldo Kas Paguyuban (Live API) -->
                 <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                     <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-2">
                         <div>
-                            <h2 class="text-base font-bold text-slate-900">Iuran Paguyuban Kavling</h2>
-                            <p class="text-xs text-slate-500 mt-0.5">Periode November 2026</p>
+                            <h2 class="text-base font-bold text-slate-900">Iuran Sampah Kavling</h2>
+                            <p class="text-xs text-slate-500 mt-0.5"
+                               x-text="'Periode ' + (treasuryReport?.period_label || 'Bulan Ini') + ' • Jatuh Tempo Tgl 1'"></p>
                         </div>
-                        <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-200">
-                            ✓ Lunas
+                        <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
+                            Rp 20.000 / bln
                         </span>
                     </div>
 
                     <div class="p-5 space-y-3">
-                        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
-                            <div>
-                                <div class="text-[11px] font-medium text-slate-500">Iuran Bulanan (Keamanan &amp; Sampah)</div>
-                                <div class="text-base font-extrabold text-slate-900 mt-0.5">Rp 75.000</div>
+                        <!-- Status per Kavling Warga -->
+                        <template x-for="uDues in (treasuryReport?.my_units_dues || [])" :key="uDues.unit_id">
+                            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3">
+                                <div>
+                                    <div class="text-xs font-bold text-slate-800" x-text="'Kavling ' + uDues.unit_code"></div>
+                                    <div class="text-base font-extrabold text-slate-900 mt-0.5"
+                                         x-text="uDues.current?.status === 'exempt' ? 'Rp 0' : formatRupiah(uDues.current?.amount ?? 20000)"></div>
+                                </div>
+                                <div class="text-right space-y-1">
+                                    <span :class="{
+                                            'bg-emerald-100 text-emerald-900 border-emerald-200': uDues.current?.status === 'paid',
+                                            'bg-amber-100 text-amber-900 border-amber-300': uDues.current?.status === 'unpaid',
+                                            'bg-slate-200 text-slate-700 border-slate-300': uDues.current?.status === 'exempt'
+                                          }"
+                                          class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold border"
+                                          x-text="uDues.current?.status === 'paid' ? '✓ Lunas' : (uDues.current?.status === 'exempt' ? 'Dibebaskan' : 'Belum Terbayar')">
+                                    </span>
+                                    <div class="text-[11px] text-slate-500"
+                                         x-text="uDues.current?.paid_at ? ((uDues.current?.payment_method === 'transfer' ? 'Transfer' : 'Tunai') + ' • ' + uDues.current.paid_at) : 'Tagihan rutin tgl 1'">
+                                    </div>
+                                </div>
                             </div>
-                            <div class="text-right text-[11px] text-slate-500">
-                                <div>Dibayar: 05 Nov 2026</div>
-                                <div class="text-emerald-700 font-semibold">Terverifikasi Bendahara</div>
-                            </div>
+                        </template>
+
+                        <!-- Ringkasan Saldo Kas Lingkungan -->
+                        <div x-show="treasuryReport !== null"
+                             class="px-3.5 py-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 flex items-center justify-between text-xs">
+                            <span class="text-emerald-900 font-medium">Saldo Kas Paguyuban:</span>
+                            <strong class="text-emerald-950 font-extrabold"
+                                    x-text="formatRupiah(treasuryReport?.summary?.current_balance ?? 0)"></strong>
                         </div>
 
-                        <button type="button"
-                                @click="showDuesModal = true"
-                                class="w-full py-2 px-4 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition cursor-pointer">
-                            Lihat Riwayat Pembayaran Kavling
-                        </button>
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <button type="button"
+                                    @click="showDuesModal = true"
+                                    class="w-full py-2 px-3 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition cursor-pointer">
+                                Riwayat 3 Bulan
+                            </button>
+                            <a href="/komunitas?tab=kas"
+                               class="w-full py-2 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold text-center transition">
+                                Laporan Kas &rarr;
+                            </a>
+                        </div>
                     </div>
                 </section>
 
@@ -314,7 +342,7 @@
     </div>
 
     <!-- ===================================================================== -->
-    <!-- MODAL RIWAYAT IURAN KAVLING (MOCKUP)                                  -->
+    <!-- MODAL RIWAYAT IURAN SAMPAH KAVLING (LIVE API)                         -->
     <!-- ===================================================================== -->
     <div x-show="showDuesModal"
          x-cloak
@@ -322,26 +350,44 @@
         <div @click.away="showDuesModal = false"
              class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-[calc(100vw-1.5rem)] sm:max-w-md max-h-[90dvh] flex flex-col overflow-hidden my-auto">
             <div class="px-5 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3 shrink-0">
-                <h3 class="text-base font-bold text-slate-900">Riwayat Iuran Paguyuban</h3>
+                <h3 class="text-base font-bold text-slate-900">Riwayat Iuran Sampah Kavling</h3>
                 <button type="button" @click="showDuesModal = false" class="text-slate-400 hover:text-slate-700 text-sm p-1 cursor-pointer">✕</button>
             </div>
-            <div class="divide-y divide-slate-100 overflow-y-auto">
-                <template x-for="row in duesHistory" :key="row.month">
-                    <div class="px-5 sm:px-6 py-3.5 flex items-center justify-between text-xs">
-                        <div>
-                            <div class="font-bold text-slate-900" x-text="row.month"></div>
-                            <div class="text-slate-500 mt-0.5" x-text="row.paidAt"></div>
-                        </div>
-                        <div class="text-right">
-                            <div class="font-bold text-slate-800" x-text="row.amount"></div>
-                            <span class="inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                Lunas
-                            </span>
+            <div class="p-5 sm:p-6 space-y-4 overflow-y-auto">
+                <template x-for="uDues in (treasuryReport?.my_units_dues || [])" :key="uDues.unit_id">
+                    <div class="space-y-2">
+                        <div class="text-xs font-extrabold uppercase tracking-wider text-slate-500"
+                             x-text="'Kavling ' + uDues.unit_code + ' (' + uDues.zone + ')'"></div>
+                        <div class="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden">
+                            <template x-for="row in uDues.history" :key="row.period_month">
+                                <div class="px-4 py-3 flex items-center justify-between text-xs bg-white">
+                                    <div>
+                                        <div class="font-bold text-slate-900" x-text="row.period_label"></div>
+                                        <div class="text-slate-500 mt-0.5"
+                                             x-text="row.paid_at ? ('Dibayar ' + row.paid_at + ' (' + (row.payment_method === 'transfer' ? 'Transfer' : 'Tunai') + ')') : ('Jatuh tempo ' + row.due_date)"></div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="font-bold text-slate-800"
+                                             x-text="row.status === 'exempt' ? 'Rp 0' : formatRupiah(row.amount)"></div>
+                                        <span :class="{
+                                                'bg-emerald-50 text-emerald-700 border-emerald-200': row.status === 'paid',
+                                                'bg-amber-50 text-amber-800 border-amber-200': row.status === 'unpaid',
+                                                'bg-slate-100 text-slate-600 border-slate-200': row.status === 'exempt'
+                                              }"
+                                              class="inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold border"
+                                              x-text="row.status === 'paid' ? 'Lunas' : (row.status === 'exempt' ? 'Dibebaskan' : 'Belum Bayar')">
+                                        </span>
+                                    </div>
+                                </div>
+                            </template>
                         </div>
                     </div>
                 </template>
             </div>
-            <div class="px-5 sm:px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex justify-end shrink-0">
+            <div class="px-5 sm:px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0">
+                <a href="/komunitas?tab=kas" class="text-xs font-bold text-emerald-700 hover:underline">
+                    Buka Laporan Kas Lengkap &rarr;
+                </a>
                 <button type="button" @click="showDuesModal = false"
                         class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold cursor-pointer">
                     Tutup
@@ -365,6 +411,7 @@ function ppmtFamilyRoom() {
         selectedAnnouncement: null,
         showDuesModal: false,
         announcements: [],
+        treasuryReport: null,
 
         inviteForm: {
             unit_code: '',
@@ -401,14 +448,6 @@ function ppmtFamilyRoom() {
             }
         ],
 
-        // Data Mockup Riwayat Iuran
-        duesHistory: [
-            { month: 'November 2026', paidAt: 'Dibayar 05 Nov 2026', amount: 'Rp 75.000' },
-            { month: 'Oktober 2026', paidAt: 'Dibayar 04 Okt 2026', amount: 'Rp 75.000' },
-            { month: 'September 2026', paidAt: 'Dibayar 06 Sep 2026', amount: 'Rp 75.000' },
-            { month: 'Agustus 2026', paidAt: 'Dibayar 03 Agu 2026', amount: 'Rp 75.000' }
-        ],
-
         async init() {
             if (!this.token) {
                 window.location.href = '/';
@@ -418,7 +457,8 @@ function ppmtFamilyRoom() {
             if (this.user?.is_verified) {
                 await Promise.all([
                     this.loadAnnouncements(),
-                    this.loadPendingApprovals()
+                    this.loadPendingApprovals(),
+                    this.loadTreasuryReport()
                 ]);
             }
         },
@@ -429,6 +469,10 @@ function ppmtFamilyRoom() {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             };
+        },
+
+        formatRupiah(value) {
+            return 'Rp ' + Number(value || 0).toLocaleString('id-ID');
         },
 
         get greetingText() {
@@ -487,6 +531,14 @@ function ppmtFamilyRoom() {
             return this.user.memberships.filter(m =>
                 m.is_approved && ['primary_owner', 'primary_resident'].includes(m.sub_role)
             );
+        },
+
+        async loadTreasuryReport() {
+            const res = await fetch('/api/v1/treasury/public-report', { headers: this.headers() });
+            if (res.ok) {
+                const json = await res.json();
+                this.treasuryReport = json.data || null;
+            }
         },
 
         async loadAnnouncements() {

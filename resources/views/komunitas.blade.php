@@ -5,17 +5,22 @@
 @section('content')
 <div x-data="ppmtCommunity()" x-init="init()" @keydown.escape.window="selectedMinute = null" class="max-w-6xl mx-auto px-4 py-8 space-y-6">
 
-    <!-- Tab Switcher Utama (4 Tab Internal Terproteksi) -->
-    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+    <!-- Tab Switcher Utama (5 Tab Internal Terproteksi) -->
+    <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
         <div>
             <h1 class="text-xl font-extrabold text-slate-900">Komunitas &amp; Peta Lingkungan PPMT</h1>
-            <p class="text-xs text-slate-500">Eksklusif bagi warga terverifikasi &bull; Perlindungan privasi hunian, arsip musyawarah &amp; ekonomi tetangga.</p>
+            <p class="text-xs text-slate-500">Eksklusif bagi warga terverifikasi &bull; Transparansi kas, arsip musyawarah &amp; ekonomi tetangga.</p>
         </div>
-        <div class="grid grid-cols-2 sm:grid-cols-4 bg-slate-100 p-1 rounded-xl text-xs font-bold shrink-0 gap-1 sm:gap-0">
+        <div class="grid grid-cols-2 sm:grid-cols-5 bg-slate-100 p-1 rounded-xl text-xs font-bold shrink-0 gap-1 sm:gap-0">
             <button type="button" @click="tab = 'umkm'"
                     :class="tab === 'umkm' ? 'bg-emerald-700 text-white shadow' : 'text-slate-600 hover:text-slate-900'"
                     class="px-3 py-2 rounded-lg transition cursor-pointer">
                 Pasar Tetangga
+            </button>
+            <button type="button" @click="tab = 'kas'"
+                    :class="tab === 'kas' ? 'bg-emerald-700 text-white shadow' : 'text-slate-600 hover:text-slate-900'"
+                    class="px-3 py-2 rounded-lg transition cursor-pointer">
+                Kas &amp; Iuran
             </button>
             <button type="button" @click="tab = 'directory'"
                     :class="tab === 'directory' ? 'bg-emerald-700 text-white shadow' : 'text-slate-600 hover:text-slate-900'"
@@ -29,7 +34,7 @@
             </button>
             <button type="button" @click="tab = 'siteplan'"
                     :class="tab === 'siteplan' ? 'bg-emerald-700 text-white shadow' : 'text-slate-600 hover:text-slate-900'"
-                    class="px-3 py-2 rounded-lg transition cursor-pointer">
+                    class="col-span-2 sm:col-span-1 px-3 py-2 rounded-lg transition cursor-pointer">
                 Peta 91 Kavling
             </button>
         </div>
@@ -167,7 +172,161 @@
         </div>
     </div>
 
-    <!-- BAGIAN 2: DIREKTORI WARGA TERFILTER PRIVASI -->
+    <!-- BAGIAN 2: TRANSPARANSI KAS PAGUYUBAN & KARTU IURAN SAMPAH -->
+    <div x-show="tab === 'kas'" class="space-y-6">
+
+        <!-- Header Saldo & Pemilih Periode -->
+        <div class="bg-emerald-950 text-white rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-800/80 pb-3">
+                <div>
+                    <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-300">Laporan Transparansi Keuangan Paguyuban</div>
+                    <h2 class="text-lg font-extrabold">Kas Lingkungan &amp; Iuran Sampah (Rp 20.000 / Tgl 1)</h2>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="text-xs text-emerald-200 font-semibold">Bulan Laporan:</label>
+                    <input type="month"
+                           x-model="treasuryMonth"
+                           @change="loadTreasuryReport()"
+                           class="rounded-xl border-emerald-700 bg-emerald-900 text-white text-xs font-bold focus:border-amber-400 focus:ring-amber-400">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div class="bg-emerald-900/70 rounded-xl p-4 border border-emerald-800">
+                    <div class="text-[11px] text-emerald-300 font-semibold">Saldo Kas Paguyuban</div>
+                    <div class="text-lg sm:text-xl font-extrabold text-amber-300 mt-1"
+                         x-text="formatRupiah(treasuryReport?.summary?.current_balance ?? 0)"></div>
+                    <div class="text-[11px] text-emerald-200/80 mt-0.5">Total saldo bersih kas</div>
+                </div>
+
+                <div class="bg-emerald-900/70 rounded-xl p-4 border border-emerald-800">
+                    <div class="text-[11px] text-emerald-300 font-semibold" x-text="'Pemasukan (' + (treasuryReport?.period_label || '') + ')'"></div>
+                    <div class="text-lg sm:text-xl font-extrabold text-white mt-1"
+                         x-text="formatRupiah(treasuryReport?.summary?.month_income ?? 0)"></div>
+                    <div class="text-[11px] text-emerald-200/80 mt-0.5">Iuran &amp; pemasukan kas</div>
+                </div>
+
+                <div class="bg-emerald-900/70 rounded-xl p-4 border border-emerald-800">
+                    <div class="text-[11px] text-emerald-300 font-semibold" x-text="'Pengeluaran (' + (treasuryReport?.period_label || '') + ')'"></div>
+                    <div class="text-lg sm:text-xl font-extrabold text-rose-300 mt-1"
+                         x-text="formatRupiah(treasuryReport?.summary?.month_expense ?? 0)"></div>
+                    <div class="text-[11px] text-emerald-200/80 mt-0.5">Operasional lingkungan</div>
+                </div>
+
+                <div class="bg-emerald-900/70 rounded-xl p-4 border border-emerald-800">
+                    <div class="text-[11px] text-emerald-300 font-semibold">Partisipasi Iuran Sampah</div>
+                    <div class="text-lg sm:text-xl font-extrabold text-white mt-1">
+                        <span x-text="treasuryReport?.summary?.paid_units ?? 0"></span>
+                        <span class="text-xs font-normal text-emerald-300" x-text="'/ ' + (treasuryReport?.summary?.billable_units ?? 0) + ' rumah'"></span>
+                    </div>
+                    <div class="text-[11px] text-emerald-200/80 mt-0.5">Sudah melunasi bulan ini</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <!-- Kartu Iuran Sampah Kavling Pribadi (5 Kolom) -->
+            <div class="lg:col-span-5 bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-4">
+                <div class="border-b border-slate-100 pb-3">
+                    <h3 class="text-base font-bold text-slate-900">Kartu Iuran Sampah Kavling Anda</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Tagihan rutin <strong>Rp 20.000</strong> jatuh tempo setiap <strong>tanggal 1</strong>.</p>
+                </div>
+
+                <template x-for="uDues in (treasuryReport?.my_units_dues || [])" :key="uDues.unit_id">
+                    <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/60 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-extrabold text-slate-900"
+                                  x-text="'Kavling ' + uDues.unit_code + ' (' + uDues.zone + ')'"></span>
+                            <span :class="{
+                                    'bg-emerald-100 text-emerald-800 border-emerald-200': uDues.current?.status === 'paid',
+                                    'bg-amber-100 text-amber-900 border-amber-300': uDues.current?.status === 'unpaid',
+                                    'bg-slate-200 text-slate-700 border-slate-300': uDues.current?.status === 'exempt'
+                                  }"
+                                  class="px-2.5 py-0.5 rounded-full text-[11px] font-bold border"
+                                  x-text="uDues.current?.status === 'paid' ? 'Lunas' : (uDues.current?.status === 'exempt' ? 'Dibebaskan' : 'Belum Terbayar')">
+                            </span>
+                        </div>
+
+                        <div class="divide-y divide-slate-200/80 bg-white rounded-xl border border-slate-200 overflow-hidden">
+                            <template x-for="h in uDues.history" :key="h.period_month">
+                                <div class="px-3.5 py-2.5 flex items-center justify-between gap-2 text-xs">
+                                    <div>
+                                        <div class="font-bold text-slate-800" x-text="h.period_label"></div>
+                                        <div class="text-[11px] text-slate-400" x-text="'Jatuh tempo: ' + h.due_date"></div>
+                                    </div>
+                                    <div class="text-right">
+                                        <span :class="{
+                                                'text-emerald-700': h.status === 'paid',
+                                                'text-amber-700': h.status === 'unpaid',
+                                                'text-slate-500': h.status === 'exempt'
+                                              }"
+                                              class="font-bold block"
+                                              x-text="h.status === 'paid' ? '✓ Lunas (' + formatRupiah(h.amount) + ')' : (h.status === 'exempt' ? 'Dibebaskan' : 'Tagihan Rp 20.000')">
+                                        </span>
+                                        <span x-show="h.paid_at" class="text-[10px] text-slate-400"
+                                              x-text="(h.payment_method === 'transfer' ? 'Transfer' : 'Tunai') + ' • ' + h.paid_at"></span>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Rekap Pos & Mutasi Kas Bulanan (7 Kolom) -->
+            <div class="lg:col-span-7 bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-5">
+                <div class="border-b border-slate-100 pb-3">
+                    <h3 class="text-base font-bold text-slate-900"
+                        x-text="'Rekapitulasi & Mutasi Kas — ' + (treasuryReport?.period_label || '')"></h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Rincian pemasukan dan penggunaan dana kas paguyuban per kategori.</p>
+                </div>
+
+                <!-- Rekap Pengeluaran per Pos -->
+                <div x-show="(treasuryReport?.expense_by_category?.length || 0) > 0" class="space-y-2">
+                    <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Penggunaan Dana per Pos</div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <template x-for="exp in (treasuryReport?.expense_by_category || [])" :key="exp.category">
+                            <div class="p-3 rounded-xl bg-rose-50/60 border border-rose-200/80 flex items-center justify-between text-xs">
+                                <span class="font-semibold text-slate-700" x-text="exp.label"></span>
+                                <span class="font-extrabold text-rose-700" x-text="formatRupiah(exp.total)"></span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Daftar Mutasi Kas Bulan Terpilih -->
+                <div class="space-y-2">
+                    <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Catatan Mutasi Kas Bulan Ini</div>
+
+                    <div x-show="(treasuryReport?.recent_transactions?.length || 0) === 0"
+                         class="p-8 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-center text-xs text-slate-500">
+                        Belum ada mutasi kas yang tercatat pada bulan ini.
+                    </div>
+
+                    <div class="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden"
+                         x-show="(treasuryReport?.recent_transactions?.length || 0) > 0">
+                        <template x-for="tx in (treasuryReport?.recent_transactions || [])" :key="tx.id">
+                            <div class="px-4 py-3 flex items-center justify-between gap-3 text-xs">
+                                <div class="space-y-0.5 min-w-0">
+                                    <div class="font-bold text-slate-900 leading-snug" x-text="tx.description"></div>
+                                    <div class="text-[11px] text-slate-400"
+                                         x-text="tx.entry_date_formatted + ' • ' + tx.category_label + ' (' + (tx.payment_method === 'transfer' ? 'Transfer' : 'Tunai') + ')'">
+                                    </div>
+                                </div>
+                                <span :class="tx.type === 'income' ? 'text-emerald-700' : 'text-rose-600'"
+                                      class="font-extrabold shrink-0"
+                                      x-text="(tx.type === 'income' ? '+ ' : '- ') + formatRupiah(tx.amount)">
+                                </span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BAGIAN 3: DIREKTORI WARGA TERFILTER PRIVASI -->
     <div x-show="tab === 'directory'" class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
         <div class="border-b border-slate-100 pb-3">
             <h2 class="text-lg font-bold text-slate-900">Direktori Warga Terverifikasi</h2>
@@ -206,7 +365,7 @@
         </div>
     </div>
 
-    <!-- BAGIAN 3: NOTULENSI MUSYAWARAH & TATA TERTIB PAGUYUBAN -->
+    <!-- BAGIAN 4: NOTULENSI MUSYAWARAH & TATA TERTIB PAGUYUBAN -->
     <div x-show="tab === 'minutes'" class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-5">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
             <div>
@@ -263,7 +422,7 @@
         </div>
     </div>
 
-    <!-- BAGIAN 4: PETA 91 KAVLING INTERNAL -->
+    <!-- BAGIAN 5: PETA 91 KAVLING INTERNAL -->
     <div x-show="tab === 'siteplan'" class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
             <div>
@@ -344,15 +503,23 @@
 
 <script>
 function ppmtCommunity() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialTab = ['umkm', 'kas', 'directory', 'minutes', 'siteplan'].includes(urlParams.get('tab'))
+        ? urlParams.get('tab')
+        : 'umkm';
+    const currentMonthStr = new Date().toISOString().slice(0, 7);
+
     return {
         token: localStorage.getItem('ppmt_token'),
-        tab: 'umkm',
+        tab: initialTab,
         me: null,
         stores: [],
         residents: [],
         units: [],
         meetingMinutes: [],
         selectedMinute: null,
+        treasuryMonth: currentMonthStr,
+        treasuryReport: null,
         filterCategory: '',
         filterStatus: '',
         filterMinuteCategory: '',
@@ -391,7 +558,8 @@ function ppmtCommunity() {
                 this.loadStores(),
                 this.loadDirectory(),
                 this.loadUnits(),
-                this.loadMeetingMinutes()
+                this.loadMeetingMinutes(),
+                this.loadTreasuryReport()
             ]);
         },
 
@@ -403,9 +571,22 @@ function ppmtCommunity() {
             };
         },
 
+        formatRupiah(value) {
+            return 'Rp ' + Number(value || 0).toLocaleString('id-ID');
+        },
+
         get filteredMinutes() {
             if (!this.filterMinuteCategory) return this.meetingMinutes;
             return this.meetingMinutes.filter(m => m.category_code === this.filterMinuteCategory);
+        },
+
+        async loadTreasuryReport() {
+            const params = new URLSearchParams({ month: this.treasuryMonth });
+            const res = await fetch('/api/v1/treasury/public-report?' + params.toString(), { headers: this.headers() });
+            if (res.ok) {
+                const json = await res.json();
+                this.treasuryReport = json.data || null;
+            }
         },
 
         async loadStores() {

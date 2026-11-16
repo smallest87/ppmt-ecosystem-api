@@ -76,9 +76,24 @@ class User extends Authenticatable
         return $this->hasGovernanceRole('sekretaris_paguyuban');
     }
 
+    public function isBendaharaPaguyuban(): bool
+    {
+        return $this->hasGovernanceRole('bendahara_paguyuban');
+    }
+
     public function canManageAnnouncements(): bool
     {
         return $this->isSekretarisPaguyuban() || $this->isKetuaPaguyuban();
+    }
+
+    public function canManageTreasury(): bool
+    {
+        return $this->isBendaharaPaguyuban();
+    }
+
+    public function canViewTreasury(): bool
+    {
+        return $this->isBendaharaPaguyuban() || $this->isKetuaPaguyuban();
     }
 
     public function hasCentralOccupancyAccess(): bool
@@ -101,9 +116,6 @@ class User extends Authenticatable
         return $this->hasAdminAccess();
     }
 
-    /**
-     * Query unit hunian (non-fasum) yang berada dalam wewenang pengurus ini.
-     */
     public function accessibleUnitsQuery(): Builder
     {
         $query = Unit::query()->where('unit_type', '!=', 'fasum');
@@ -156,9 +168,6 @@ class User extends Authenticatable
         });
     }
 
-    /**
-     * Daftar kode jabatan yang sah disematkan oleh user ini sesuai hierarki tata kelola.
-     */
     public function assignableGovernanceRoles(): array
     {
         $roles = [];

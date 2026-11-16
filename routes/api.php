@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\UmkmStoreController;
 use App\Http\Controllers\Api\V1\GovernanceController;
 use App\Http\Controllers\Api\V1\AnnouncementController;
 use App\Http\Controllers\Api\V1\MeetingMinuteController;
+use App\Http\Controllers\Api\V1\TreasuryController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -36,7 +37,10 @@ Route::prefix('v1')->group(function () {
                     'is_operator_aplikasi' => $user->isSystemAdmin(),
                     'is_ketua_paguyuban' => $user->isKetuaPaguyuban(),
                     'is_sekretaris_paguyuban' => $user->isSekretarisPaguyuban(),
+                    'is_bendahara_paguyuban' => $user->isBendaharaPaguyuban(),
                     'can_manage_announcements' => $user->canManageAnnouncements(),
+                    'can_manage_treasury' => $user->canManageTreasury(),
+                    'can_view_treasury' => $user->canViewTreasury(),
                     'is_global_governor' => $user->isGlobalGovernor(),
                     'has_admin_access' => $user->hasAdminAccess(),
                     'assignable_governance_roles' => $user->assignableGovernanceRoles(),
@@ -82,6 +86,13 @@ Route::prefix('v1')->group(function () {
             Route::post('/meeting-minutes', [MeetingMinuteController::class, 'store']);
             Route::patch('/meeting-minutes/{meetingMinute}', [MeetingMinuteController::class, 'update']);
             Route::delete('/meeting-minutes/{meetingMinute}', [MeetingMinuteController::class, 'destroy']);
+
+            // Keuangan & Kas Paguyuban (Laporan Warga + Pembukuan Bendahara)
+            Route::get('/treasury/public-report', [TreasuryController::class, 'publicReport']);
+            Route::get('/treasury/overview', [TreasuryController::class, 'overview']);
+            Route::post('/treasury/dues', [TreasuryController::class, 'setDuesStatus']);
+            Route::post('/treasury/ledger', [TreasuryController::class, 'storeLedger']);
+            Route::delete('/treasury/ledger/{entry}', [TreasuryController::class, 'destroyLedger']);
 
             // Tata Kelola Jabatan, Buku Induk & Assisted Register
             Route::get('/governance/occupancy-registry', [GovernanceController::class, 'occupancyRegistry']);
