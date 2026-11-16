@@ -85,28 +85,41 @@
                     </div>
 
                     <form @submit.prevent="submitAssistedRegister()" class="space-y-3">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Kavling Tetangga *</label>
-                            <select x-model="assistForm.unit_code" required class="w-full rounded-xl border-slate-300 text-xs">
-                                <option value="">-- Pilih Kavling PPMT --</option>
-                                <template x-for="u in allUnits" :key="u.id">
-                                    <option :value="u.code" x-text="u.code + ' (' + u.zone + ')'"></option>
-                                </template>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap Tetangga *</label>
-                            <input type="text" x-model="assistForm.name" required placeholder="Contoh: Ahmad Fauzi"
-                                   class="w-full rounded-xl border-slate-300 text-xs">
-                        </div>
-
+                        <!-- 1. Nomor WhatsApp (Kunci Login Utama) -->
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor WhatsApp Tetangga *</label>
                             <input type="tel" x-model="assistForm.phone" required placeholder="0812xxxxxxxx"
                                    class="w-full rounded-xl border-slate-300 text-xs">
                         </div>
 
+                        <!-- 2. Kata Sandi Sementara (Berpasangan dengan Nomor WA) -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Kata Sandi Sementara (Min. 8 Karakter) *</label>
+                            <input type="text" x-model="assistForm.password" required minlength="8" placeholder="Contoh: ppmt12345"
+                                   class="w-full rounded-xl border-slate-300 text-xs font-mono">
+                        </div>
+
+                        <!-- 3. Nama Lengkap -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap Tetangga *</label>
+                            <input type="text" x-model="assistForm.name" required placeholder="Contoh: Ahmad Fauzi"
+                                   class="w-full rounded-xl border-slate-300 text-xs">
+                        </div>
+
+                        <!-- 4. Kavling Tetangga + Info Status Hunian -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Kavling Tetangga *</label>
+                            <select x-model="assistForm.unit_code" required class="w-full rounded-xl border-slate-300 text-xs">
+                                <option value="">-- Pilih Kavling PPMT --</option>
+                                <template x-for="u in allUnits" :key="u.id">
+                                    <option :value="u.code"
+                                            x-text="u.code + ' (' + u.zone + ') • ' + formatUnitStatus(u.occupancy_status)">
+                                    </option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <!-- 5. Entitas & Peran -->
                         <div class="grid grid-cols-2 gap-2">
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1">Entitas</label>
@@ -130,16 +143,11 @@
                                             <option value="primary_resident">Penghuni Utama</option>
                                             <option value="family_member">Anggota Keluarga</option>
                                             <option value="tenant">Penyewa / Kontrak</option>
+                                            <option value="caretaker">Penjaga Rumah</option>
                                         </optgroup>
                                     </template>
                                 </select>
                             </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Kata Sandi Sementara (Min. 8 Karakter) *</label>
-                            <input type="text" x-model="assistForm.password" required minlength="8" placeholder="Contoh: ppmt12345"
-                                   class="w-full rounded-xl border-slate-300 text-xs font-mono">
                         </div>
 
                         <button type="submit"
@@ -285,6 +293,16 @@ function ppmtAdminPanel() {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             };
+        },
+
+        formatUnitStatus(status) {
+            const labels = {
+                'unclaimed': 'Belum Terklaim',
+                'pending': 'Menunggu Verifikasi',
+                'occupied': 'Berpenghuni',
+                'rented': 'Disewakan'
+            };
+            return labels[status] || status;
         },
 
         async loadMe() {
