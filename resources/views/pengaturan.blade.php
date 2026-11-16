@@ -1,21 +1,16 @@
 @extends('layouts.app')
 
 @section('title', 'Pengaturan Akun & Privasi — PPMT Digital')
+@section('subpage_title', 'Pengaturan')
+@section('subpage_back_url', '/dashboard')
 
 @section('content')
-<div x-data="ppmtSettings()" x-init="init()" @keydown.escape.window="closeModal()" class="max-w-4xl mx-auto px-4 py-8 space-y-6">
+<div x-data="ppmtSettings()" x-init="init()" @keydown.escape.window="closeModal()" class="max-w-4xl mx-auto px-4 py-6 sm:py-8 space-y-6">
 
-    <!-- Header Halaman Pengaturan -->
-    <div class="flex items-center justify-between gap-4">
-        <div>
-            <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900">Pengaturan Akun &amp; Privasi</h1>
-            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Kelola identitas warga, privasi direktori, dokumen terenkripsi, dan peran kavling Anda.</p>
-        </div>
-        <a href="/dashboard"
-           class="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold shadow-sm transition shrink-0">
-            &larr; Kembali ke Beranda
-        </a>
-    </div>
+    <!-- Sub-keterangan singkat -->
+    <p class="text-xs sm:text-sm text-slate-500">
+        Kelola identitas warga, privasi direktori, dokumen terenkripsi, dan peran kavling Anda.
+    </p>
 
     <!-- Loading State -->
     <div x-show="loading" class="bg-white rounded-2xl p-12 text-center text-slate-500 border border-slate-200">

@@ -1,9 +1,11 @@
 @extends('layouts.app')
 
 @section('title', 'Panel Pengurus & Admin — PPMT Digital')
+@section('subpage_title', 'Ruang Admin')
+@section('subpage_back_url', '/dashboard')
 
 @section('content')
-<div x-data="ppmtAdminPanel()" x-init="init()" class="max-w-6xl mx-auto px-4 py-8 space-y-6">
+<div x-data="ppmtAdminPanel()" x-init="init()" class="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-6">
 
     <!-- Loading State -->
     <div x-show="loading" class="bg-white rounded-2xl p-12 text-center text-slate-500 border border-slate-200">
