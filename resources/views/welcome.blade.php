@@ -2,7 +2,8 @@
 
 @section('content')
 <div x-data="ppmtPublicHome()" x-init="init()"
-     @open-warga-modal.window="openModal($event.detail || 'choose')">
+     @open-warga-modal.window="openModal($event.detail || 'choose')"
+     @keydown.escape.window="modalOpen = false">
 
     <!-- HERO SECTION PUBLIK -->
     <section class="bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-900 text-white">
@@ -19,11 +20,23 @@
                     Selamat datang di portal informasi resmi <strong>Perumahan Pesona Mandiri Turen (PPMT)</strong>. Wadah komunikasi paguyuban, informasi kegiatan sosial warga, dan penguatan ekonomi lokal antar-tetangga.
                 </p>
 
+                <!-- Tombol Aksi Kontekstual (Tamu vs Warga Sudah Login) -->
                 <div class="pt-2 flex flex-wrap items-center gap-3">
-                    <button type="button" @click="openModal('choose')"
-                            class="px-6 py-3.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-sm shadow-lg transition cursor-pointer">
-                        Saya Warga Perumahan &rarr;
-                    </button>
+                    <template x-if="!hasToken">
+                        <button type="button" @click="openModal('choose')"
+                                class="px-6 py-3.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-sm shadow-lg transition cursor-pointer">
+                            Saya Warga Perumahan &rarr;
+                        </button>
+                    </template>
+
+                    <template x-if="hasToken">
+                        <a href="/dashboard"
+                           class="px-6 py-3.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-extrabold text-sm shadow-lg transition inline-flex items-center gap-2">
+                            <span>Masuk ke Beranda Warga</span>
+                            <span>&rarr;</span>
+                        </a>
+                    </template>
+
                     <a href="#kegiatan-warga"
                        class="px-5 py-3.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-sm backdrop-blur transition">
                         Lihat Kegiatan Warga
@@ -143,32 +156,58 @@
                 </ul>
             </div>
 
+            <!-- Kotak Akses Kontekstual (Tamu vs Warga Sudah Login) -->
             <div class="bg-slate-50 rounded-2xl p-6 border border-slate-200 space-y-4">
-                <h3 class="font-bold text-base text-slate-900">Apakah Anda Pemilik atau Penghuni PPMT?</h3>
-                <p class="text-xs text-slate-600 leading-relaxed">
-                    Masuk ke portal untuk mengakses peta kavling internal, direktori warga, pengaturan privasi, dan Pasar Tetangga UMKM—atau ajukan pendaftaran jika Anda warga baru yang belum terdaftar.
-                </p>
-                <button type="button" @click="openModal('choose')"
-                        class="w-full py-3 px-4 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-sm shadow transition cursor-pointer">
-                    Saya Warga Perumahan
-                </button>
+                <template x-if="!hasToken">
+                    <div class="space-y-4">
+                        <h3 class="font-bold text-base text-slate-900">Apakah Anda Pemilik atau Penghuni PPMT?</h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Masuk ke portal untuk mengakses peta kavling internal, direktori warga, pengaturan privasi, dan Pasar Tetangga UMKM—atau ajukan pendaftaran jika Anda warga baru yang belum terdaftar.
+                        </p>
+                        <button type="button" @click="openModal('choose')"
+                                class="w-full py-3 px-4 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-sm shadow transition cursor-pointer">
+                            Saya Warga Perumahan
+                        </button>
+                    </div>
+                </template>
+
+                <template x-if="hasToken">
+                    <div class="space-y-4">
+                        <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200">
+                            <span>&#10003; Sesi Warga Aktif</span>
+                        </div>
+                        <h3 class="font-bold text-base text-slate-900">Anda Sudah Terhubung ke Portal Warga</h3>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Akses langsung pengumuman paguyuban, jadwal ronda, direktori tetangga, serta peta kavling internal melalui ruang kerja warga Anda.
+                        </p>
+                        <div class="flex flex-col sm:flex-row gap-2.5">
+                            <a href="/dashboard"
+                               class="flex-1 py-3 px-4 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs sm:text-sm text-center shadow transition">
+                                Buka Beranda Warga
+                            </a>
+                            <a href="/komunitas"
+                               class="py-3 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-semibold text-xs sm:text-sm text-center transition">
+                                Komunitas &amp; Peta
+                            </a>
+                        </div>
+                    </div>
+                </template>
             </div>
         </div>
     </section>
 
     <!-- ===================================================================== -->
-    <!-- MODAL POPUP: SAYA WARGA PERUMAHAN (PILIHAN MASUK / PENDAFTARAN BARU)  -->
+    <!-- MODAL POPUP: SAYA WARGA PERUMAHAN (HANYA UNTUK TAMU / BELUM LOGIN)    -->
     <!-- ===================================================================== -->
     <div x-show="modalOpen"
-         x-transition.opacity
-         style="display: none;"
-         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4 overflow-y-auto">
+         x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
 
         <div @click.away="modalOpen = false"
-             class="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-8">
+             class="bg-white w-full max-w-[calc(100vw-1.5rem)] sm:max-w-lg max-h-[90dvh] flex flex-col rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto">
 
             <!-- Header Modal -->
-            <div class="bg-emerald-950 text-white px-6 py-4 flex items-center justify-between">
+            <div class="bg-emerald-950 text-white px-5 sm:px-6 py-4 flex items-center justify-between shrink-0">
                 <div>
                     <h3 class="font-bold text-base">Portal Akses Warga PPMT</h3>
                     <p class="text-[11px] text-emerald-200">Perumahan Pesona Mandiri Turen</p>
@@ -179,7 +218,7 @@
                 </button>
             </div>
 
-            <div class="p-6 space-y-5">
+            <div class="p-5 sm:p-6 space-y-5 overflow-y-auto">
 
                 <!-- Notifikasi Error / Sukses -->
                 <div x-show="alertMessage"
@@ -337,6 +376,7 @@
 <script>
 function ppmtPublicHome() {
     return {
+        hasToken: !!localStorage.getItem('ppmt_token'),
         modalOpen: false,
         modalStep: 'choose', // 'choose' | 'login' | 'register'
         selectableUnits: [],
@@ -359,16 +399,24 @@ function ppmtPublicHome() {
         },
 
         async init() {
-            // Jika warga membuka link undangan (?unit=C-21&invite=xxxx), langsung buka modal pendaftaran
             const params = new URLSearchParams(window.location.search);
-            if (params.get('unit') || params.get('invite')) {
+            const hasInviteParam = Boolean(params.get('invite'));
+
+            // Jika warga membuka link undangan (?unit=C-21&invite=xxxx), izinkan form registrasi terbuka
+            if (hasInviteParam) {
                 if (params.get('unit')) this.claimForm.unit_code = params.get('unit');
-                if (params.get('invite')) this.claimForm.invite_token = params.get('invite');
-                await this.openModal('register');
+                this.claimForm.invite_token = params.get('invite');
+                await this.openModal('register', true);
             }
         },
 
-        async openModal(step = 'choose') {
+        async openModal(step = 'choose', bypassAuthGuard = false) {
+            // Cegah penumpukan login/registrasi jika warga sudah memiliki sesi aktif
+            if (this.hasToken && !bypassAuthGuard) {
+                window.location.href = '/dashboard';
+                return;
+            }
+
             this.alertMessage = '';
             this.modalStep = step;
             this.modalOpen = true;
