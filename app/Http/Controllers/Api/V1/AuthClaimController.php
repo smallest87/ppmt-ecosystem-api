@@ -17,17 +17,30 @@ class AuthClaimController extends Controller
 {
     public function registerClaim(Request $request): JsonResponse
     {
+        // Normalisasi kode kavling (contoh: "c-05" -> "C-5", "b-12a" -> "B-12A")
+        if ($request->filled('unit_code')) {
+            $normalizedCode = strtoupper(trim((string) $request->input('unit_code')));
+            $normalizedCode = preg_replace('/^([A-D])-0+([1-9][0-9]*[A-B]?)$/', '$1-$2', $normalizedCode);
+            $request->merge(['unit_code' => $normalizedCode]);
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:150'],
             'phone' => ['required', 'string', 'max:20', 'unique:resident_profiles,phone'],
             'password' => ['required', 'string', 'min:8'],
-            'unit_code' => ['required', 'string', 'exists:units,code'],
+            'unit_code' => [
+                'required',
+                'string',
+                Rule::exists('units', 'code')->where(fn ($q) => $q->where('unit_type', '!=', 'fasum')),
+            ],
             'entity_type' => ['required', Rule::in(['owner', 'resident'])],
             'sub_role' => ['required', Rule::in([
                 'primary_owner', 'co_owner',
                 'primary_resident', 'family_member', 'co_resident', 'tenant', 'caretaker',
             ])],
             'invite_token' => ['nullable', 'string'],
+        ], [
+            'unit_code.exists' => 'Nomor kavling tidak ditemukan. Periksa kembali pilihan Blok dan Nomor Rumah Anda.',
         ]);
 
         $unit = Unit::where('code', $validated['unit_code'])->firstOrFail();

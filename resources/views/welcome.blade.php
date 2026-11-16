@@ -261,29 +261,61 @@
                 <!-- MODE 2: FORM PENDAFTARAN WARGA BARU -->
                 <div x-show="modalStep === 'register'" class="space-y-4">
                     <form @submit.prevent="submitClaim()" class="space-y-3.5">
+                        <!-- 1. Nomor WhatsApp (Paling Awal) -->
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Nomor Kavling Anda *</label>
-                            <select x-model="claimForm.unit_code" required
-                                    class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
-                                <option value="">-- Pilih Kavling Hunian --</option>
-                                <template x-for="unit in selectableUnits" :key="unit.id">
-                                    <option :value="unit.code" x-text="'Kavling ' + unit.code + ' (' + unit.zone + ')'"></option>
-                                </template>
-                            </select>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor WhatsApp Aktif *</label>
+                            <input type="tel" x-model="claimForm.phone" required placeholder="0812xxxxxxxx"
+                                   class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                            <p class="text-[11px] text-slate-500 mt-1">Digunakan sebagai ID masuk akun &amp; verifikasi grup WA warga.</p>
                         </div>
 
+                        <!-- 2. Kata Sandi (Berpasangan dengan Nomor WA) -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Buat Kata Sandi (Minimal 8 Karakter) *</label>
+                            <input type="password" x-model="claimForm.password" required minlength="8" placeholder="••••••••"
+                                   class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                        </div>
+
+                        <!-- 3. Nama Lengkap -->
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap Sesuai Identitas *</label>
                             <input type="text" x-model="claimForm.name" required placeholder="Contoh: Budi Santoso"
                                    class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
                         </div>
 
+                        <!-- 4. Nomor Kavling (4 Tombol Blok A-D + Kotak Nomor Unit) -->
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor WhatsApp Aktif *</label>
-                            <input type="tel" x-model="claimForm.phone" required placeholder="0812xxxxxxxx"
-                                   class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Nomor Kavling Hunian *</label>
+                            <div class="flex items-stretch gap-2">
+                                <!-- 4 Tombol Pilihan Blok A, B, C, D -->
+                                <div class="grid grid-cols-4 gap-1.5 shrink-0">
+                                    <template x-for="blk in ['A', 'B', 'C', 'D']" :key="blk">
+                                        <button type="button"
+                                                @click="claimForm.block = blk"
+                                                :class="claimForm.block === blk
+                                                    ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm'
+                                                    : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'"
+                                                class="w-10 h-10 rounded-xl border text-sm font-extrabold transition cursor-pointer flex items-center justify-center"
+                                                x-text="blk">
+                                        </button>
+                                    </template>
+                                </div>
+
+                                <!-- Kotak Input Nomor Rumah (Angka atau 12A/12B) -->
+                                <input type="text"
+                                       x-model="claimForm.unit_number"
+                                       @input="sanitizeUnitNumber()"
+                                       required
+                                       maxlength="5"
+                                       placeholder="No. Rumah (mis. 5 atau 12A)"
+                                       class="flex-1 min-w-0 rounded-xl border-slate-300 text-sm font-mono uppercase focus:border-emerald-600 focus:ring-emerald-600">
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-1">
+                                Pilih huruf blok (A–D) lalu ketik nomor rumah Anda (contoh: <span class="font-mono font-semibold text-slate-700">12A</span> atau <span class="font-mono font-semibold text-slate-700">21</span>).
+                            </p>
                         </div>
 
+                        <!-- 5. Status Keterkaitan & Peran -->
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1">Status Keterkaitan *</label>
@@ -315,12 +347,7 @@
                             </div>
                         </div>
 
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Buat Kata Sandi (Minimal 8 Karakter) *</label>
-                            <input type="password" x-model="claimForm.password" required minlength="8" placeholder="••••••••"
-                                   class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
-                        </div>
-
+                        <!-- 6. Kode Undangan (Opsional) -->
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">
                                 Kode Undangan Keluarga/Pemilik <span class="text-slate-400 font-normal">(Opsional)</span>
@@ -356,13 +383,12 @@ function ppmtPublicHome() {
         hasToken: !!localStorage.getItem('ppmt_token'),
         modalOpen: false,
         modalStep: 'login', // 'login' | 'register'
-        selectableUnits: [],
-        unitsLoaded: false,
         submitting: false,
         alertMessage: '',
         alertType: 'success',
         claimForm: {
-            unit_code: '',
+            block: '',
+            unit_number: '',
             name: '',
             phone: '',
             entity_type: 'owner',
@@ -379,9 +405,14 @@ function ppmtPublicHome() {
             const params = new URLSearchParams(window.location.search);
             const hasInviteParam = Boolean(params.get('invite'));
 
-            // Jika warga membuka link undangan (?unit=C-21&invite=xxxx), langsung buka form registrasi
+            // Jika membuka link undangan (?unit=C-21&invite=xxxx), pecah kode unit ke blok + nomor
             if (hasInviteParam) {
-                if (params.get('unit')) this.claimForm.unit_code = params.get('unit');
+                const rawUnit = (params.get('unit') || '').toUpperCase().trim();
+                const match = rawUnit.match(/^([A-D])-([0-9]+[A-B]?)$/);
+                if (match) {
+                    this.claimForm.block = match[1];
+                    this.claimForm.unit_number = match[2];
+                }
                 this.claimForm.invite_token = params.get('invite');
                 await this.openModal('register', true);
             }
@@ -396,29 +427,18 @@ function ppmtPublicHome() {
             this.alertMessage = '';
             this.modalStep = step;
             this.modalOpen = true;
-            if (step === 'register' && !this.unitsLoaded) {
-                await this.loadUnitsForSelect();
-            }
         },
 
-        async switchStep(step) {
+        switchStep(step) {
             this.alertMessage = '';
             this.modalStep = step;
-            if (step === 'register' && !this.unitsLoaded) {
-                await this.loadUnitsForSelect();
-            }
         },
 
-        async loadUnitsForSelect() {
-            try {
-                const res = await fetch('/api/v1/public/units');
-                const json = await res.json();
-                this.selectableUnits = (json.data || []).filter(u => u.unit_type !== 'fasum');
-                this.unitsLoaded = true;
-            } catch (e) {
-                this.alertType = 'error';
-                this.alertMessage = 'Gagal memuat daftar kavling.';
-            }
+        sanitizeUnitNumber() {
+            // Hanya izinkan huruf & angka kapital, hapus nol di depan angka
+            let val = (this.claimForm.unit_number || '').toUpperCase().replace(/[^0-9A-Z]/g, '');
+            val = val.replace(/^0+/, '');
+            this.claimForm.unit_number = val;
         },
 
         updateDefaultSubRole() {
@@ -426,13 +446,37 @@ function ppmtPublicHome() {
         },
 
         async submitClaim() {
-            this.submitting = true;
             this.alertMessage = '';
+
+            if (!this.claimForm.block) {
+                this.alertType = 'error';
+                this.alertMessage = 'Silakan pilih huruf Blok (A, B, C, atau D) terlebih dahulu.';
+                return;
+            }
+
+            const cleanNumber = (this.claimForm.unit_number || '').trim().toUpperCase();
+            if (!/^[1-9][0-9]*[A-Z]?$/.test(cleanNumber)) {
+                this.alertType = 'error';
+                this.alertMessage = 'Nomor rumah tidak valid. Masukkan angka (mis. 5 atau 21) atau nomor tambahan (mis. 12A atau 12B).';
+                return;
+            }
+
+            this.submitting = true;
             try {
+                const payload = {
+                    name: this.claimForm.name,
+                    phone: this.claimForm.phone,
+                    password: this.claimForm.password,
+                    unit_code: `${this.claimForm.block}-${cleanNumber}`,
+                    entity_type: this.claimForm.entity_type,
+                    sub_role: this.claimForm.sub_role,
+                    invite_token: this.claimForm.invite_token || null
+                };
+
                 const res = await fetch('/api/v1/auth/register-claim', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                    body: JSON.stringify(this.claimForm)
+                    body: JSON.stringify(payload)
                 });
                 const json = await res.json();
 
