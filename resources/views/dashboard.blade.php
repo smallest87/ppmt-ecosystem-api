@@ -127,23 +127,41 @@
                     </div>
                 </section>
 
-                <!-- Kartu 2: Agenda & Jadwal Lingkungan Minggu Ini (Mockup) -->
+                <!-- Kartu 2: Agenda & Jadwal Lingkungan (Live API) -->
                 <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="px-6 py-4 border-b border-slate-100">
-                        <h2 class="text-base font-bold text-slate-900">Agenda &amp; Jadwal Lingkungan</h2>
-                        <p class="text-xs text-slate-500 mt-0.5">Jadwal kegiatan rutin dan layanan kebersihan perumahan minggu ini.</p>
+                    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
+                        <div>
+                            <h2 class="text-base font-bold text-slate-900">Agenda &amp; Jadwal Lingkungan</h2>
+                            <p class="text-xs text-slate-500 mt-0.5">Jadwal kegiatan rutin, musyawarah, dan pemeliharaan lingkungan PPMT.</p>
+                        </div>
+                        <a x-show="user?.can_manage_announcements"
+                           href="/pengurus"
+                           class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition shrink-0">
+                            + Kelola
+                        </a>
                     </div>
 
-                    <div class="divide-y divide-slate-100">
+                    <div x-show="agendas.length === 0" class="px-6 py-8 text-center text-xs text-slate-500">
+                        Belum ada agenda atau jadwal kegiatan lingkungan dalam waktu dekat.
+                    </div>
+
+                    <div class="divide-y divide-slate-100" x-show="agendas.length > 0">
                         <template x-for="ag in agendas" :key="ag.id">
-                            <div class="px-6 py-4 flex items-center gap-4">
-                                <div class="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-200 flex flex-col items-center justify-center shrink-0 text-emerald-900">
-                                    <span class="text-[10px] font-bold uppercase leading-none" x-text="ag.dayShort"></span>
-                                    <span class="text-base font-extrabold leading-tight mt-0.5" x-text="ag.dateNum"></span>
+                            <div class="px-6 py-4 flex items-start gap-4">
+                                <div class="w-12 h-14 rounded-xl bg-emerald-50 border border-emerald-200 flex flex-col items-center justify-center shrink-0 text-emerald-900">
+                                    <span class="text-[9px] font-bold uppercase leading-none" x-text="ag.dayShort"></span>
+                                    <span class="text-base font-extrabold leading-tight" x-text="ag.dateNum"></span>
+                                    <span class="text-[9px] font-semibold uppercase text-emerald-700 leading-none" x-text="ag.monthShort"></span>
                                 </div>
-                                <div class="min-w-0 flex-1 space-y-0.5">
-                                    <div class="text-sm font-bold text-slate-900 truncate" x-text="ag.title"></div>
+                                <div class="min-w-0 flex-1 space-y-1">
+                                    <div class="flex flex-wrap items-center gap-1.5">
+                                        <span :class="ag.badgeClass"
+                                              class="px-2 py-0.5 rounded-md text-[10px] font-bold border"
+                                              x-text="ag.category"></span>
+                                    </div>
+                                    <div class="text-sm font-bold text-slate-900 leading-snug" x-text="ag.title"></div>
                                     <div class="text-xs text-slate-500" x-text="ag.time + ' • ' + ag.location"></div>
+                                    <p x-show="ag.notes" class="text-[11px] text-slate-500 italic" x-text="ag.notes"></p>
                                 </div>
                             </div>
                         </template>
@@ -197,7 +215,6 @@
                     </div>
 
                     <div class="p-5 space-y-3">
-                        <!-- Status per Kavling Warga -->
                         <template x-for="uDues in (treasuryReport?.my_units_dues || [])" :key="uDues.unit_id">
                             <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3">
                                 <div>
@@ -221,7 +238,6 @@
                             </div>
                         </template>
 
-                        <!-- Ringkasan Saldo Kas Lingkungan -->
                         <div x-show="treasuryReport !== null"
                              class="px-3.5 py-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 flex items-center justify-between text-xs">
                             <span class="text-emerald-900 font-medium">Saldo Kas Paguyuban:</span>
@@ -411,6 +427,7 @@ function ppmtFamilyRoom() {
         selectedAnnouncement: null,
         showDuesModal: false,
         announcements: [],
+        agendas: [],
         treasuryReport: null,
 
         inviteForm: {
@@ -419,34 +436,6 @@ function ppmtFamilyRoom() {
             sub_role: 'family_member',
             member_valid_until: ''
         },
-
-        // Data Mockup Agenda Lingkungan
-        agendas: [
-            {
-                id: 1,
-                dayShort: 'RAB',
-                dateNum: '18',
-                title: 'Pemeliharaan Tandon & Pipa Air Blok C–D',
-                time: '09.00 – 12.00 WIB',
-                location: 'Area Tandon Utama PPMT'
-            },
-            {
-                id: 2,
-                dayShort: 'SAB',
-                dateNum: '21',
-                title: 'Ronda Malam & Patroli Keamanan Akhir Pekan',
-                time: '22.00 – 03.00 WIB',
-                location: 'Pos Gerbang Utama (Regu Blok C)'
-            },
-            {
-                id: 3,
-                dayShort: 'MIN',
-                dateNum: '22',
-                title: 'Kerja Bakti Drainase & Perapian Taman Fasum',
-                time: '06.30 – 09.30 WIB',
-                location: 'Fasum Tengah Perumahan'
-            }
-        ],
 
         async init() {
             if (!this.token) {
@@ -457,6 +446,7 @@ function ppmtFamilyRoom() {
             if (this.user?.is_verified) {
                 await Promise.all([
                     this.loadAnnouncements(),
+                    this.loadAgendas(),
                     this.loadPendingApprovals(),
                     this.loadTreasuryReport()
                 ]);
@@ -546,6 +536,14 @@ function ppmtFamilyRoom() {
             if (res.ok) {
                 const json = await res.json();
                 this.announcements = json.data || [];
+            }
+        },
+
+        async loadAgendas() {
+            const res = await fetch('/api/v1/agendas', { headers: this.headers() });
+            if (res.ok) {
+                const json = await res.json();
+                this.agendas = json.data || [];
             }
         },
 

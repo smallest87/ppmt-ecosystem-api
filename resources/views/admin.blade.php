@@ -5,7 +5,7 @@
 @section('subpage_back_url', '/dashboard')
 
 @section('content')
-<div x-data="ppmtAdminPanel()" x-init="init()" @keydown.escape.window="editingAnnouncement = null; editingMinute = null" class="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-6">
+<div x-data="ppmtAdminPanel()" x-init="init()" @keydown.escape.window="editingAnnouncement = null; editingMinute = null; editingAgenda = null" class="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-6">
 
     <!-- Loading State -->
     <div x-show="loading" class="bg-white rounded-2xl p-12 text-center text-slate-500 border border-slate-200">
@@ -489,6 +489,149 @@
                                         Hapus
                                     </button>
                                 </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- MODUL AGENDA & JADWAL LINGKUNGAN (Sekretaris & Ketua)             -->
+        <!-- ================================================================= -->
+        <section x-show="user?.can_manage_announcements"
+                 class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <!-- Form Tambah Agenda & Jadwal Lingkungan (5 Kolom) -->
+            <div class="lg:col-span-5 bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200 space-y-4">
+                <div class="border-b border-slate-100 pb-3">
+                    <h2 class="text-base font-bold text-slate-900">Agenda &amp; Jadwal Lingkungan</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Jadwal yang masih akan datang otomatis tampil di kartu <strong>Agenda &amp; Jadwal Lingkungan</strong> pada Beranda Warga.</p>
+                </div>
+
+                <form @submit.prevent="createAgenda()" class="space-y-3.5">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Kegiatan / Jadwal *</label>
+                        <input type="text"
+                               x-model="agendaForm.title"
+                               required
+                               maxlength="180"
+                               placeholder="Contoh: Kerja Bakti Drainase & Perapian Taman Fasum"
+                               class="w-full rounded-xl border-slate-300 text-xs sm:text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Kegiatan *</label>
+                            <input type="date"
+                                   x-model="agendaForm.event_date"
+                                   required
+                                   class="w-full rounded-xl border-slate-300 text-xs sm:text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Kategori Jadwal *</label>
+                            <select x-model="agendaForm.category"
+                                    class="w-full rounded-xl border-slate-300 text-xs sm:text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                                <option value="kegiatan">Kegiatan Warga</option>
+                                <option value="kebersihan">Kebersihan &amp; Sampah</option>
+                                <option value="keamanan">Keamanan &amp; Ronda</option>
+                                <option value="pemeliharaan">Pemeliharaan Fasum</option>
+                                <option value="musyawarah">Musyawarah / Rapat</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Waktu / Jam *</label>
+                            <input type="text"
+                                   x-model="agendaForm.time_label"
+                                   required
+                                   maxlength="80"
+                                   placeholder="Contoh: 06.30 – 09.30 WIB"
+                                   class="w-full rounded-xl border-slate-300 text-xs sm:text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Lokasi Kegiatan *</label>
+                            <input type="text"
+                                   x-model="agendaForm.location"
+                                   required
+                                   maxlength="140"
+                                   placeholder="Contoh: Fasum Tengah PPMT"
+                                   class="w-full rounded-xl border-slate-300 text-xs sm:text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Catatan Tambahan (Opsional)</label>
+                        <textarea x-model="agendaForm.notes"
+                                  rows="2"
+                                  placeholder="Contoh: Dimohon warga membawa alat kebersihan masing-masing."
+                                  class="w-full rounded-xl border-slate-300 text-xs sm:text-sm focus:border-emerald-600 focus:ring-emerald-600"></textarea>
+                    </div>
+
+                    <button type="submit"
+                            :disabled="savingAgenda"
+                            class="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs sm:text-sm font-bold shadow-sm transition disabled:opacity-50 cursor-pointer">
+                        <span x-show="!savingAgenda">+ Simpan Agenda Lingkungan</span>
+                        <span x-show="savingAgenda">Menyimpan...</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Daftar Agenda Mendatang & Riwayat Kegiatan (7 Kolom) -->
+            <div class="lg:col-span-7 bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200 space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900">Daftar Agenda &amp; Jadwal Lingkungan</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Agenda yang sudah lewat otomatis disembunyikan dari Beranda Warga namun tetap tersimpan di sini.</p>
+                    </div>
+                    <span class="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold shrink-0"
+                          x-text="agendas.length + ' Jadwal'"></span>
+                </div>
+
+                <div x-show="agendas.length === 0"
+                     class="p-8 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-center text-xs text-slate-500">
+                    Belum ada agenda atau jadwal lingkungan yang dibuat.
+                </div>
+
+                <div class="space-y-3">
+                    <template x-for="ag in agendas" :key="ag.id">
+                        <div :class="ag.is_upcoming ? 'bg-white border-slate-200' : 'bg-slate-50/80 border-slate-200 opacity-75'"
+                             class="p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="flex items-start gap-3.5 min-w-0">
+                                <div :class="ag.is_upcoming ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-slate-100 border-slate-200 text-slate-500'"
+                                     class="w-12 h-12 rounded-xl border flex flex-col items-center justify-center shrink-0">
+                                    <span class="text-[10px] font-bold uppercase leading-none" x-text="ag.dayShort"></span>
+                                    <span class="text-base font-extrabold leading-tight mt-0.5" x-text="ag.dateNum"></span>
+                                </div>
+
+                                <div class="space-y-1 min-w-0">
+                                    <div class="flex flex-wrap items-center gap-1.5">
+                                        <span :class="ag.badgeClass"
+                                              class="px-2 py-0.5 rounded-md text-[10px] font-bold border"
+                                              x-text="ag.category"></span>
+                                        <span :class="ag.is_upcoming ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-200 text-slate-600 border-slate-300'"
+                                              class="px-2 py-0.5 rounded-md text-[10px] font-bold border"
+                                              x-text="ag.is_upcoming ? 'Tampil di Beranda' : 'Selesai'"></span>
+                                        <span class="text-[11px] text-slate-400" x-text="ag.event_date_formatted"></span>
+                                    </div>
+                                    <div class="text-sm font-bold text-slate-900 leading-snug" x-text="ag.title"></div>
+                                    <div class="text-xs text-slate-500" x-text="ag.time + ' • ' + ag.location"></div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-1.5 shrink-0 self-end sm:self-center text-xs">
+                                <button type="button"
+                                        @click="openEditAgenda(ag)"
+                                        class="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold transition cursor-pointer">
+                                    Edit
+                                </button>
+                                <button type="button"
+                                        @click="deleteAgenda(ag)"
+                                        class="px-2.5 py-1 rounded-lg text-rose-600 hover:bg-rose-50 font-semibold transition cursor-pointer">
+                                    Hapus
+                                </button>
                             </div>
                         </div>
                     </template>
@@ -1017,6 +1160,78 @@
     </div>
 
     <!-- ===================================================================== -->
+    <!-- MODAL EDIT AGENDA & JADWAL LINGKUNGAN                                 -->
+    <!-- ===================================================================== -->
+    <div x-show="editingAgenda !== null"
+         x-cloak
+         class="fixed inset-0 z-50 !mt-0 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-[1px] overflow-y-auto">
+        <div @click.away="editingAgenda = null"
+             class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-[calc(100vw-1.5rem)] sm:max-w-lg max-h-[90dvh] flex flex-col overflow-hidden my-auto">
+            <div class="px-5 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3 shrink-0">
+                <h3 class="text-base font-bold text-slate-900">Edit Agenda &amp; Jadwal Lingkungan</h3>
+                <button type="button" @click="editingAgenda = null" class="text-slate-400 hover:text-slate-700 text-sm p-1 cursor-pointer">✕</button>
+            </div>
+
+            <form @submit.prevent="saveEditedAgenda()" class="p-5 sm:p-6 space-y-4 overflow-y-auto">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Kegiatan / Jadwal *</label>
+                    <input type="text" x-model="editAgendaForm.title" required maxlength="180"
+                           class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Kegiatan *</label>
+                        <input type="date" x-model="editAgendaForm.event_date" required
+                               class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Kategori Jadwal *</label>
+                        <select x-model="editAgendaForm.category"
+                                class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                            <option value="kegiatan">Kegiatan Warga</option>
+                            <option value="kebersihan">Kebersihan &amp; Sampah</option>
+                            <option value="keamanan">Keamanan &amp; Ronda</option>
+                            <option value="pemeliharaan">Pemeliharaan Fasum</option>
+                            <option value="musyawarah">Musyawarah / Rapat</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Waktu / Jam *</label>
+                        <input type="text" x-model="editAgendaForm.time_label" required maxlength="80"
+                               class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Lokasi Kegiatan *</label>
+                        <input type="text" x-model="editAgendaForm.location" required maxlength="140"
+                               class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Catatan Tambahan</label>
+                    <textarea x-model="editAgendaForm.notes" rows="3"
+                              class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600"></textarea>
+                </div>
+
+                <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+                    <button type="button" @click="editingAgenda = null"
+                            class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold cursor-pointer">
+                        Batal
+                    </button>
+                    <button type="submit" :disabled="savingAgenda"
+                            class="px-5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-sm cursor-pointer">
+                        Simpan Perubahan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
     <!-- MODAL EDIT NOTULENSI RAPAT & TATA TERTIB                              -->
     <!-- ===================================================================== -->
     <div x-show="editingMinute !== null"
@@ -1116,6 +1331,7 @@ function ppmtAdminPanel() {
         governanceList: [],
         allUnits: [],
         announcements: [],
+        agendas: [],
         meetingMinutes: [],
         treasuryMonth: currentMonthStr,
         treasury: null,
@@ -1139,6 +1355,8 @@ function ppmtAdminPanel() {
         registryFilterStatus: '',
         savingAnnouncement: false,
         editingAnnouncement: null,
+        savingAgenda: false,
+        editingAgenda: null,
         savingMinute: false,
         editingMinute: null,
         announcementForm: {
@@ -1153,6 +1371,23 @@ function ppmtAdminPanel() {
             category: 'info',
             body: '',
             is_pinned: false
+        },
+        agendaForm: {
+            title: '',
+            category: 'kegiatan',
+            event_date: todayStr,
+            time_label: '',
+            location: '',
+            notes: ''
+        },
+        editAgendaForm: {
+            id: null,
+            title: '',
+            category: 'kegiatan',
+            event_date: todayStr,
+            time_label: '',
+            location: '',
+            notes: ''
         },
         minuteForm: {
             title: '',
@@ -1256,7 +1491,7 @@ function ppmtAdminPanel() {
                 tasks.push(this.loadTreasury());
             }
             if (this.user?.can_manage_announcements) {
-                tasks.push(this.loadAnnouncements(), this.loadMeetingMinutes());
+                tasks.push(this.loadAnnouncements(), this.loadAgendas(), this.loadMeetingMinutes());
             }
             if (this.user?.is_global_governor) {
                 tasks.push(this.loadGovernanceData());
@@ -1404,6 +1639,100 @@ function ppmtAdminPanel() {
             if (res.ok) {
                 const json = await res.json();
                 this.announcements = json.data || [];
+            }
+        },
+
+        async loadAgendas() {
+            const res = await fetch('/api/v1/agendas?all=1', { headers: this.headers() });
+            if (res.ok) {
+                const json = await res.json();
+                this.agendas = json.data || [];
+            }
+        },
+
+        async createAgenda() {
+            this.savingAgenda = true;
+            try {
+                const res = await fetch('/api/v1/agendas', {
+                    method: 'POST',
+                    headers: this.headers(),
+                    body: JSON.stringify(this.agendaForm)
+                });
+                const json = await res.json();
+                if (res.ok) {
+                    this.toastType = 'success';
+                    this.toastMessage = json.message;
+                    this.agendaForm = {
+                        title: '',
+                        category: 'kegiatan',
+                        event_date: todayStr,
+                        time_label: '',
+                        location: '',
+                        notes: ''
+                    };
+                    await this.loadAgendas();
+                } else {
+                    this.toastType = 'error';
+                    this.toastMessage = json.message || 'Gagal menyimpan agenda.';
+                }
+            } finally {
+                this.savingAgenda = false;
+            }
+        },
+
+        openEditAgenda(ag) {
+            this.editAgendaForm = {
+                id: ag.id,
+                title: ag.title,
+                category: ag.category_code,
+                event_date: ag.event_date,
+                time_label: ag.time,
+                location: ag.location,
+                notes: ag.notes || ''
+            };
+            this.editingAgenda = ag;
+        },
+
+        async saveEditedAgenda() {
+            this.savingAgenda = true;
+            try {
+                const res = await fetch(`/api/v1/agendas/${this.editAgendaForm.id}`, {
+                    method: 'PATCH',
+                    headers: this.headers(),
+                    body: JSON.stringify({
+                        title: this.editAgendaForm.title,
+                        category: this.editAgendaForm.category,
+                        event_date: this.editAgendaForm.event_date,
+                        time_label: this.editAgendaForm.time_label,
+                        location: this.editAgendaForm.location,
+                        notes: this.editAgendaForm.notes || null
+                    })
+                });
+                const json = await res.json();
+                if (res.ok) {
+                    this.editingAgenda = null;
+                    this.toastType = 'success';
+                    this.toastMessage = json.message;
+                    await this.loadAgendas();
+                } else {
+                    this.toastType = 'error';
+                    this.toastMessage = json.message || 'Gagal memperbarui agenda.';
+                }
+            } finally {
+                this.savingAgenda = false;
+            }
+        },
+
+        async deleteAgenda(ag) {
+            const res = await fetch(`/api/v1/agendas/${ag.id}`, {
+                method: 'DELETE',
+                headers: this.headers()
+            });
+            const json = await res.json();
+            if (res.ok) {
+                this.toastType = 'success';
+                this.toastMessage = json.message;
+                await this.loadAgendas();
             }
         },
 

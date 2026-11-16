@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\GovernanceController;
 use App\Http\Controllers\Api\V1\AnnouncementController;
 use App\Http\Controllers\Api\V1\MeetingMinuteController;
 use App\Http\Controllers\Api\V1\TreasuryController;
+use App\Http\Controllers\Api\V1\AgendaController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -80,6 +81,12 @@ Route::prefix('v1')->group(function () {
             Route::post('/announcements', [AnnouncementController::class, 'store']);
             Route::patch('/announcements/{announcement}', [AnnouncementController::class, 'update']);
             Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy']);
+
+            // Agenda & Jadwal Lingkungan (Sekretaris & Ketua Paguyuban)
+            Route::get('/agendas', [AgendaController::class, 'index']);
+            Route::post('/agendas', [AgendaController::class, 'store']);
+            Route::patch('/agendas/{agenda}', [AgendaController::class, 'update']);
+            Route::delete('/agendas/{agenda}', [AgendaController::class, 'destroy']);
 
             // Arsip Notulensi Rapat & Tata Tertib
             Route::get('/meeting-minutes', [MeetingMinuteController::class, 'index']);
