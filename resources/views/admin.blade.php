@@ -22,7 +22,7 @@
             <button @click="toastMessage = ''" class="text-xs opacity-70 hover:opacity-100 cursor-pointer">✕</button>
         </div>
 
-        <!-- Header Panel Admin -->
+        <!-- Header Panel Pengurus -->
         <section class="bg-indigo-950 text-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div class="space-y-1.5">
                 <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-800/80 text-indigo-200 text-xs font-semibold">
@@ -177,17 +177,19 @@
                 </section>
             </div>
 
-            <!-- Kolom Kanan (7 Kolom): Penyematan Jabatan & Hak Akses (Admin, Ketua, Koordinator, dll) -->
+            <!-- Kolom Kanan (7 Kolom): Penyematan Jabatan & Hak Akses (Sesuai Hierarki Kewenangan) -->
             <section x-show="user?.is_global_governor"
                      class="lg:col-span-7 bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-5">
                 <div class="border-b border-slate-100 pb-3">
                     <h2 class="text-lg font-bold text-slate-900">Penyematan Jabatan &amp; Hak Akses Warga</h2>
                     <p class="text-xs text-slate-500">
-                        Admin dan Pengurus bukanlah entitas terpisah, melainkan jabatan akses yang disematkan kepada warga PPMT terverifikasi. Satu warga dapat merangkap lebih dari satu jabatan.
+                        Wewenang penyematan jabatan mengikuti pemisahan peran tata kelola: <strong>Admin Sistem</strong> menetapkan infrastruktur &amp; pelantikan Ketua Paguyuban, sedangkan <strong>Ketua Paguyuban</strong> menyusun pengurus dan koordinator wilayah.
                     </p>
                 </div>
 
-                <form @submit.prevent="assignGovernance()" class="bg-indigo-50/60 p-4 rounded-xl border border-indigo-200 space-y-3">
+                <form x-show="availableRoleOptions.length > 0"
+                      @submit.prevent="assignGovernance()"
+                      class="bg-indigo-50/60 p-4 rounded-xl border border-indigo-200 space-y-3">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Warga Terverifikasi *</label>
@@ -202,14 +204,9 @@
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Jabatan Akses yang Disematkan *</label>
                             <select x-model="govForm.role_code" @change="updateGovScopeDefault()" class="w-full rounded-xl border-slate-300 text-xs">
-                                <option value="admin" x-show="user?.is_operator_aplikasi">Admin Sistem</option>
-                                <option value="operator_aplikasi" x-show="user?.is_operator_aplikasi">Operator Aplikasi</option>
-                                <option value="ketua_paguyuban">Ketua Paguyuban</option>
-                                <option value="sekretaris_paguyuban">Sekretaris Paguyuban</option>
-                                <option value="bendahara_paguyuban">Bendahara Paguyuban</option>
-                                <option value="koordinator_zona">Koordinator Zona</option>
-                                <option value="koordinator_blok">Koordinator Blok</option>
-                                <option value="keamanan_lingkungan">Keamanan Lingkungan</option>
+                                <template x-for="opt in availableRoleOptions" :key="opt.code">
+                                    <option :value="opt.code" x-text="opt.label"></option>
+                                </template>
                             </select>
                         </div>
                     </div>
@@ -250,7 +247,9 @@
                                 <div class="font-bold text-slate-900" x-text="item.user_name + ' (Kavling ' + item.unit_codes + ')'"></div>
                                 <div class="text-indigo-700 font-semibold mt-0.5" x-text="item.display_label + ' • Disematkan oleh ' + item.assigned_by"></div>
                             </div>
-                            <button type="button" @click="revokeGovernance(item.id)"
+                            <button x-show="item.can_revoke"
+                                    type="button"
+                                    @click="revokeGovernance(item.id)"
                                     class="px-3 py-1.5 rounded-lg text-xs text-rose-600 hover:bg-rose-100 font-semibold transition cursor-pointer">
                                 Cabut
                             </button>
@@ -265,6 +264,17 @@
 
 <script>
 function ppmtAdminPanel() {
+    const ALL_ROLE_OPTIONS = [
+        { code: 'admin', label: 'Admin Sistem' },
+        { code: 'operator_aplikasi', label: 'Operator Aplikasi' },
+        { code: 'ketua_paguyuban', label: 'Ketua Paguyuban' },
+        { code: 'sekretaris_paguyuban', label: 'Sekretaris Paguyuban' },
+        { code: 'bendahara_paguyuban', label: 'Bendahara Paguyuban' },
+        { code: 'koordinator_zona', label: 'Koordinator Zona' },
+        { code: 'koordinator_blok', label: 'Koordinator Blok' },
+        { code: 'keamanan_lingkungan', label: 'Keamanan Lingkungan' }
+    ];
+
     return {
         token: localStorage.getItem('ppmt_token'),
         user: null,
@@ -277,9 +287,9 @@ function ppmtAdminPanel() {
         allUnits: [],
         govForm: {
             target_user_id: '',
-            role_code: 'koordinator_zona',
-            scope_type: 'zone',
-            scope_value: 'ZONA-1'
+            role_code: '',
+            scope_type: 'global',
+            scope_value: ''
         },
         assistForm: {
             unit_code: '',
@@ -291,6 +301,13 @@ function ppmtAdminPanel() {
             password: ''
         },
 
+        get availableRoleOptions() {
+            const allowed = Array.isArray(this.user?.assignable_governance_roles)
+                ? this.user.assignable_governance_roles
+                : [];
+            return ALL_ROLE_OPTIONS.filter(opt => allowed.includes(opt.code));
+        },
+
         async init() {
             if (!this.token) {
                 window.location.href = '/';
@@ -300,6 +317,10 @@ function ppmtAdminPanel() {
             if (!this.user?.has_admin_access) {
                 window.location.href = '/dashboard';
                 return;
+            }
+            if (this.availableRoleOptions.length > 0) {
+                this.govForm.role_code = this.availableRoleOptions[0].code;
+                this.updateGovScopeDefault();
             }
             await this.loadPendingApprovals();
             if (this.user?.is_global_governor) {

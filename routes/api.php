@@ -31,9 +31,11 @@ Route::prefix('v1')->group(function () {
                     'global_role' => $user->profile?->global_role,
                     'is_verified' => $user->profile?->is_verified,
                     'reputation_badge' => $user->profile?->reputation_badge,
-                    'is_operator_aplikasi' => $user->hasGovernanceRole('admin') || $user->hasGovernanceRole('operator_aplikasi'),
+                    'is_operator_aplikasi' => $user->isSystemAdmin(),
+                    'is_ketua_paguyuban' => $user->isKetuaPaguyuban(),
                     'is_global_governor' => $user->isGlobalGovernor(),
                     'has_admin_access' => $user->hasAdminAccess(),
+                    'assignable_governance_roles' => $user->assignableGovernanceRoles(),
                     'governance_roles' => $user->governanceRoles->map(fn ($r) => [
                         'id' => $r->id,
                         'role_code' => $r->role_code,

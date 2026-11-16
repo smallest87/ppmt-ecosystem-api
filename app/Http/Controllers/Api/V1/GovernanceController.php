@@ -17,7 +17,9 @@ class GovernanceController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        if (! $request->user()->isGlobalGovernor()) {
+        $actor = $request->user();
+
+        if (! $actor->isGlobalGovernor()) {
             return response()->json(['message' => 'Akses ditolak. Hanya Admin, Operator Aplikasi, atau Ketua Paguyuban.'], 403);
         }
 
@@ -36,6 +38,7 @@ class GovernanceController extends Controller
                 'scope_type' => $r->scope_type,
                 'scope_value' => $r->scope_value,
                 'assigned_by' => $r->assignedBy?->name ?? 'Sistem Genesis',
+                'can_revoke' => $actor->canRevokeGovernanceRole($r),
             ]);
 
         return response()->json(['data' => $assignments]);
@@ -67,13 +70,13 @@ class GovernanceController extends Controller
             'scope_value' => ['nullable', 'string', 'max:30'],
         ]);
 
-        $isActorSystemAdmin = $actor->hasGovernanceRole('admin') || $actor->hasGovernanceRole('operator_aplikasi');
+        // Penegakan hierarki wewenang penyematan jabatan
+        if (! $actor->canAssignGovernanceRole($validated['role_code'])) {
+            $reason = $validated['role_code'] === 'ketua_paguyuban'
+                ? 'Jabatan Ketua Paguyuban hanya dapat ditetapkan oleh Admin Sistem / Operator Aplikasi berdasarkan hasil musyawarah warga.'
+                : 'Mandat jabatan Anda saat ini tidak memiliki wewenang untuk menyematkan jabatan tersebut.';
 
-        // Kunci pengaman: Hanya Admin / Operator Aplikasi aktif yang boleh mengangkat Admin / Operator Aplikasi baru
-        if (in_array($validated['role_code'], ['admin', 'operator_aplikasi'], true) && ! $isActorSystemAdmin) {
-            return response()->json([
-                'message' => 'Hanya Admin atau Operator Aplikasi aktif yang dapat menetapkan jabatan Admin baru.',
-            ], 403);
+            return response()->json(['message' => $reason], 403);
         }
 
         $targetUser = User::with('profile')->findOrFail($validated['target_user_id']);
@@ -111,6 +114,18 @@ class GovernanceController extends Controller
 
         if (! $actor->isGlobalGovernor()) {
             return response()->json(['message' => 'Akses ditolak.'], 403);
+        }
+
+        if ((int) $role->user_id === (int) $actor->id) {
+            return response()->json([
+                'message' => 'Anda tidak dapat mencabut jabatan aktif milik Anda sendiri.',
+            ], 422);
+        }
+
+        if (! $actor->canRevokeGovernanceRole($role)) {
+            return response()->json([
+                'message' => "Jabatan '{$role->display_label}' berada di luar batas kewenangan pencabutan Anda.",
+            ], 403);
         }
 
         // Kunci pengaman: Mencegah sistem kehilangan seluruh Admin / Operator Aplikasi aktif
@@ -217,7 +232,6 @@ class GovernanceController extends Controller
                 'is_approved' => true,
             ]);
 
-            // Tetap tercatat sah dalam Verification Ledger (Web of Trust)
             VerificationVoucher::create([
                 'target_user_id' => $user->id,
                 'unit_id' => $unit->id,

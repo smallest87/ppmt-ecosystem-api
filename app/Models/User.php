@@ -60,15 +60,64 @@ class User extends Authenticatable
             ->exists();
     }
 
-    public function isGlobalGovernor(): bool
+    public function isSystemAdmin(): bool
     {
-        if ($this->profile?->global_role === 'admin') {
-            return true;
+        return $this->hasGovernanceRole('admin') || $this->hasGovernanceRole('operator_aplikasi');
+    }
+
+    public function isKetuaPaguyuban(): bool
+    {
+        return $this->hasGovernanceRole('ketua_paguyuban');
+    }
+
+    /**
+     * Daftar kode jabatan yang sah disematkan oleh user ini sesuai hierarki tata kelola.
+     */
+    public function assignableGovernanceRoles(): array
+    {
+        $roles = [];
+
+        // Admin Sistem / Operator Aplikasi berwenang atas jabatan infrastruktur & pelantikan Ketua Paguyuban
+        if ($this->isSystemAdmin()) {
+            $roles = array_merge($roles, [
+                'admin',
+                'operator_aplikasi',
+                'ketua_paguyuban',
+            ]);
         }
 
-        return $this->governanceRoles()
-            ->whereIn('role_code', ['admin', 'operator_aplikasi', 'ketua_paguyuban'])
-            ->exists();
+        // Ketua Paguyuban berwenang penuh menyusun kabinet pengurus & koordinator wilayah di bawahnya
+        if ($this->isKetuaPaguyuban()) {
+            $roles = array_merge($roles, [
+                'sekretaris_paguyuban',
+                'bendahara_paguyuban',
+                'koordinator_zona',
+                'koordinator_blok',
+                'keamanan_lingkungan',
+            ]);
+        }
+
+        return array_values(array_unique($roles));
+    }
+
+    public function canAssignGovernanceRole(string $roleCode): bool
+    {
+        return in_array($roleCode, $this->assignableGovernanceRoles(), true);
+    }
+
+    public function canRevokeGovernanceRole(UserGovernanceRole $role): bool
+    {
+        // Cegah mencabut jabatan milik diri sendiri secara tidak sengaja
+        if ((int) $role->user_id === (int) $this->id) {
+            return false;
+        }
+
+        return $this->canAssignGovernanceRole($role->role_code);
+    }
+
+    public function isGlobalGovernor(): bool
+    {
+        return $this->isSystemAdmin() || $this->isKetuaPaguyuban();
     }
 
     public function hasAdminAccess(): bool
