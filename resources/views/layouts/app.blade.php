@@ -151,13 +151,19 @@
                                     </a>
                                     <a x-show="hasAdminAccess"
                                        x-cloak
-                                       href="/admin"
+                                       href="/pengurus"
                                        class="px-4 py-2.5 flex items-center justify-between text-indigo-700 hover:bg-indigo-50 transition">
-                                        <span class="flex items-center gap-2">
-                                            <span class="text-sm">&#9733;</span>
-                                            <span>Ruang Admin</span>
+                                        <span class="flex items-start gap-2 min-w-0">
+                                            <span class="text-sm mt-0.5">&#9733;</span>
+                                            <span class="min-w-0">
+                                                <span class="block font-bold leading-tight">Panel Pengurus</span>
+                                                <span x-show="profile.governance_label"
+                                                      x-text="profile.governance_label"
+                                                      class="block text-[11px] font-medium text-indigo-500 truncate mt-0.5">
+                                                </span>
+                                            </span>
                                         </span>
-                                        <span class="text-indigo-400 text-sm">&rsaquo;</span>
+                                        <span class="text-indigo-400 text-sm shrink-0">&rsaquo;</span>
                                     </a>
                                 </div>
 
@@ -258,15 +264,21 @@
                     </a>
                 </div>
 
-                <!-- Ruang Admin (Khusus Admin Sistem) -->
+                <!-- Panel Pengurus (Khusus Pemegang Jabatan Aktif) -->
                 <div x-show="hasAdminAccess" x-cloak class="py-1.5 text-sm font-semibold">
-                    <a href="/admin"
-                       class="px-5 py-3 flex items-center justify-between transition {{ request()->is('admin') ? 'bg-indigo-50/80 text-indigo-900 font-bold border-l-4 border-indigo-600' : 'text-indigo-700 hover:bg-indigo-50/60' }}">
-                        <span class="flex items-center gap-2">
-                            <span>&#9733;</span>
-                            <span>Ruang Admin</span>
+                    <a href="/pengurus"
+                       class="px-5 py-3 flex items-center justify-between transition {{ request()->is('pengurus') ? 'bg-indigo-50/80 text-indigo-900 font-bold border-l-4 border-indigo-600' : 'text-indigo-700 hover:bg-indigo-50/60' }}">
+                        <span class="flex items-start gap-2 min-w-0">
+                            <span class="mt-0.5">&#9733;</span>
+                            <span class="min-w-0">
+                                <span class="block font-bold leading-tight">Panel Pengurus</span>
+                                <span x-show="profile.governance_label"
+                                      x-text="profile.governance_label"
+                                      class="block text-xs font-medium text-indigo-500 truncate mt-0.5">
+                                </span>
+                            </span>
                         </span>
-                        <span class="text-indigo-400 text-base">&rsaquo;</span>
+                        <span class="text-indigo-400 text-base shrink-0">&rsaquo;</span>
                     </a>
                 </div>
 
@@ -298,7 +310,13 @@
 
     <script>
     function ppmtNavbar() {
-        const cached = JSON.parse(sessionStorage.getItem('ppmt_nav_profile') || '{}');
+        var cached = {};
+        try {
+            cached = JSON.parse(sessionStorage.getItem('ppmt_nav_profile') || '{}') || {};
+        } catch (e) {
+            cached = {};
+        }
+
         return {
             hasToken: !!localStorage.getItem('ppmt_token'),
             hasAdminAccess: sessionStorage.getItem('ppmt_has_admin') === '1',
@@ -306,16 +324,17 @@
             accountMenuOpen: false,
             profile: {
                 name: cached.name || '',
-                level: cached.level ?? 0,
+                level: typeof cached.level === 'number' ? cached.level : 0,
                 level_label: cached.level_label || '',
                 avatar_url: cached.avatar_url || null,
-                unit_codes: cached.unit_codes || ''
+                unit_codes: cached.unit_codes || '',
+                governance_label: cached.governance_label || ''
             },
 
             get userInitials() {
-                const raw = (this.profile.name || '').trim();
+                var raw = (this.profile.name || '').trim();
                 if (!raw) return 'W';
-                const parts = raw.split(/\s+/);
+                var parts = raw.split(/\s+/);
                 if (parts.length === 1) {
                     return parts[0].slice(0, 2).toUpperCase();
                 }
@@ -323,31 +342,53 @@
             },
 
             async init() {
-                const token = localStorage.getItem('ppmt_token');
-                if (!token) return;
+                var token = localStorage.getItem('ppmt_token');
+                if (!token) {
+                    this.hasToken = false;
+                    return;
+                }
 
                 try {
-                    const res = await fetch('/api/v1/me', {
+                    var res = await fetch('/api/v1/me', {
                         headers: {
                             'Authorization': 'Bearer ' + token,
                             'Accept': 'application/json'
                         }
                     });
+
+                    if (res.status === 401) {
+                        localStorage.removeItem('ppmt_token');
+                        sessionStorage.removeItem('ppmt_has_admin');
+                        sessionStorage.removeItem('ppmt_nav_profile');
+                        this.hasToken = false;
+                        return;
+                    }
+
                     if (res.ok) {
-                        const json = await res.json();
-                        const data = json.data || {};
-                        const codes = (data.memberships || [])
-                            .map(m => m.unit?.code)
+                        var json = await res.json();
+                        var data = json.data || {};
+                        var memberships = Array.isArray(data.memberships) ? data.memberships : [];
+                        var codes = memberships
+                            .map(function (m) { return m.unit && m.unit.code ? m.unit.code : null; })
                             .filter(Boolean);
+
+                        var govRoles = Array.isArray(data.governance_roles) ? data.governance_roles : [];
+                        var govLabels = govRoles
+                            .map(function (g) { return g.display_label || null; })
+                            .filter(Boolean);
+
+                        var badge = data.reputation_badge || {};
 
                         this.hasAdminAccess = Boolean(data.has_admin_access);
                         this.profile = {
-                            name: data.name || '',
-                            level: data.reputation_badge?.level ?? 0,
-                            level_label: data.reputation_badge?.label || '',
+                            name: data.display_name || data.name || '',
+                            level: typeof badge.level === 'number' ? badge.level : 0,
+                            level_label: badge.label || '',
                             avatar_url: data.avatar_url || null,
-                            unit_codes: [...new Set(codes)].join(', ')
+                            unit_codes: Array.from(new Set(codes)).join(', '),
+                            governance_label: Array.from(new Set(govLabels)).join(' • ')
                         };
+
                         sessionStorage.setItem('ppmt_has_admin', this.hasAdminAccess ? '1' : '0');
                         sessionStorage.setItem('ppmt_nav_profile', JSON.stringify(this.profile));
                     }

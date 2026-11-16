@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Panel Pengurus & Admin — PPMT Digital')
-@section('subpage_title', 'Ruang Admin')
+@section('title', 'Panel Pengurus PPMT — PPMT Digital')
+@section('subpage_title', 'Panel Pengurus')
 @section('subpage_back_url', '/dashboard')
 
 @section('content')
