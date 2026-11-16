@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\UnitInviteController;
 use App\Http\Controllers\Api\V1\UmkmStoreController;
 use App\Http\Controllers\Api\V1\GovernanceController;
+use App\Http\Controllers\Api\V1\AnnouncementController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -33,6 +34,8 @@ Route::prefix('v1')->group(function () {
                     'reputation_badge' => $user->profile?->reputation_badge,
                     'is_operator_aplikasi' => $user->isSystemAdmin(),
                     'is_ketua_paguyuban' => $user->isKetuaPaguyuban(),
+                    'is_sekretaris_paguyuban' => $user->isSekretarisPaguyuban(),
+                    'can_manage_announcements' => $user->canManageAnnouncements(),
                     'is_global_governor' => $user->isGlobalGovernor(),
                     'has_admin_access' => $user->hasAdminAccess(),
                     'assignable_governance_roles' => $user->assignableGovernanceRoles(),
@@ -66,6 +69,14 @@ Route::prefix('v1')->group(function () {
             Route::get('/umkm/stores', [UmkmStoreController::class, 'index']);
             Route::post('/umkm/stores', [UmkmStoreController::class, 'store']);
             Route::patch('/umkm/stores/{store}/status', [UmkmStoreController::class, 'updateStatus']);
+
+            // Papan Pengumuman Paguyuban
+            Route::get('/announcements', [AnnouncementController::class, 'index']);
+            Route::post('/announcements', [AnnouncementController::class, 'store']);
+            Route::patch('/announcements/{announcement}', [AnnouncementController::class, 'update']);
+            Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy']);
+
+            // Tata Kelola Jabatan & Assisted Register
             Route::get('/governance/roles', [GovernanceController::class, 'index']);
             Route::post('/governance/assign', [GovernanceController::class, 'assign']);
             Route::delete('/governance/roles/{role}', [GovernanceController::class, 'revoke']);

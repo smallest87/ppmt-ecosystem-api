@@ -5,7 +5,7 @@
 @section('subpage_back_url', '/dashboard')
 
 @section('content')
-<div x-data="ppmtAdminPanel()" x-init="init()" class="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-6">
+<div x-data="ppmtAdminPanel()" x-init="init()" @keydown.escape.window="editingAnnouncement = null" class="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-6">
 
     <!-- Loading State -->
     <div x-show="loading" class="bg-white rounded-2xl p-12 text-center text-slate-500 border border-slate-200">
@@ -31,7 +31,7 @@
                 <h1 class="text-2xl font-extrabold"
                     x-text="'Halo, ' + (user?.display_name || user?.name)"></h1>
                 <p class="text-xs text-indigo-200">
-                    Anda masuk sebagai warga dengan mandat jabatan aktif. Segala pengesahan dan penyematan jabatan tercatat dalam jejak audit <em>Web of Trust</em>.
+                    Anda masuk sebagai warga dengan mandat jabatan aktif. Seluruh aktivitas kepengurusan tercatat dalam jejak audit lingkungan.
                 </p>
             </div>
 
@@ -44,14 +44,151 @@
             </div>
         </section>
 
-        <!-- Grid 2 Bagian Utama -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- ================================================================= -->
+        <!-- MODUL KESEKRETARIATAN & KOMUNIKASI (Sekretaris & Ketua Paguyuban) -->
+        <!-- ================================================================= -->
+        <section x-show="user?.can_manage_announcements"
+                 class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <!-- Form Terbitkan Pengumuman Baru (5 Kolom) -->
+            <div class="lg:col-span-5 bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200 space-y-4">
+                <div class="border-b border-slate-100 pb-3">
+                    <h2 class="text-base font-bold text-slate-900">Terbitkan Pengumuman Paguyuban</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Pengumuman yang diterbitkan akan langsung tampil di <strong>Beranda Warga</strong>.</p>
+                </div>
+
+                <form @submit.prevent="createAnnouncement()" class="space-y-3.5">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Judul Pengumuman *</label>
+                        <input type="text"
+                               x-model="announcementForm.title"
+                               required
+                               maxlength="180"
+                               placeholder="Contoh: Jadwal Kerja Bakti Drainase Blok A–D"
+                               class="w-full rounded-xl border-slate-300 text-xs sm:text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Kategori / Label *</label>
+                        <select x-model="announcementForm.category"
+                                class="w-full rounded-xl border-slate-300 text-xs sm:text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                            <option value="info">Info Lingkungan</option>
+                            <option value="penting">Penting / Mendesak</option>
+                            <option value="kerja_bakti">Kegiatan Warga / Kerja Bakti</option>
+                            <option value="musyawarah">Musyawarah Warga</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Isi Pengumuman Lengkap *</label>
+                        <textarea x-model="announcementForm.body"
+                                  required
+                                  rows="5"
+                                  placeholder="Tuliskan detail waktu, tempat, dan informasi penting bagi warga PPMT..."
+                                  class="w-full rounded-xl border-slate-300 text-xs sm:text-sm focus:border-emerald-600 focus:ring-emerald-600"></textarea>
+                    </div>
+
+                    <label class="flex items-center gap-2.5 p-3 rounded-xl bg-amber-50/70 border border-amber-200 text-xs text-slate-700 cursor-pointer select-none">
+                        <input type="checkbox" x-model="announcementForm.is_pinned" class="rounded text-emerald-700 focus:ring-emerald-600">
+                        <span>Sematkan (<strong>Pin</strong>) di urutan paling atas papan pengumuman</span>
+                    </label>
+
+                    <button type="submit"
+                            :disabled="savingAnnouncement"
+                            class="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs sm:text-sm font-bold shadow-sm transition disabled:opacity-50 cursor-pointer">
+                        <span x-show="!savingAnnouncement">Terbitkan ke Papan Pengumuman</span>
+                        <span x-show="savingAnnouncement">Menerbitkan...</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Daftar Pengumuman Terbit & Arsip (7 Kolom) -->
+            <div class="lg:col-span-7 bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200 space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900">Kelola Papan Pengumuman Paguyuban</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Edit isi, sematkan pengumuman prioritas, atau arsipkan pengumuman lama.</p>
+                    </div>
+                    <span class="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold shrink-0"
+                          x-text="announcements.length + ' Total'"></span>
+                </div>
+
+                <div x-show="announcements.length === 0"
+                     class="p-8 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-center text-xs text-slate-500">
+                    Belum ada pengumuman yang diterbitkan. Gunakan formulir di samping untuk membuat pengumuman pertama.
+                </div>
+
+                <div class="space-y-3">
+                    <template x-for="item in announcements" :key="item.id">
+                        <div :class="item.is_published ? 'bg-white border-slate-200' : 'bg-slate-50/80 border-slate-200 opacity-75'"
+                             class="p-4 rounded-xl border space-y-2.5">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    <span x-show="item.is_pinned"
+                                          class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                                        &#128204; Disematkan
+                                    </span>
+                                    <span :class="item.badgeClass"
+                                          class="px-2 py-0.5 rounded-md text-[10px] font-bold border"
+                                          x-text="item.category">
+                                    </span>
+                                    <span :class="item.is_published ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-200 text-slate-700 border-slate-300'"
+                                          class="px-2 py-0.5 rounded-md text-[10px] font-bold border"
+                                          x-text="item.is_published ? 'Tayang' : 'Diarsipkan'">
+                                    </span>
+                                </div>
+                                <span class="text-[11px] text-slate-400" x-text="item.date"></span>
+                            </div>
+
+                            <div>
+                                <div class="text-sm font-bold text-slate-900" x-text="item.title"></div>
+                                <p class="text-xs text-slate-600 line-clamp-2 mt-1 leading-relaxed" x-text="item.excerpt"></p>
+                            </div>
+
+                            <div class="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                                <span class="text-[11px] text-slate-400" x-text="'Oleh: ' + item.author"></span>
+
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    <button type="button"
+                                            @click="toggleAnnouncementPin(item)"
+                                            class="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-amber-50 text-slate-700 font-semibold transition cursor-pointer"
+                                            x-text="item.is_pinned ? 'Lepas Pin' : 'Sematkan'">
+                                    </button>
+                                    <button type="button"
+                                            @click="openEditAnnouncement(item)"
+                                            class="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold transition cursor-pointer">
+                                        Edit
+                                    </button>
+                                    <button type="button"
+                                            @click="toggleAnnouncementPublish(item)"
+                                            class="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-indigo-50 text-indigo-700 font-semibold transition cursor-pointer"
+                                            x-text="item.is_published ? 'Arsipkan' : 'Tayangkan'">
+                                    </button>
+                                    <button type="button"
+                                            @click="deleteAnnouncement(item)"
+                                            class="px-2.5 py-1 rounded-lg text-rose-600 hover:bg-rose-50 font-semibold transition cursor-pointer">
+                                        Hapus
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- MODUL VERIFIKASI WILAYAH & TATA KELOLA JABATAN                    -->
+        <!-- ================================================================= -->
+        <div x-show="showVerificationPanel || user?.is_global_governor"
+             class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
             <!-- Kolom Kiri (5 Kolom): Antrean Verifikasi Sosial & Assisted Onboarding -->
             <div class="lg:col-span-5 space-y-6">
 
-                <!-- Panel 1: Antrean Verifikasi Sosial -->
-                <section class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-3">
+                <!-- Panel 1: Antrean Verifikasi Sosial (Hanya untuk Koordinator Wilayah & Global Governor) -->
+                <section x-show="showVerificationPanel"
+                         class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-3">
                     <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                         <h2 class="text-base font-bold text-slate-900">Antrean Verifikasi Warga</h2>
                         <span class="px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-xs font-bold"
@@ -87,7 +224,6 @@
                     </div>
 
                     <form @submit.prevent="submitAssistedRegister()" class="space-y-3">
-                        <!-- 1. Nomor WhatsApp & Username (Isi salah satu atau keduanya) -->
                         <div class="space-y-2.5 p-3 rounded-xl bg-white/90 border border-emerald-200">
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1">
@@ -110,21 +246,18 @@
                             <p class="text-[11px] text-emerald-800">Isi minimal salah satu untuk dipakai masuk ke aplikasi.</p>
                         </div>
 
-                        <!-- 2. Kata Sandi Sementara -->
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Kata Sandi Sementara (Min. 8 Karakter) *</label>
                             <input type="text" x-model="assistForm.password" required minlength="8" placeholder="Contoh: ppmt12345"
                                    class="w-full rounded-xl border-slate-300 text-xs font-mono">
                         </div>
 
-                        <!-- 3. Nama Lengkap -->
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap Tetangga *</label>
                             <input type="text" x-model="assistForm.name" required placeholder="Contoh: Ahmad Fauzi"
                                    class="w-full rounded-xl border-slate-300 text-xs">
                         </div>
 
-                        <!-- 4. Kavling Tetangga + Info Status Hunian -->
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Kavling Tetangga *</label>
                             <select x-model="assistForm.unit_code" required class="w-full rounded-xl border-slate-300 text-xs">
@@ -137,7 +270,6 @@
                             </select>
                         </div>
 
-                        <!-- 5. Entitas & Peran -->
                         <div class="grid grid-cols-2 gap-2">
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1">Entitas</label>
@@ -177,7 +309,7 @@
                 </section>
             </div>
 
-            <!-- Kolom Kanan (7 Kolom): Penyematan Jabatan & Hak Akses (Sesuai Hierarki Kewenangan) -->
+            <!-- Kolom Kanan (7 Kolom): Penyematan Jabatan & Hak Akses -->
             <section x-show="user?.is_global_governor"
                      class="lg:col-span-7 bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-5">
                 <div class="border-b border-slate-100 pb-3">
@@ -260,6 +392,62 @@
 
         </div>
     </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL EDIT PENGUMUMAN PAGUYUBAN                                       -->
+    <!-- ===================================================================== -->
+    <div x-show="editingAnnouncement !== null"
+         x-cloak
+         class="fixed inset-0 z-50 !mt-0 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-[1px] overflow-y-auto">
+        <div @click.away="editingAnnouncement = null"
+             class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-[calc(100vw-1.5rem)] sm:max-w-lg max-h-[90dvh] flex flex-col overflow-hidden my-auto">
+            <div class="px-5 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3 shrink-0">
+                <h3 class="text-base font-bold text-slate-900">Edit Pengumuman Paguyuban</h3>
+                <button type="button" @click="editingAnnouncement = null" class="text-slate-400 hover:text-slate-700 text-sm p-1 cursor-pointer">✕</button>
+            </div>
+
+            <form @submit.prevent="saveEditedAnnouncement()" class="p-5 sm:p-6 space-y-4 overflow-y-auto">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Judul Pengumuman *</label>
+                    <input type="text" x-model="editAnnouncementForm.title" required maxlength="180"
+                           class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Kategori / Label *</label>
+                    <select x-model="editAnnouncementForm.category"
+                            class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                        <option value="info">Info Lingkungan</option>
+                        <option value="penting">Penting / Mendesak</option>
+                        <option value="kerja_bakti">Kegiatan Warga / Kerja Bakti</option>
+                        <option value="musyawarah">Musyawarah Warga</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Isi Pengumuman Lengkap *</label>
+                    <textarea x-model="editAnnouncementForm.body" required rows="6"
+                              class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600"></textarea>
+                </div>
+
+                <label class="flex items-center gap-2.5 p-3 rounded-xl bg-amber-50/70 border border-amber-200 text-xs text-slate-700 cursor-pointer select-none">
+                    <input type="checkbox" x-model="editAnnouncementForm.is_pinned" class="rounded text-emerald-700">
+                    <span>Sematkan (<strong>Pin</strong>) di urutan paling atas</span>
+                </label>
+
+                <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+                    <button type="button" @click="editingAnnouncement = null"
+                            class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold cursor-pointer">
+                        Batal
+                    </button>
+                    <button type="submit" :disabled="savingAnnouncement"
+                            class="px-5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-sm cursor-pointer">
+                        Simpan Perubahan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -285,6 +473,22 @@ function ppmtAdminPanel() {
         verifiedResidents: [],
         governanceList: [],
         allUnits: [],
+        announcements: [],
+        savingAnnouncement: false,
+        editingAnnouncement: null,
+        announcementForm: {
+            title: '',
+            category: 'info',
+            body: '',
+            is_pinned: false
+        },
+        editAnnouncementForm: {
+            id: null,
+            title: '',
+            category: 'info',
+            body: '',
+            is_pinned: false
+        },
         govForm: {
             target_user_id: '',
             role_code: '',
@@ -299,6 +503,13 @@ function ppmtAdminPanel() {
             entity_type: 'owner',
             sub_role: 'primary_owner',
             password: ''
+        },
+
+        get showVerificationPanel() {
+            if (!this.user) return false;
+            if (this.user.is_global_governor) return true;
+            const roles = (this.user.governance_roles || []).map(r => r.role_code);
+            return roles.includes('koordinator_zona') || roles.includes('koordinator_blok') || this.pendingApprovals.length > 0;
         },
 
         get availableRoleOptions() {
@@ -322,10 +533,15 @@ function ppmtAdminPanel() {
                 this.govForm.role_code = this.availableRoleOptions[0].code;
                 this.updateGovScopeDefault();
             }
-            await this.loadPendingApprovals();
-            if (this.user?.is_global_governor) {
-                await this.loadGovernanceData();
+
+            const tasks = [this.loadPendingApprovals()];
+            if (this.user?.can_manage_announcements) {
+                tasks.push(this.loadAnnouncements());
             }
+            if (this.user?.is_global_governor) {
+                tasks.push(this.loadGovernanceData());
+            }
+            await Promise.all(tasks);
         },
 
         headers() {
@@ -357,6 +573,126 @@ function ppmtAdminPanel() {
                 window.location.href = '/';
             } finally {
                 this.loading = false;
+            }
+        },
+
+        async loadAnnouncements() {
+            const res = await fetch('/api/v1/announcements?all=1', { headers: this.headers() });
+            if (res.ok) {
+                const json = await res.json();
+                this.announcements = json.data || [];
+            }
+        },
+
+        async createAnnouncement() {
+            this.savingAnnouncement = true;
+            try {
+                const res = await fetch('/api/v1/announcements', {
+                    method: 'POST',
+                    headers: this.headers(),
+                    body: JSON.stringify(this.announcementForm)
+                });
+                const json = await res.json();
+                if (res.ok) {
+                    this.toastType = 'success';
+                    this.toastMessage = json.message;
+                    this.announcementForm = { title: '', category: 'info', body: '', is_pinned: false };
+                    await this.loadAnnouncements();
+                } else {
+                    this.toastType = 'error';
+                    this.toastMessage = json.message || 'Gagal menerbitkan pengumuman.';
+                }
+            } finally {
+                this.savingAnnouncement = false;
+            }
+        },
+
+        openEditAnnouncement(item) {
+            this.editAnnouncementForm = {
+                id: item.id,
+                title: item.title,
+                category: item.category_code,
+                body: item.body,
+                is_pinned: Boolean(item.is_pinned)
+            };
+            this.editingAnnouncement = item;
+        },
+
+        async saveEditedAnnouncement() {
+            this.savingAnnouncement = true;
+            try {
+                const res = await fetch(`/api/v1/announcements/${this.editAnnouncementForm.id}`, {
+                    method: 'PATCH',
+                    headers: this.headers(),
+                    body: JSON.stringify({
+                        title: this.editAnnouncementForm.title,
+                        category: this.editAnnouncementForm.category,
+                        body: this.editAnnouncementForm.body,
+                        is_pinned: this.editAnnouncementForm.is_pinned
+                    })
+                });
+                const json = await res.json();
+                if (res.ok) {
+                    this.editingAnnouncement = null;
+                    this.toastType = 'success';
+                    this.toastMessage = json.message;
+                    await this.loadAnnouncements();
+                } else {
+                    this.toastType = 'error';
+                    this.toastMessage = json.message || 'Gagal memperbarui pengumuman.';
+                }
+            } finally {
+                this.savingAnnouncement = false;
+            }
+        },
+
+        async toggleAnnouncementPin(item) {
+            const res = await fetch(`/api/v1/announcements/${item.id}`, {
+                method: 'PATCH',
+                headers: this.headers(),
+                body: JSON.stringify({ is_pinned: !item.is_pinned })
+            });
+            const json = await res.json();
+            if (res.ok) {
+                this.toastType = 'success';
+                this.toastMessage = item.is_pinned ? 'Sematkan pengumuman dilepas.' : 'Pengumuman disematkan di urutan teratas.';
+                await this.loadAnnouncements();
+            } else {
+                this.toastType = 'error';
+                this.toastMessage = json.message || 'Gagal mengubah status sematan.';
+            }
+        },
+
+        async toggleAnnouncementPublish(item) {
+            const res = await fetch(`/api/v1/announcements/${item.id}`, {
+                method: 'PATCH',
+                headers: this.headers(),
+                body: JSON.stringify({ is_published: !item.is_published })
+            });
+            const json = await res.json();
+            if (res.ok) {
+                this.toastType = 'success';
+                this.toastMessage = item.is_published ? 'Pengumuman diarsipkan dari beranda warga.' : 'Pengumuman kembali ditayangkan.';
+                await this.loadAnnouncements();
+            } else {
+                this.toastType = 'error';
+                this.toastMessage = json.message || 'Gagal mengubah status tayang.';
+            }
+        },
+
+        async deleteAnnouncement(item) {
+            const res = await fetch(`/api/v1/announcements/${item.id}`, {
+                method: 'DELETE',
+                headers: this.headers()
+            });
+            const json = await res.json();
+            if (res.ok) {
+                this.toastType = 'success';
+                this.toastMessage = json.message;
+                await this.loadAnnouncements();
+            } else {
+                this.toastType = 'error';
+                this.toastMessage = json.message || 'Gagal menghapus pengumuman.';
             }
         },
 

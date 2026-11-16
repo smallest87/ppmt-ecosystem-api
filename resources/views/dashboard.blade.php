@@ -73,16 +73,28 @@
             <!-- ========================================================= -->
             <div class="lg:col-span-7 space-y-6">
 
-                <!-- Kartu 1: Papan Pengumuman Paguyuban (Mockup Interaktif) -->
+                <!-- Kartu 1: Papan Pengumuman Paguyuban (Live API) -->
                 <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                     <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
                         <div>
                             <h2 class="text-base font-bold text-slate-900">Papan Pengumuman Paguyuban</h2>
                             <p class="text-xs text-slate-500 mt-0.5">Informasi resmi pengurus PPMT. Klik pengumuman untuk membaca selengkapnya.</p>
                         </div>
-                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
-                            3 Terbaru
-                        </span>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <a x-show="user?.can_manage_announcements"
+                               href="/pengurus"
+                               class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition">
+                                + Kelola
+                            </a>
+                            <span x-show="announcements.length > 0"
+                                  class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200"
+                                  x-text="announcements.length + ' Pengumuman'">
+                            </span>
+                        </div>
+                    </div>
+
+                    <div x-show="announcements.length === 0" class="px-6 py-8 text-center text-xs text-slate-500">
+                        Belum ada pengumuman resmi paguyuban yang diterbitkan saat ini.
                     </div>
 
                     <div class="divide-y divide-slate-100">
@@ -92,6 +104,10 @@
                                     class="w-full px-6 py-4 flex items-start justify-between gap-4 text-left hover:bg-slate-50/90 transition cursor-pointer group">
                                 <div class="space-y-1.5 min-w-0">
                                     <div class="flex flex-wrap items-center gap-2">
+                                        <span x-show="item.is_pinned"
+                                              class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                                            &#128204; Disematkan
+                                        </span>
                                         <span :class="item.badgeClass"
                                               class="px-2 py-0.5 rounded-md text-[10px] font-bold border"
                                               x-text="item.category">
@@ -156,7 +172,7 @@
                             <div class="bg-white p-3.5 rounded-xl border border-amber-200 flex items-center justify-between gap-2">
                                 <div class="text-xs space-y-0.5">
                                     <div class="font-bold text-slate-900" x-text="item.name + ' • Unit ' + item.unit_code"></div>
-                                    <div class="text-slate-500" x-text="item.phone + ' (' + subRoleLabel(item.sub_role) + ')'"></div>
+                                    <div class="text-slate-500" x-text="(item.phone || item.username || '-') + ' (' + subRoleLabel(item.sub_role) + ')'"></div>
                                 </div>
                                 <button type="button" @click="approveResident(item)"
                                         class="px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shrink-0 cursor-pointer">
@@ -348,6 +364,7 @@ function ppmtFamilyRoom() {
         generatedInviteUrl: '',
         selectedAnnouncement: null,
         showDuesModal: false,
+        announcements: [],
 
         inviteForm: {
             unit_code: '',
@@ -355,40 +372,6 @@ function ppmtFamilyRoom() {
             sub_role: 'family_member',
             member_valid_until: ''
         },
-
-        // Data Mockup Pengumuman Paguyuban
-        announcements: [
-            {
-                id: 1,
-                category: 'Penting',
-                badgeClass: 'bg-rose-50 text-rose-700 border-rose-200',
-                date: '15 Nov 2026',
-                author: 'Koordinator Keamanan & Lingkungan PPMT',
-                title: 'Pemeliharaan Jaringan Pipa Air Bersih Blok C & D',
-                excerpt: 'Akan dilakukan pengurasan tandon utama dan pengecekan katup distribusi pada hari Rabu pukul 09.00–12.00 WIB. Warga dimohon menampung air secukupnya.',
-                body: 'Assalamualaikum Wr. Wb.\n\nDiberitahukan kepada seluruh warga Perumahan Pesona Mandiri Turen (khususnya Zona/Blok C dan D), pada hari Rabu, 18 November 2026 pukul 09.00 hingga 12.00 WIB akan dilakukan pemeliharaan rutin tandon air bersih dan penggantian katup distribusi.\n\nSelama proses berlangsung, aliran air bersih akan dihentikan sementara. Warga dimohon menampung persediaan air secukupnya sebelum pukul 08.30 WIB.\n\nTerima kasih atas pengertian dan kerja samanya.'
-            },
-            {
-                id: 2,
-                category: 'Kegiatan Warga',
-                badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-                date: '12 Nov 2026',
-                author: 'Pengurus Paguyuban Warga PPMT',
-                title: 'Kerja Bakti Pembersihan Saluran Drainase Menjelang Puncak Musim Hujan',
-                excerpt: 'Mengundang seluruh bapak-bapak dan pemuda kavling untuk bergotong royong membersihkan selokan utama serta perapian ranting pohon di jalur fasum.',
-                body: 'Dalam rangka mengantisipasi curah hujan tinggi bulan ini, Paguyuban Warga PPMT mengundang seluruh warga untuk hadir pada kegiatan Kerja Bakti Bersama:\n\n• Hari/Tanggal: Minggu, 22 November 2026\n• Waktu: Pukul 06.30 WIB – selesai\n• Titik Kumpul: Pos Keamanan Utama / Fasum Tengah\n\nWarga diharapkan membawa peralatan kebersihan masing-masing (cangkul, sabit, atau sapu lidi). Konsumsi pagi disediakan oleh kas paguyuban.'
-            },
-            {
-                id: 3,
-                category: 'Info Lingkungan',
-                badgeClass: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-                date: '08 Nov 2026',
-                author: 'Sekretariat Paguyuban PPMT',
-                title: 'Pemutakhiran Data Plat Nomor Kendaraan Warga untuk Akses Gerbang Malam',
-                excerpt: 'Warga yang baru menambah atau mengganti kendaraan dimohon memperbarui data plat nomor melalui menu Pengaturan Akun agar mudah dikenali petugas jaga.',
-                body: 'Untuk meningkatkan kenyamanan dan ketertiban parkir serta keamanan keluar-masuk gerbang perumahan pada malam hari, warga dimohon memastikan data jenis dan plat nomor kendaraan sudah tercatat pada profil masing-masing.\n\nPembaruan dapat dilakukan mandiri kapan saja melalui Menu Akun → Pengaturan Akun → Kendaraan Terdaftar.'
-            }
-        ],
 
         // Data Mockup Agenda Lingkungan
         agendas: [
@@ -433,7 +416,10 @@ function ppmtFamilyRoom() {
             }
             await this.loadMe();
             if (this.user?.is_verified) {
-                await this.loadPendingApprovals();
+                await Promise.all([
+                    this.loadAnnouncements(),
+                    this.loadPendingApprovals()
+                ]);
             }
         },
 
@@ -501,6 +487,14 @@ function ppmtFamilyRoom() {
             return this.user.memberships.filter(m =>
                 m.is_approved && ['primary_owner', 'primary_resident'].includes(m.sub_role)
             );
+        },
+
+        async loadAnnouncements() {
+            const res = await fetch('/api/v1/announcements', { headers: this.headers() });
+            if (res.ok) {
+                const json = await res.json();
+                this.announcements = json.data || [];
+            }
         },
 
         async loadPendingApprovals() {

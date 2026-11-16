@@ -70,6 +70,16 @@ class User extends Authenticatable
         return $this->hasGovernanceRole('ketua_paguyuban');
     }
 
+    public function isSekretarisPaguyuban(): bool
+    {
+        return $this->hasGovernanceRole('sekretaris_paguyuban');
+    }
+
+    public function canManageAnnouncements(): bool
+    {
+        return $this->isSekretarisPaguyuban() || $this->isKetuaPaguyuban();
+    }
+
     /**
      * Daftar kode jabatan yang sah disematkan oleh user ini sesuai hierarki tata kelola.
      */
@@ -77,7 +87,6 @@ class User extends Authenticatable
     {
         $roles = [];
 
-        // Admin Sistem / Operator Aplikasi berwenang atas jabatan infrastruktur & pelantikan Ketua Paguyuban
         if ($this->isSystemAdmin()) {
             $roles = array_merge($roles, [
                 'admin',
@@ -86,7 +95,6 @@ class User extends Authenticatable
             ]);
         }
 
-        // Ketua Paguyuban berwenang penuh menyusun kabinet pengurus & koordinator wilayah di bawahnya
         if ($this->isKetuaPaguyuban()) {
             $roles = array_merge($roles, [
                 'sekretaris_paguyuban',
@@ -107,7 +115,6 @@ class User extends Authenticatable
 
     public function canRevokeGovernanceRole(UserGovernanceRole $role): bool
     {
-        // Cegah mencabut jabatan milik diri sendiri secara tidak sengaja
         if ((int) $role->user_id === (int) $this->id) {
             return false;
         }
