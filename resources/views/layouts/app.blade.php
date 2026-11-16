@@ -91,9 +91,9 @@
                              x-transition:leave="transition ease-in duration-75"
                              x-transition:leave-start="opacity-100 scale-100"
                              x-transition:leave-end="opacity-0 scale-95"
-                             class="absolute right-0 mt-2 w-64 rounded-2xl bg-white text-slate-800 shadow-xl border border-slate-200 overflow-hidden z-50">
+                             class="absolute right-0 mt-2 w-72 rounded-2xl bg-white text-slate-800 shadow-xl border border-slate-200 overflow-hidden z-50">
 
-                            <!-- Identitas & Level Warga -->
+                            <!-- Identitas, Nama Kavling (sejajar kanan), & Level Warga -->
                             <div class="px-4 py-3.5 bg-slate-50/90 border-b border-slate-100 flex items-center gap-3">
                                 <template x-if="profile.avatar_url">
                                     <img :src="profile.avatar_url"
@@ -105,9 +105,15 @@
                                           x-text="userInitials">
                                     </span>
                                 </template>
-                                <div class="min-w-0 space-y-1">
-                                    <div class="text-sm font-bold text-slate-900 leading-snug truncate"
-                                         x-text="profile.name || 'Warga PPMT'"></div>
+                                <div class="min-w-0 flex-1 space-y-1">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <div class="text-sm font-bold text-slate-900 leading-snug truncate"
+                                             x-text="profile.name || 'Warga PPMT'"></div>
+                                        <span x-show="profile.unit_codes"
+                                              x-text="profile.unit_codes"
+                                              class="px-2 py-0.5 rounded-md text-[11px] font-bold font-mono bg-slate-200/80 text-slate-800 border border-slate-300/80 shrink-0">
+                                        </span>
+                                    </div>
                                     <div>
                                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200"
                                               x-text="'Lv. ' + profile.level + (profile.level_label ? ' • ' + profile.level_label : '')">
@@ -117,8 +123,15 @@
                             </div>
 
                             <!-- Item Menu Akun -->
-                            <div x-show="hasAdminAccess" x-cloak class="py-1.5 text-xs font-semibold border-b border-slate-100">
-                                <a href="/admin"
+                            <div class="py-1.5 text-xs font-semibold divide-y divide-slate-100 border-b border-slate-100">
+                                <a href="/pengaturan"
+                                   class="px-4 py-2.5 flex items-center justify-between transition {{ request()->is('pengaturan') ? 'bg-emerald-50 text-emerald-900 font-bold' : 'text-slate-700 hover:bg-slate-50' }}">
+                                    <span>Pengaturan Akun</span>
+                                    <span class="text-slate-400 text-sm">&rsaquo;</span>
+                                </a>
+                                <a x-show="hasAdminAccess"
+                                   x-cloak
+                                   href="/admin"
                                    class="px-4 py-2.5 flex items-center justify-between text-indigo-700 hover:bg-indigo-50 transition">
                                     <span class="flex items-center gap-2">
                                         <span class="text-sm">&#9733;</span>
@@ -177,7 +190,7 @@
              x-transition:leave-end="opacity-0 -translate-y-2"
              class="md:hidden absolute inset-x-0 top-full bg-white text-slate-800 shadow-2xl border-b border-slate-200 z-40 divide-y divide-slate-100">
 
-            <!-- Bagian Menu Akun: Foto/Inisial, Nama Lengkap, & Level Warga -->
+            <!-- Bagian Menu Akun: Foto/Inisial, Nama Lengkap + Kavling (sejajar kanan), & Level Warga -->
             <div class="px-5 py-4 bg-slate-50/90 flex items-center gap-3.5">
                 <template x-if="profile.avatar_url">
                     <img :src="profile.avatar_url"
@@ -189,9 +202,15 @@
                           x-text="userInitials">
                     </span>
                 </template>
-                <div class="min-w-0 space-y-1">
-                    <div class="text-sm font-bold text-slate-900 leading-snug truncate"
-                         x-text="profile.name || 'Warga PPMT'"></div>
+                <div class="min-w-0 flex-1 space-y-1">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="text-sm font-bold text-slate-900 leading-snug truncate"
+                             x-text="profile.name || 'Warga PPMT'"></div>
+                        <span x-show="profile.unit_codes"
+                              x-text="profile.unit_codes"
+                              class="px-2 py-0.5 rounded-md text-[11px] font-bold font-mono bg-slate-200/80 text-slate-800 border border-slate-300/80 shrink-0">
+                        </span>
+                    </div>
                     <div>
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200"
                               x-text="'Lv. ' + profile.level + (profile.level_label ? ' • ' + profile.level_label : '')">
@@ -210,6 +229,11 @@
                 <a href="/komunitas"
                    class="px-5 py-3 flex items-center justify-between transition {{ request()->is('komunitas') ? 'bg-emerald-50/80 text-emerald-900 font-bold border-l-4 border-emerald-600' : 'text-slate-700 hover:bg-slate-50' }}">
                     <span>Komunitas &amp; Peta</span>
+                    <span class="text-slate-400 text-base">&rsaquo;</span>
+                </a>
+                <a href="/pengaturan"
+                   class="px-5 py-3 flex items-center justify-between transition {{ request()->is('pengaturan') ? 'bg-emerald-50/80 text-emerald-900 font-bold border-l-4 border-emerald-600' : 'text-slate-700 hover:bg-slate-50' }}">
+                    <span>Pengaturan Akun</span>
                     <span class="text-slate-400 text-base">&rsaquo;</span>
                 </a>
             </div>
@@ -263,7 +287,8 @@
                 name: cached.name || '',
                 level: cached.level ?? 0,
                 level_label: cached.level_label || '',
-                avatar_url: cached.avatar_url || null
+                avatar_url: cached.avatar_url || null,
+                unit_codes: cached.unit_codes || ''
             },
 
             get userInitials() {
@@ -290,12 +315,17 @@
                     if (res.ok) {
                         const json = await res.json();
                         const data = json.data || {};
+                        const codes = (data.memberships || [])
+                            .map(m => m.unit?.code)
+                            .filter(Boolean);
+
                         this.hasAdminAccess = Boolean(data.has_admin_access);
                         this.profile = {
                             name: data.name || '',
                             level: data.reputation_badge?.level ?? 0,
                             level_label: data.reputation_badge?.label || '',
-                            avatar_url: data.avatar_url || null
+                            avatar_url: data.avatar_url || null,
+                            unit_codes: [...new Set(codes)].join(', ')
                         };
                         sessionStorage.setItem('ppmt_has_admin', this.hasAdminAccess ? '1' : '0');
                         sessionStorage.setItem('ppmt_nav_profile', JSON.stringify(this.profile));
