@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\MeetingMinuteController;
 use App\Http\Controllers\Api\V1\TreasuryController;
 use App\Http\Controllers\Api\V1\AgendaController;
 use App\Http\Controllers\Api\V1\AspirationController;
+use App\Http\Controllers\Api\V1\NewsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -114,6 +115,15 @@ Route::prefix('v1')->group(function () {
             Route::post('/aspirations', [AspirationController::class, 'store']);
             Route::post('/aspirations/{aspiration}/sign', [AspirationController::class, 'sign']);
             Route::patch('/aspirations/{aspiration}/status', [AspirationController::class, 'updateStatus']);
+
+            Route::get('/news', [NewsController::class, 'index']);
+            Route::get('/news/{year}/{month}/{day}/{slug}', [NewsController::class, 'show'])
+                ->where(['year' => '\d{4}', 'month' => '\d{2}', 'day' => '\d{2}']);
+            Route::post('/news', [NewsController::class, 'store']);
+
+            Route::get('/admin/news', [NewsController::class, 'adminIndex']);
+            Route::patch('/admin/news/{newsArticle}', [NewsController::class, 'update']);
+            Route::delete('/admin/news/{newsArticle}', [NewsController::class, 'destroy']);
         });
     });
 });

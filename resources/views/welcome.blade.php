@@ -2,7 +2,7 @@
 
 @section('content')
 <div x-data="ppmtPublicHome()" x-init="init()"
-     @open-warga-modal.window="openModal($event.detail || 'login')"
+     @open-warga-modal.window="handleExternalModalEvent($event.detail)"
      @keydown.escape.window="modalOpen = false">
 
     <!-- HERO SECTION PUBLIK -->
@@ -23,10 +23,16 @@
                 <!-- Tombol Aksi Kontekstual (Tamu vs Warga Sudah Login) -->
                 <div class="pt-2 flex flex-wrap items-center gap-3">
                     <template x-if="!hasToken">
-                        <button type="button" @click="openModal('login')"
-                                class="px-6 py-3.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-sm shadow-lg transition cursor-pointer">
-                            Masuk &rarr;
-                        </button>
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <button type="button" @click="openLoginModal()"
+                                    class="px-6 py-3.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-sm shadow-lg transition cursor-pointer">
+                                Masuk &rarr;
+                            </button>
+                            <a href="/register"
+                               class="px-5 py-3.5 rounded-xl bg-emerald-700/80 hover:bg-emerald-700 border border-emerald-500/50 text-white font-bold text-sm transition">
+                                Daftar Warga Baru
+                            </a>
+                        </div>
                     </template>
 
                     <template x-if="hasToken">
@@ -164,10 +170,16 @@
                         <p class="text-xs text-slate-600 leading-relaxed">
                             Masuk ke portal untuk mengakses peta kavling internal, direktori warga, pengaturan privasi, dan Pasar Tetangga UMKM—atau ajukan pendaftaran jika Anda warga baru yang belum terdaftar.
                         </p>
-                        <button type="button" @click="openModal('login')"
-                                class="w-full py-3 px-4 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-sm shadow transition cursor-pointer">
-                            Masuk
-                        </button>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            <button type="button" @click="openLoginModal()"
+                                    class="w-full py-3 px-4 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-sm shadow transition cursor-pointer">
+                                Masuk
+                            </button>
+                            <a href="/register"
+                               class="w-full py-3 px-4 rounded-xl bg-white hover:bg-slate-100 text-emerald-900 border border-emerald-300 font-bold text-sm text-center transition">
+                                Daftar Warga Baru
+                            </a>
+                        </div>
                     </div>
                 </template>
 
@@ -197,7 +209,7 @@
     </section>
 
     <!-- ===================================================================== -->
-    <!-- MODAL POPUP: MASUK / PENDAFTARAN WARGA BARU                           -->
+    <!-- MODAL POPUP: MASUK KE PORTAL WARGA                                    -->
     <!-- ===================================================================== -->
     <div x-show="modalOpen"
          x-cloak
@@ -209,7 +221,7 @@
             <!-- Header Modal -->
             <div class="bg-emerald-950 text-white px-5 sm:px-6 py-4 flex items-center justify-between shrink-0">
                 <div>
-                    <h3 class="font-bold text-base" x-text="modalStep === 'register' ? 'Pendaftaran Warga Baru PPMT' : 'Masuk ke Portal Warga'"></h3>
+                    <h3 class="font-bold text-base">Masuk ke Portal Warga</h3>
                     <p class="text-[11px] text-emerald-200">Perumahan Pesona Mandiri Turen</p>
                 </div>
                 <button type="button" @click="modalOpen = false"
@@ -227,8 +239,8 @@
                      x-text="alertMessage">
                 </div>
 
-                <!-- MODE 1: FORM MASUK SEDERHANA (DEFAULT) -->
-                <div x-show="modalStep === 'login'" class="space-y-4">
+                <!-- FORM MASUK -->
+                <div class="space-y-4">
                     <form @submit.prevent="submitLogin()" class="space-y-4">
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor WhatsApp atau Username</label>
@@ -258,145 +270,16 @@
 
                     <div class="pt-3 border-t border-slate-100 text-center text-xs text-slate-600">
                         Belum punya akun warga?
-                        <button type="button" @click="switchStep('register')"
-                                class="font-bold text-emerald-700 hover:text-emerald-800 hover:underline ml-0.5 cursor-pointer">
+                        <a href="/register"
+                           class="font-bold text-emerald-700 hover:text-emerald-800 hover:underline ml-0.5">
                             Ajukan pendaftaran di sini
-                        </button>
-                    </div>
-                </div>
-
-                <!-- MODE 2: FORM PENDAFTARAN WARGA BARU -->
-                <div x-show="modalStep === 'register'" class="space-y-4">
-                    <form @submit.prevent="submitClaim()" class="space-y-3.5">
-                        <!-- 1. Kredensial Masuk: Nomor WhatsApp & Username (Isi salah satu atau keduanya) -->
-                        <div class="space-y-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1">
-                                    Nomor WhatsApp Aktif <span class="text-slate-400 font-normal">(Opsional jika isi Username)</span>
-                                </label>
-                                <input type="tel" x-model="claimForm.phone" placeholder="0812xxxxxxxx"
-                                       class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1">
-                                    Username <span class="text-slate-400 font-normal">(Opsional jika isi No. WA)</span>
-                                </label>
-                                <input type="text"
-                                       x-model="claimForm.username"
-                                       @input="claimForm.username = (claimForm.username || '').toLowerCase().replace(/[^a-z0-9._]/g, '')"
-                                       placeholder="Contoh: budi.c21"
-                                       class="w-full rounded-xl border-slate-300 text-sm font-mono lowercase focus:border-emerald-600 focus:ring-emerald-600">
-                            </div>
-                            <p class="text-[11px] text-slate-500">Isi minimal salah satu (Nomor WA atau Username) untuk login ke akun.</p>
-                        </div>
-
-                        <!-- 2. Kata Sandi -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Buat Kata Sandi (Minimal 8 Karakter) *</label>
-                            <input type="password" x-model="claimForm.password" required minlength="8" placeholder="••••••••"
-                                   class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
-                        </div>
-
-                        <!-- 3. Nama Lengkap -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap Sesuai Identitas *</label>
-                            <input type="text" x-model="claimForm.name" required placeholder="Contoh: Budi Santoso"
-                                   class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
-                        </div>
-
-                        <!-- 4. Nomor Kavling (4 Tombol Blok A-D + Kotak Nomor Unit) -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Nomor Kavling Hunian *</label>
-                            <div class="flex items-stretch gap-2">
-                                <!-- 4 Tombol Pilihan Blok A, B, C, D -->
-                                <div class="grid grid-cols-4 gap-1.5 shrink-0">
-                                    <template x-for="blk in ['A', 'B', 'C', 'D']" :key="blk">
-                                        <button type="button"
-                                                @click="claimForm.block = blk"
-                                                :class="claimForm.block === blk
-                                                    ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm'
-                                                    : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'"
-                                                class="w-10 h-10 rounded-xl border text-sm font-extrabold transition cursor-pointer flex items-center justify-center"
-                                                x-text="blk">
-                                        </button>
-                                    </template>
-                                </div>
-
-                                <!-- Kotak Input Nomor Rumah (Angka atau 12A/12B) -->
-                                <input type="text"
-                                       x-model="claimForm.unit_number"
-                                       @input="sanitizeUnitNumber()"
-                                       required
-                                       maxlength="5"
-                                       placeholder="No. Rumah (mis. 5 atau 12A)"
-                                       class="flex-1 min-w-0 rounded-xl border-slate-300 text-sm font-mono uppercase focus:border-emerald-600 focus:ring-emerald-600">
-                            </div>
-                            <p class="text-[11px] text-slate-500 mt-1">
-                                Pilih huruf blok (A–D) lalu ketik nomor rumah Anda (contoh: <span class="font-mono font-semibold text-slate-700">12A</span> atau <span class="font-mono font-semibold text-slate-700">21</span>).
-                            </p>
-                        </div>
-
-                        <!-- 5. Status Keterkaitan & Peran -->
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1">Status Keterkaitan *</label>
-                                <select x-model="claimForm.entity_type" @change="updateDefaultSubRole()"
-                                        class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
-                                    <option value="owner">Pemilik Rumah</option>
-                                    <option value="resident">Penghuni</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1">Peran Spesifik *</label>
-                                <select x-model="claimForm.sub_role"
-                                        class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
-                                    <template x-if="claimForm.entity_type === 'owner'">
-                                        <optgroup label="Entitas Pemilik">
-                                            <option value="primary_owner">Pemilik Utama</option>
-                                            <option value="co_owner">Pemilik Bersama (Pasangan)</option>
-                                        </optgroup>
-                                    </template>
-                                    <template x-if="claimForm.entity_type === 'resident'">
-                                        <optgroup label="Entitas Penghuni">
-                                            <option value="primary_resident">Penghuni Utama</option>
-                                            <option value="family_member">Anggota Keluarga</option>
-                                            <option value="tenant">Penyewa / Kontrak</option>
-                                            <option value="caretaker">Penjaga Rumah</option>
-                                        </optgroup>
-                                    </template>
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- 6. Kode Undangan (Opsional) -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">
-                                Kode Undangan Keluarga/Pemilik <span class="text-slate-400 font-normal">(Opsional)</span>
-                            </label>
-                            <input type="text" x-model="claimForm.invite_token" placeholder="Kosongkan jika mendaftar mandiri"
-                                   class="w-full rounded-xl border-slate-300 text-xs font-mono focus:border-emerald-600 focus:ring-emerald-600">
-                        </div>
-
-                        <button type="submit" :disabled="submitting"
-                                class="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm shadow transition disabled:opacity-50 cursor-pointer">
-                            <span x-show="!submitting">Kirim Pengajuan Pendaftaran</span>
-                            <span x-show="submitting">Memproses Pendaftaran...</span>
-                        </button>
-                    </form>
-
-                    <div class="pt-3 border-t border-slate-100 text-center text-xs text-slate-600">
-                        Sudah punya akun warga?
-                        <button type="button" @click="switchStep('login')"
-                                class="font-bold text-emerald-700 hover:text-emerald-800 hover:underline ml-0.5 cursor-pointer">
-                            Masuk di sini
-                        </button>
+                        </a>
                     </div>
                 </div>
 
             </div>
         </div>
-</div>
+    </div>
 </div>
 @endsection
 
@@ -406,21 +289,9 @@ function ppmtPublicHome() {
     return {
         hasToken: !!localStorage.getItem('ppmt_token'),
         modalOpen: false,
-        modalStep: 'login', // 'login' | 'register'
         submitting: false,
         alertMessage: '',
         alertType: 'success',
-        claimForm: {
-            block: '',
-            unit_number: '',
-            name: '',
-            phone: '',
-            username: '',
-            entity_type: 'owner',
-            sub_role: 'primary_owner',
-            password: '',
-            invite_token: ''
-        },
         loginForm: {
             login_id: '',
             password: ''
@@ -428,106 +299,33 @@ function ppmtPublicHome() {
 
         init() {
             const params = new URLSearchParams(window.location.search);
-            const hasInviteParam = Boolean(params.get('invite'));
 
-            // Jika membuka link undangan (?unit=C-21&invite=xxxx), pecah kode unit ke blok + nomor
-            if (hasInviteParam) {
-                const rawUnit = (params.get('unit') || '').toUpperCase().trim();
-                const match = rawUnit.match(/^([A-D])-([0-9]+[A-B]?)$/);
-                if (match) {
-                    this.claimForm.block = match[1];
-                    this.claimForm.unit_number = match[2];
-                }
-                this.claimForm.invite_token = params.get('invite');
-                this.openModal('register', true);
+            // Kompatibilitas link undangan lama (?unit=C-21&invite=xxxx) -> arahkan ke /register
+            if (params.get('invite')) {
+                window.location.href = '/register' + window.location.search;
+                return;
+            }
+
+            if (params.get('login') === '1' && !this.hasToken) {
+                this.openLoginModal();
             }
         },
 
-        openModal(step = 'login', bypassAuthGuard = false) {
-            if (this.hasToken && !bypassAuthGuard) {
+        handleExternalModalEvent(detail) {
+            if (detail === 'register') {
+                window.location.href = '/register';
+                return;
+            }
+            this.openLoginModal();
+        },
+
+        openLoginModal() {
+            if (this.hasToken) {
                 window.location.href = '/dashboard';
                 return;
             }
-
             this.alertMessage = '';
-            this.modalStep = step;
             this.modalOpen = true;
-        },
-
-        switchStep(step) {
-            this.alertMessage = '';
-            this.modalStep = step;
-        },
-
-        sanitizeUnitNumber() {
-            // Hanya izinkan huruf & angka kapital, hapus nol di depan angka
-            let val = (this.claimForm.unit_number || '').toUpperCase().replace(/[^0-9A-Z]/g, '');
-            val = val.replace(/^0+/, '');
-            this.claimForm.unit_number = val;
-        },
-
-        updateDefaultSubRole() {
-            this.claimForm.sub_role = this.claimForm.entity_type === 'owner' ? 'primary_owner' : 'primary_resident';
-        },
-
-        async submitClaim() {
-            this.alertMessage = '';
-
-            if (!this.claimForm.phone && !this.claimForm.username) {
-                this.alertType = 'error';
-                this.alertMessage = 'Isi minimal Nomor WhatsApp atau Username untuk masuk ke akun.';
-                return;
-            }
-
-            if (!this.claimForm.block) {
-                this.alertType = 'error';
-                this.alertMessage = 'Silakan pilih huruf Blok (A, B, C, atau D) terlebih dahulu.';
-                return;
-            }
-
-            const cleanNumber = (this.claimForm.unit_number || '').trim().toUpperCase();
-            if (!/^[1-9][0-9]*[A-Z]?$/.test(cleanNumber)) {
-                this.alertType = 'error';
-                this.alertMessage = 'Nomor rumah tidak valid. Masukkan angka (mis. 5 atau 21) atau nomor tambahan (mis. 12A atau 12B).';
-                return;
-            }
-
-            this.submitting = true;
-            try {
-                const payload = {
-                    name: this.claimForm.name,
-                    phone: this.claimForm.phone || null,
-                    username: this.claimForm.username || null,
-                    password: this.claimForm.password,
-                    unit_code: `${this.claimForm.block}-${cleanNumber}`,
-                    entity_type: this.claimForm.entity_type,
-                    sub_role: this.claimForm.sub_role,
-                    invite_token: this.claimForm.invite_token || null
-                };
-
-                const res = await fetch('/api/v1/auth/register-claim', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const json = await res.json();
-
-                if (!res.ok) {
-                    this.alertType = 'error';
-                    this.alertMessage = json.message || 'Periksa kembali data pendaftaran Anda.';
-                    return;
-                }
-
-                localStorage.setItem('ppmt_token', json.token);
-                this.alertType = 'success';
-                this.alertMessage = json.message;
-                setTimeout(() => window.location.href = '/dashboard', 1000);
-            } catch (e) {
-                this.alertType = 'error';
-                this.alertMessage = 'Terjadi gangguan koneksi ke server.';
-            } finally {
-                this.submitting = false;
-            }
         },
 
         async submitLogin() {

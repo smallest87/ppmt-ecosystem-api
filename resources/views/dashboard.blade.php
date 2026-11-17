@@ -137,7 +137,7 @@
                 <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                     <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
                         <h2 class="text-base font-bold text-slate-900">Agenda Warga</h2>
-                        <a x-show="user?.can_manage_announcements"
+                        <a x-show="canPublishNews"
                            href="/pengurus"
                            class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition shrink-0">
                             + Kelola
@@ -188,7 +188,7 @@
                     </div>
                 </section>
 
-                <!-- Kartu 3: Kabar & Berita Warga (Ragam Layout Editorial -> Permalink) -->
+                <!-- Kartu 3: Kabar & Berita Warga (Hanya Pengurus yang bisa menerbitkan) -->
                 <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                     <!-- Header Kartu Berita -->
                     <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
@@ -197,16 +197,25 @@
                             <h2 class="text-base font-bold text-slate-900">Kabar &amp; Berita Warga</h2>
                         </div>
                         <button type="button"
+                                x-show="canPublishNews"
                                 @click="showContributeModal = true"
                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-2xs transition cursor-pointer shrink-0">
                             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
                             </svg>
-                            <span>Kirim Kabar</span>
+                            <span>Terbitkan Kabar</span>
                         </button>
                     </div>
 
-                    <div class="divide-y divide-slate-100">
+                    <!-- Empty State Jika Belum Ada Berita Terbit -->
+                    <div x-show="newsArticles.length === 0" class="px-6 py-10 text-center space-y-1.5">
+                        <div class="text-xs font-semibold text-slate-600">Belum ada kabar atau berita warga yang diterbitkan.</div>
+                        <p x-show="canPublishNews" class="text-[11px] text-slate-400">
+                            Klik tombol <strong>Terbitkan Kabar</strong> di kanan atas untuk membagikan informasi kegiatan lingkungan.
+                        </p>
+                    </div>
+
+                    <div x-show="newsArticles.length > 0" class="divide-y divide-slate-100">
 
                         <!-- ================================================= -->
                         <!-- VARIASI 1: HERO / HEADLINE UTAMA (GAMBAR LEBAR)   -->
@@ -215,9 +224,16 @@
                             <a :href="newsUrl(heroNews)"
                                class="block p-5 sm:p-6 space-y-3.5 hover:bg-slate-50/70 transition cursor-pointer group">
                                 <div class="relative aspect-[16/9] w-full rounded-xl overflow-hidden bg-slate-100 border border-slate-200/80">
-                                    <img :src="heroNews.thumbnail"
-                                         :alt="heroNews.title"
-                                         class="w-full h-full object-cover group-hover:scale-[1.02] transition duration-300">
+                                    <template x-if="heroNews.thumbnail">
+                                        <img :src="heroNews.thumbnail"
+                                             :alt="heroNews.title"
+                                             class="w-full h-full object-cover group-hover:scale-[1.02] transition duration-300">
+                                    </template>
+                                    <template x-if="!heroNews.thumbnail">
+                                        <div class="w-full h-full bg-gradient-to-br from-emerald-900 via-emerald-800 to-slate-900 flex items-center justify-center p-6 text-center">
+                                            <span class="text-white/90 text-sm font-bold tracking-wide" x-text="heroNews.category"></span>
+                                        </div>
+                                    </template>
                                     <div class="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/15 to-transparent"></div>
                                     <div class="absolute top-3 left-3 flex items-center gap-1.5">
                                         <span class="px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-[10px] font-extrabold uppercase tracking-wider shadow-xs"
@@ -227,7 +243,7 @@
                                         </span>
                                     </div>
                                     <div class="absolute bottom-3 left-3.5 right-3.5 flex items-center justify-between text-[11px] text-white/90 font-medium">
-                                        <span x-text="'Kontributor: ' + heroNews.author + ' (' + heroNews.unit + ')'"></span>
+                                        <span x-text="heroNews.author + ' (' + heroNews.unit + ')'"></span>
                                         <span x-text="heroNews.published_at"></span>
                                     </div>
                                 </div>
@@ -244,11 +260,12 @@
                         <!-- ================================================= -->
                         <!-- VARIASI 2: LIST + THUMBNAIL SAMPING               -->
                         <!-- ================================================= -->
-                        <div class="divide-y divide-slate-100">
+                        <div x-show="thumbnailNewsList.length > 0" class="divide-y divide-slate-100">
                             <template x-for="item in thumbnailNewsList" :key="item.id">
                                 <a :href="newsUrl(item)"
                                    class="px-5 sm:px-6 py-4 flex items-start gap-4 hover:bg-slate-50/80 transition cursor-pointer group">
-                                    <div class="w-24 h-20 sm:w-28 sm:h-20 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/80 shrink-0">
+                                    <div x-show="item.thumbnail"
+                                         class="w-24 h-20 sm:w-28 sm:h-20 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/80 shrink-0">
                                         <img :src="item.thumbnail"
                                              :alt="item.title"
                                              class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
@@ -280,9 +297,16 @@
                                     <a :href="newsUrl(gItem)"
                                        class="bg-white rounded-xl border border-slate-200/90 overflow-hidden shadow-2xs hover:border-emerald-300 transition cursor-pointer group flex flex-col">
                                         <div class="aspect-[16/10] w-full bg-slate-100 overflow-hidden relative">
-                                            <img :src="gItem.thumbnail"
-                                                 :alt="gItem.title"
-                                                 class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                            <template x-if="gItem.thumbnail">
+                                                <img :src="gItem.thumbnail"
+                                                     :alt="gItem.title"
+                                                     class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                            </template>
+                                            <template x-if="!gItem.thumbnail">
+                                                <div class="w-full h-full bg-gradient-to-br from-emerald-800 to-slate-800 flex items-center justify-center p-4 text-center">
+                                                    <span class="text-white/90 text-xs font-bold" x-text="gItem.category"></span>
+                                                </div>
+                                            </template>
                                             <span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md bg-white/95 text-slate-800 text-[10px] font-bold shadow-2xs"
                                                   x-text="gItem.category"></span>
                                         </div>
@@ -555,7 +579,7 @@
         <div @click.away="selectedAnnouncement = null"
              class="bg-white rounded-2xl shadow-2xl border border-slate-200/90 w-full max-w-[calc(100vw-1.5rem)] sm:max-w-lg max-h-[88dvh] flex flex-col overflow-hidden my-auto">
 
-            <!-- Header Modal: Badge Kategori, Pin, Tanggal & Tombol Close -->
+            <!-- Header Modal -->
             <div class="px-5 sm:px-6 py-3.5 border-b border-slate-100 flex items-center justify-between gap-3 shrink-0 bg-slate-50/60">
                 <div class="flex flex-wrap items-center gap-2">
                     <span x-show="selectedAnnouncement?.is_pinned"
@@ -597,7 +621,7 @@
                      x-text="selectedAnnouncement?.body"></div>
             </div>
 
-            <!-- Footer Modal: Tombol Salin Teks & Tutup -->
+            <!-- Footer Modal -->
             <div class="px-5 sm:px-6 py-3.5 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between gap-3 shrink-0">
                 <button type="button"
                         @click="copyAnnouncementText(selectedAnnouncement)"
@@ -679,9 +703,9 @@
     </div>
 
     <!-- ===================================================================== -->
-    <!-- MODAL KIRIM KONTRIBUSI BERITA WARGA (SIMULASI MOCKUP)                 -->
+    <!-- MODAL TERBITKAN KABAR & BERITA WARGA (KHUSUS PENGURUS)                -->
     <!-- ===================================================================== -->
-    <div x-show="showContributeModal"
+    <div x-show="showContributeModal && canPublishNews"
          x-cloak
          class="fixed inset-0 z-50 !mt-0 flex items-center justify-center p-3 sm:p-4 bg-slate-900/55 backdrop-blur-[2px] overflow-y-auto">
         <div @click.away="showContributeModal = false"
@@ -689,44 +713,79 @@
 
             <div class="px-5 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
                 <div>
-                    <h3 class="text-base font-bold text-slate-900">Kirim Kabar / Kontribusi Warga</h3>
-                    <p class="text-xs text-slate-500 mt-0.5">Tulisan akan dikurasi singkat oleh pengurus sebelum terbit.</p>
+                    <h3 class="text-base font-bold text-slate-900">Terbitkan Kabar &amp; Berita Warga</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Kabar yang diterbitkan langsung tayang ke Beranda Warga PPMT.</p>
                 </div>
                 <button type="button" @click="showContributeModal = false" class="text-slate-400 hover:text-slate-700 p-1 cursor-pointer">✕</button>
             </div>
 
-            <form @submit.prevent="submitMockNews()" class="p-5 sm:p-6 space-y-3.5 overflow-y-auto">
+            <form @submit.prevent="submitNewsContribution()" class="p-5 sm:p-6 space-y-3.5 overflow-y-auto">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Kategori Kabar</label>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Rubrik Kabar *</label>
                         <select x-model="newsDraft.category" class="w-full rounded-xl border-slate-300 text-xs">
                             <option value="Kegiatan Warga">Kegiatan Warga</option>
-                            <option value="Fasilitas & Lingkungan">Fasilitas &amp; Lingkungan</option>
-                            <option value="Keamanan & Tertib">Keamanan &amp; Tertib</option>
-                            <option value="Sosial & Musholla">Sosial &amp; Musholla</option>
-                            <option value="Kabar Tetangga">Kabar Tetangga</option>
+                            <option value="Fasilitas Umum">Fasilitas Umum</option>
+                            <option value="Keamanan & Lingkungan">Keamanan &amp; Lingkungan</option>
+                            <option value="Sosial & Kekeluargaan">Sosial &amp; Kekeluargaan</option>
+                            <option value="Info UMKM">Info UMKM</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Gaya Tampilan (Preview)</label>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Posisi Tampilan</label>
                         <select x-model="newsDraft.layout" class="w-full rounded-xl border-slate-300 text-xs">
-                            <option value="thumbnail">List + Thumbnail</option>
-                            <option value="grid">Kartu Grid Foto</option>
-                            <option value="text">Teks Saja (Kilas Kabar)</option>
-                            <option value="hero">Hero Utama</option>
+                            <option value="hero">Berita Utama (Hero)</option>
+                            <option value="thumbnail">Kartu Foto (Thumbnail)</option>
+                            <option value="grid">Grid 2 Kolom</option>
+                            <option value="text">Kilas Kabar (Teks Saja)</option>
                         </select>
                     </div>
                 </div>
 
+                <div x-show="approvedUnits.length > 1">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Atas Nama Kavling</label>
+                    <select x-model="newsDraft.unit_id" class="w-full rounded-xl border-slate-300 text-xs">
+                        <template x-for="m in approvedUnits" :key="m.id">
+                            <option :value="m.unit_id" x-text="'Kavling ' + m.unit.code"></option>
+                        </template>
+                    </select>
+                </div>
+
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Judul Berita *</label>
-                    <input type="text" x-model="newsDraft.title" required placeholder="Contoh: Pemasangan Lampu Jalan Blok C Rampung Swadaya"
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Judul Berita (Min. 8 Karakter) *</label>
+                    <input type="text"
+                           x-model="newsDraft.title"
+                           required
+                           minlength="8"
+                           maxlength="180"
+                           placeholder="Contoh: Pemasangan Lampu Jalan Blok C Rampung Swadaya"
                            class="w-full rounded-xl border-slate-300 text-xs">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Isi Laporan / Berita *</label>
-                    <textarea x-model="newsDraft.body" rows="4" required placeholder="Tuliskan kronologi, waktu, dan detail kegiatan atau informasi lingkungan..."
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Foto Dokumentasi (Opsional, Maks. 3 MB)</label>
+                    <input type="file"
+                           x-ref="newsPhotoInput"
+                           @change="handleNewsPhotoChange($event)"
+                           accept="image/jpeg,image/png,image/webp"
+                           class="block w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-800 hover:file:bg-emerald-100 cursor-pointer">
+                    <div x-show="newsPhotoPreview" class="mt-2 relative rounded-xl overflow-hidden border border-slate-200 max-h-40">
+                        <img :src="newsPhotoPreview" alt="Pratinjau foto" class="w-full h-36 object-cover">
+                        <button type="button"
+                                @click="clearNewsPhoto()"
+                                class="absolute top-2 right-2 px-2 py-0.5 rounded-lg bg-slate-900/75 text-white text-[11px] font-bold cursor-pointer">
+                            Hapus Foto
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Isi Laporan / Berita (Min. 20 Karakter) *</label>
+                    <textarea x-model="newsDraft.body"
+                              rows="4"
+                              required
+                              minlength="20"
+                              placeholder="Tuliskan kronologi, waktu, dan detail kegiatan atau informasi lingkungan..."
                               class="w-full rounded-xl border-slate-300 text-xs"></textarea>
                 </div>
 
@@ -736,8 +795,10 @@
                         Batal
                     </button>
                     <button type="submit"
-                            class="px-5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold cursor-pointer">
-                        Simulasikan Terbit
+                            :disabled="submittingNews"
+                            class="px-5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold disabled:opacity-50 cursor-pointer">
+                        <span x-show="!submittingNews">Terbitkan Kabar</span>
+                        <span x-show="submittingNews">Menerbitkan...</span>
                     </button>
                 </div>
             </form>
@@ -767,112 +828,17 @@ function ppmtFamilyRoom() {
         treasuryReport: null,
 
         showContributeModal: false,
+        submittingNews: false,
+        newsPhotoFile: null,
+        newsPhotoPreview: null,
         newsDraft: {
             category: 'Kegiatan Warga',
             layout: 'thumbnail',
+            unit_id: '',
             title: '',
             body: ''
         },
-        mockNews: [
-            {
-                id: 101,
-                layout: 'hero',
-                date_path: '2026/11/17',
-                slug: 'gotong-royong-pengecatan-kanstin-dan-pemasangan-papan-nama-blok-rampung-100-persen',
-                category: 'Kegiatan Warga',
-                title: 'Gotong Royong Pengecatan Kanstin & Pemasangan Papan Nama Blok Rampung 100%',
-                excerpt: 'Puluhan warga dari Zona A hingga Zona C bahu-membahu mempercantik akses jalan utama perumahan pada Minggu pagi kemarin.',
-                body: 'Suasana guyub terlihat sejak pukul 06.30 WIB di gerbang utama Perumahan Pesona Mandiri Turen. Warga membawa peralatan cat, kuas, serta konsumsi swadaya untuk menyelesaikan pengecatan kanstin jalan utama dan pemasangan penunjuk blok.\n\nKoordinator lapangan menyampaikan bahwa kegiatan ini merupakan hasil kesepakatan musyawarah bulanan agar tamu maupun kurir paket lebih mudah menemukan alamat kavling.',
-                thumbnail: 'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=900&q=80',
-                author: 'Hendra Wijaya',
-                unit: 'A-08',
-                published_at: '2 jam lalu'
-            },
-            {
-                id: 102,
-                layout: 'thumbnail',
-                date_path: '2026/11/16',
-                slug: 'uji-coba-penerangan-lampu-led-tenaga-surya-di-area-taman-dan-musholla',
-                category: 'Fasilitas & Lingkungan',
-                title: 'Uji Coba Penerangan Lampu LED Tenaga Surya di Area Taman & Musholla',
-                excerpt: 'Sebanyak 6 titik lampu PJU tenaga surya mulai diaktifkan otomatis pada malam hari untuk meningkatkan kenyamanan warga.',
-                body: 'Tim sarana prasarana paguyuban telah merampungkan instalasi 6 unit lampu penerangan jalan berbasis panel surya di sekitar fasum musholla dan taman bermain anak. Lampu menyala otomatis sejak pukul 17.45 WIB hingga subuh.',
-                thumbnail: 'https://images.unsplash.com/photo-1513828583688-c52646db42da?auto=format&fit=crop&w=600&q=80',
-                author: 'Rizky Pratama',
-                unit: 'B-14',
-                published_at: 'Kemarin'
-            },
-            {
-                id: 103,
-                layout: 'thumbnail',
-                date_path: '2026/11/15',
-                slug: 'evaluasi-sistem-satu-pintu-malam-hari-dan-penambahan-cermin-cembung-tikungan',
-                category: 'Keamanan & Tertib',
-                title: 'Evaluasi Sistem Satu Pintu Malam Hari & Penambahan Cermin Cembung Tikungan',
-                excerpt: 'Cermin lalu lintas dipasang di dua titik persimpangan blok untuk mencegah titik buta kendaraan roda empat.',
-                body: 'Menindaklanjuti masukan warga di forum aspirasi, pengurus memasang cermin cembung (convex mirror) di persimpangan Blok B dan Blok C serta menertibkan jam tutup portal sekunder mulai pukul 23.00 WIB.',
-                thumbnail: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80',
-                author: 'Bambang Sutrisno',
-                unit: 'C-03',
-                published_at: '2 hari lalu'
-            },
-            {
-                id: 104,
-                layout: 'grid',
-                date_path: '2026/11/14',
-                slug: 'jadwal-kajian-rutin-malam-jumat-dan-persiapan-santunan-anak-yatim',
-                category: 'Sosial & Musholla',
-                title: 'Jadwal Kajian Rutin Malam Jumat & Persiapan Santunan Anak Yatim',
-                excerpt: 'Takmir membuka kesempatan donasi terbuka bagi warga yang ingin berpartisipasi.',
-                body: 'Takmir Musholla PPMT mengundang seluruh jamaah untuk hadir dalam kajian rutin ba’da Maghrib sekaligus koordinasi panitia santunan bulanan warga.',
-                thumbnail: 'https://images.unsplash.com/photo-1564769625905-50e93615e769?auto=format&fit=crop&w=600&q=80',
-                author: 'Ust. Ahmad Fauzi',
-                unit: 'B-02',
-                published_at: '3 hari lalu'
-            },
-            {
-                id: 105,
-                layout: 'grid',
-                date_path: '2026/11/13',
-                slug: 'panen-perdana-kebun-hidroponik-kelompok-ibu-ibu-pkk-blok-a',
-                category: 'Kabar Tetangga',
-                title: 'Panen Perdana Kebun Hidroponik Kelompok Ibu-Ibu PKK Blok A',
-                excerpt: 'Sayuran pakcoy dan selada segar hasil kebun pekarangan dibagikan kepada warga sekitar.',
-                body: 'Memanfaatkan lahan kosong di samping pos kamling Blok A, kelompok PKK berhasil memanen 18 kilogram sayuran hidroponik bebas pestisida pada panen perdana pekan ini.',
-                thumbnail: 'https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?auto=format&fit=crop&w=600&q=80',
-                author: 'Ibu Ratna Dewi',
-                unit: 'A-19',
-                published_at: '4 hari lalu'
-            },
-            {
-                id: 106,
-                layout: 'text',
-                date_path: '2026/11/13',
-                slug: 'jadwal-pengangkutan-sampah-rumah-tangga-pekan-ini-tetap-normal-selasa-dan-jumat-pagi',
-                category: 'Info Lingkungan',
-                title: 'Jadwal Pengangkutan Sampah Rumah Tangga Pekan Ini Tetap Normal Selasa & Jumat Pagi',
-                excerpt: 'Warga dimohon mengikat kantong sampah dengan rapat sebelum pukul 06.30 WIB.',
-                body: 'Petugas kebersihan menginformasikan bahwa jadwal pengangkutan sampah domestik tetap berjalan normal pada hari Selasa dan Jumat mulai pukul 06.30 WIB.',
-                thumbnail: null,
-                author: 'Sekretariat Paguyuban',
-                unit: 'A-01',
-                published_at: '4 hari lalu'
-            },
-            {
-                id: 107,
-                layout: 'text',
-                date_path: '2026/11/12',
-                slug: 'selamat-datang-keluarga-baru-bapak-dimas-dan-ibu-nisa-di-kavling-c-17',
-                category: 'Kabar Tetangga',
-                title: 'Selamat Datang Keluarga Baru Bapak Dimas & Ibu Nisa di Kavling C-17',
-                excerpt: 'Segenap warga Zona C mengucapkan selamat bergabung di lingkungan PPMT.',
-                body: 'Keluarga Bapak Dimas resmi menempati Kavling C-17 mulai pekan ini. Semoga betah dan senantiasa rukun bertetangga di Perumahan Pesona Mandiri Turen.',
-                thumbnail: null,
-                author: 'Koordinator Zona C',
-                unit: 'C-01',
-                published_at: '5 hari lalu'
-            }
-        ],
+        newsArticles: [],
 
         inviteForm: {
             unit_code: '',
@@ -891,6 +857,7 @@ function ppmtFamilyRoom() {
                 await Promise.all([
                     this.loadAnnouncements(),
                     this.loadAgendas(),
+                    this.loadNewsArticles(),
                     this.loadAspirations(),
                     this.loadPendingApprovals(),
                     this.loadTreasuryReport()
@@ -904,6 +871,10 @@ function ppmtFamilyRoom() {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             };
+        },
+
+        get canPublishNews() {
+            return Boolean(this.user?.can_manage_announcements || this.user?.is_global_governor);
         },
 
         formatRupiah(value) {
@@ -952,12 +923,20 @@ function ppmtFamilyRoom() {
                 if (this.manageableUnits.length > 0 && !this.inviteForm.unit_code) {
                     this.inviteForm.unit_code = this.manageableUnits[0].unit.code;
                 }
+                if (this.approvedUnits.length > 0 && !this.newsDraft.unit_id) {
+                    this.newsDraft.unit_id = this.approvedUnits[0].unit_id;
+                }
             } catch (e) {
                 localStorage.removeItem('ppmt_token');
                 window.location.href = '/';
             } finally {
                 this.loading = false;
             }
+        },
+
+        get approvedUnits() {
+            if (!this.user?.memberships) return [];
+            return this.user.memberships.filter(m => m.is_approved && m.unit);
         },
 
         get manageableUnits() {
@@ -968,74 +947,108 @@ function ppmtFamilyRoom() {
         },
 
         get heroNews() {
-            return this.mockNews.find(n => n.layout === 'hero') || null;
+            return this.newsArticles.find(n => n.layout === 'hero') || null;
         },
 
         get thumbnailNewsList() {
-            return this.mockNews.filter(n => n.layout === 'thumbnail');
+            return this.newsArticles.filter(n => n.layout === 'thumbnail');
         },
 
         get gridNewsList() {
-            return this.mockNews.filter(n => n.layout === 'grid');
+            return this.newsArticles.filter(n => n.layout === 'grid');
         },
 
         get textOnlyNewsList() {
-            return this.mockNews.filter(n => n.layout === 'text');
+            return this.newsArticles.filter(n => n.layout === 'text');
         },
 
         newsUrl(item) {
             if (!item) return '#';
-            const datePath = item.date_path || '2026/11/17';
-            const slug = item.slug || this.slugify(item.title);
-            return `/berita/${datePath}/${slug}`;
+            return `/berita/${item.date_path}/${item.slug}`;
         },
 
-        slugify(text) {
-            return String(text || '')
-                .toLowerCase()
-                .replace(/%/g, ' persen')
-                .replace(/[^a-z0-9\s-]/g, '')
-                .trim()
-                .replace(/\s+/g, '-')
-                .replace(/-+/g, '-');
-        },
-
-        submitMockNews() {
-            if (!this.newsDraft.title.trim() || !this.newsDraft.body.trim()) return;
-            const myUnit = this.user?.memberships?.[0]?.unit?.code || 'Warga';
-            const now = new Date();
-            const yyyy = now.getFullYear();
-            const mm = String(now.getMonth() + 1).padStart(2, '0');
-            const dd = String(now.getDate()).padStart(2, '0');
-
-            const newItem = {
-                id: Date.now(),
-                layout: this.newsDraft.layout,
-                date_path: `${yyyy}/${mm}/${dd}`,
-                slug: this.slugify(this.newsDraft.title),
-                category: this.newsDraft.category,
-                title: this.newsDraft.title.trim(),
-                excerpt: this.newsDraft.body.trim().slice(0, 120) + '...',
-                body: this.newsDraft.body.trim(),
-                thumbnail: this.newsDraft.layout === 'text'
-                    ? null
-                    : 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=800&q=80',
-                author: this.user?.name || 'Warga PPMT',
-                unit: myUnit,
-                published_at: 'Baru saja'
-            };
-
-            if (newItem.layout === 'hero') {
-                this.mockNews.forEach(n => {
-                    if (n.layout === 'hero') n.layout = 'thumbnail';
-                });
+        handleNewsPhotoChange(event) {
+            const file = event.target.files?.[0];
+            if (!file) {
+                this.clearNewsPhoto();
+                return;
             }
+            if (file.size > 3 * 1024 * 1024) {
+                this.toastType = 'error';
+                this.toastMessage = 'Ukuran foto maksimal 3 MB.';
+                this.clearNewsPhoto();
+                return;
+            }
+            this.newsPhotoFile = file;
+            this.newsPhotoPreview = URL.createObjectURL(file);
+        },
 
-            this.mockNews.unshift(newItem);
-            this.newsDraft = { category: 'Kegiatan Warga', layout: 'thumbnail', title: '', body: '' };
-            this.showContributeModal = false;
-            this.toastType = 'success';
-            this.toastMessage = 'Simulasi kontribusi berita berhasil ditambahkan ke daftar!';
+        clearNewsPhoto() {
+            if (this.newsPhotoPreview) {
+                URL.revokeObjectURL(this.newsPhotoPreview);
+            }
+            this.newsPhotoFile = null;
+            this.newsPhotoPreview = null;
+            if (this.$refs.newsPhotoInput) {
+                this.$refs.newsPhotoInput.value = '';
+            }
+        },
+
+        async loadNewsArticles() {
+            const res = await fetch('/api/v1/news', { headers: this.headers() });
+            if (res.ok) {
+                const json = await res.json();
+                this.newsArticles = json.data || [];
+            }
+        },
+
+        async submitNewsContribution() {
+            if (!this.newsDraft.title.trim() || !this.newsDraft.body.trim()) return;
+            this.submittingNews = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('title', this.newsDraft.title.trim());
+                formData.append('category', this.newsDraft.category);
+                formData.append('layout', this.newsDraft.layout);
+                formData.append('body', this.newsDraft.body.trim());
+                if (this.newsDraft.unit_id) {
+                    formData.append('unit_id', this.newsDraft.unit_id);
+                }
+                if (this.newsPhotoFile) {
+                    formData.append('photo', this.newsPhotoFile);
+                }
+
+                const res = await fetch('/api/v1/news', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + this.token,
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                });
+                const json = await res.json();
+
+                if (res.ok) {
+                    this.newsDraft.title = '';
+                    this.newsDraft.body = '';
+                    this.newsDraft.layout = 'thumbnail';
+                    this.clearNewsPhoto();
+                    this.showContributeModal = false;
+                    this.toastType = 'success';
+                    this.toastMessage = json.message;
+                    await this.loadNewsArticles();
+                } else {
+                    const firstError = json.errors ? Object.values(json.errors)[0]?.[0] : null;
+                    this.toastType = 'error';
+                    this.toastMessage = firstError || json.message || 'Gagal menerbitkan kabar warga.';
+                }
+            } catch (e) {
+                this.toastType = 'error';
+                this.toastMessage = 'Terjadi gangguan koneksi saat menerbitkan kabar.';
+            } finally {
+                this.submittingNews = false;
+            }
         },
 
         get unsignedOpenAspirations() {

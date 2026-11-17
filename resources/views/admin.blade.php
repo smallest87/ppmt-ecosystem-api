@@ -5,7 +5,7 @@
 @section('subpage_back_url', '/dashboard')
 
 @section('content')
-<div x-data="ppmtAdminPanel()" x-init="init()" @keydown.escape.window="editingAnnouncement = null; editingMinute = null; editingAgenda = null" class="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-6">
+<div x-data="ppmtAdminPanel()" x-init="init()" @keydown.escape.window="editingAnnouncement = null; editingMinute = null; editingAgenda = null; editingNews = null" class="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-6">
 
     <!-- Loading State -->
     <div x-show="loading" class="bg-white rounded-2xl p-12 text-center text-slate-500 border border-slate-200">
@@ -366,7 +366,7 @@
         <!-- ================================================================= -->
         <!-- MODUL 1: PAPAN PENGUMUMAN PAGUYUBAN (Sekretaris & Ketua)          -->
         <!-- ================================================================= -->
-        <section x-show="user?.can_manage_announcements"
+        <section x-show="canManageEditorial"
                  class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
             <!-- Form Terbitkan Pengumuman Baru (5 Kolom) -->
@@ -497,16 +497,98 @@
         </section>
 
         <!-- ================================================================= -->
+        <!-- MODUL KELOLA KABAR & BERITA WARGA (Khusus Pengurus)               -->
+        <!-- ================================================================= -->
+        <section x-show="canManageEditorial"
+                 class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-base sm:text-lg font-bold text-slate-900">Kelola Kabar &amp; Berita Warga</h2>
+                        <span class="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold"
+                              x-text="newsArticles.length + ' Berita'"></span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-0.5">
+                        Sunting isi berita, ubah posisi tampilan di Beranda Warga (<strong>Hero Utama</strong>, <strong>Kartu Foto</strong>, <strong>Grid</strong>, atau <strong>Daftar Teks</strong>), atau hapus berita lama.
+                    </p>
+                </div>
+
+                <a href="/dashboard"
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-xs transition shrink-0">
+                    <span>+ Terbitkan dari Beranda</span>
+                </a>
+            </div>
+
+            <div x-show="newsArticles.length === 0"
+                 class="p-8 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-center text-xs text-slate-500">
+                Belum ada berita warga yang diterbitkan. Klik <strong>Terbitkan Kabar</strong> di Beranda Warga untuk membuat berita pertama.
+            </div>
+
+            <div x-show="newsArticles.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <template x-for="art in newsArticles" :key="art.id">
+                    <div class="p-4 rounded-xl border border-slate-200 bg-white flex flex-col justify-between gap-3">
+                        <div class="space-y-2.5">
+                            <div class="flex flex-wrap items-center justify-between gap-1.5">
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                          x-text="art.category"></span>
+                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"
+                                          x-text="formatNewsLayout(art.layout)"></span>
+                                </div>
+                                <span class="text-[11px] text-slate-400" x-text="art.published_at"></span>
+                            </div>
+
+                            <div class="flex items-start gap-3">
+                                <template x-if="art.thumbnail">
+                                    <img :src="art.thumbnail"
+                                         :alt="art.title"
+                                         class="w-20 h-16 rounded-lg object-cover border border-slate-200 shrink-0 bg-slate-100">
+                                </template>
+                                <div class="min-w-0 space-y-1">
+                                    <h3 class="text-sm font-bold text-slate-900 leading-snug" x-text="art.title"></h3>
+                                    <p class="text-xs text-slate-600 line-clamp-2 leading-relaxed" x-text="art.excerpt"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                            <span class="text-[11px] text-slate-500 font-medium"
+                                  x-text="'Oleh: ' + art.author + ' (Kavling ' + art.unit + ')'"></span>
+
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                <a :href="'/berita/' + art.date_path + '/' + art.slug"
+                                   target="_blank"
+                                   class="px-2.5 py-1 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold transition">
+                                    Lihat ↗
+                                </a>
+                                <button type="button"
+                                        @click="openNewsEditModal(art)"
+                                        class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold transition cursor-pointer">
+                                    Edit
+                                </button>
+                                <button type="button"
+                                        @click="deleteNewsArticle(art)"
+                                        class="px-2.5 py-1 rounded-lg text-rose-600 hover:bg-rose-50 font-semibold transition cursor-pointer">
+                                    Hapus
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
         <!-- MODUL AGENDA & JADWAL LINGKUNGAN (Sekretaris & Ketua)             -->
         <!-- ================================================================= -->
-        <section x-show="user?.can_manage_announcements"
+        <section x-show="canManageEditorial"
                  class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
             <!-- Form Tambah Agenda & Jadwal Lingkungan (5 Kolom) -->
             <div class="lg:col-span-5 bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200 space-y-4">
                 <div class="border-b border-slate-100 pb-3">
                     <h2 class="text-base font-bold text-slate-900">Agenda &amp; Jadwal Lingkungan</h2>
-                    <p class="text-xs text-slate-500 mt-0.5">Jadwal yang masih akan datang otomatis tampil di kartu <strong>Agenda &amp; Jadwal Lingkungan</strong> pada Beranda Warga.</p>
+                    <p class="text-xs text-slate-500 mt-0.5">Jadwal yang masih akan datang otomatis tampil di kartu <strong>Agenda Warga</strong> pada Beranda Warga.</p>
                 </div>
 
                 <form @submit.prevent="createAgenda()" class="space-y-3.5">
@@ -642,7 +724,7 @@
         <!-- ================================================================= -->
         <!-- MODUL 2: ARSIP NOTULENSI RAPAT & TATA TERTIB (Sekretaris & Ketua) -->
         <!-- ================================================================= -->
-        <section x-show="user?.can_manage_announcements"
+        <section x-show="canManageEditorial"
                  class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
             <!-- Form Catat Notulensi / Tata Tertib (5 Kolom) -->
@@ -1104,6 +1186,83 @@
     </div>
 
     <!-- ===================================================================== -->
+    <!-- MODAL EDIT KABAR & BERITA WARGA (KHUSUS PENGURUS)                     -->
+    <!-- ===================================================================== -->
+    <div x-show="editingNews !== null"
+         x-cloak
+         class="fixed inset-0 z-50 !mt-0 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-[1px] overflow-y-auto">
+        <div @click.away="editingNews = null"
+             class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-[calc(100vw-1.5rem)] sm:max-w-2xl max-h-[90dvh] flex flex-col overflow-hidden my-auto">
+            <div class="px-5 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3 shrink-0">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900">Edit Kabar &amp; Berita Warga</h3>
+                    <p class="text-[11px] text-slate-500"
+                       x-text="editingNews ? ('Penulis: ' + editingNews.author + ' • Kavling ' + editingNews.unit) : ''"></p>
+                </div>
+                <button type="button" @click="editingNews = null" class="text-slate-400 hover:text-slate-700 text-sm p-1 cursor-pointer">✕</button>
+            </div>
+
+            <form @submit.prevent="saveEditedNews()" class="p-5 sm:p-6 space-y-4 overflow-y-auto">
+                <template x-if="editingNews?.thumbnail">
+                    <div class="rounded-xl overflow-hidden border border-slate-200 bg-slate-100 max-h-52">
+                        <img :src="editingNews.thumbnail" :alt="editNewsForm.title" class="w-full h-48 object-cover">
+                    </div>
+                </template>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Judul Berita *</label>
+                    <input type="text" x-model="editNewsForm.title" required minlength="8" maxlength="180"
+                           class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Rubrik / Kategori *</label>
+                        <select x-model="editNewsForm.category"
+                                class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                            <option value="Kegiatan Warga">Kegiatan Warga</option>
+                            <option value="Keamanan & Lingkungan">Keamanan &amp; Lingkungan</option>
+                            <option value="Fasilitas Umum">Fasilitas Umum</option>
+                            <option value="Sosial & Kekeluargaan">Sosial &amp; Kekeluargaan</option>
+                            <option value="Info UMKM">Info UMKM</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Posisi Tampilan di Beranda *</label>
+                        <select x-model="editNewsForm.layout"
+                                class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                            <option value="hero">Berita Utama (Hero Headline)</option>
+                            <option value="thumbnail">Kartu Foto (Thumbnail)</option>
+                            <option value="grid">Grid 2 Kolom</option>
+                            <option value="text">Daftar Berita Teks</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Isi Lengkap Berita *</label>
+                    <textarea x-model="editNewsForm.body" required minlength="20" rows="7"
+                              class="w-full rounded-xl border-slate-300 text-sm leading-relaxed focus:border-emerald-600 focus:ring-emerald-600"></textarea>
+                </div>
+
+                <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
+                    <button type="button"
+                            @click="editingNews = null"
+                            class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold cursor-pointer">
+                        Batal
+                    </button>
+                    <button type="submit"
+                            :disabled="savingNews"
+                            class="px-5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-sm cursor-pointer">
+                        <span x-show="!savingNews">Simpan Perubahan</span>
+                        <span x-show="savingNews">Menyimpan...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
     <!-- MODAL EDIT PENGUMUMAN PAGUYUBAN                                       -->
     <!-- ===================================================================== -->
     <div x-show="editingAnnouncement !== null"
@@ -1331,6 +1490,16 @@ function ppmtAdminPanel() {
         governanceList: [],
         allUnits: [],
         announcements: [],
+        newsArticles: [],
+        savingNews: false,
+        editingNews: null,
+        editNewsForm: {
+            id: null,
+            title: '',
+            category: 'Kegiatan Warga',
+            layout: 'thumbnail',
+            body: ''
+        },
         agendas: [],
         meetingMinutes: [],
         treasuryMonth: currentMonthStr,
@@ -1422,6 +1591,10 @@ function ppmtAdminPanel() {
             password: ''
         },
 
+        get canManageEditorial() {
+            return Boolean(this.user?.can_manage_announcements || this.user?.is_global_governor);
+        },
+
         get showVerificationPanel() {
             if (!this.user) return false;
             if (this.user.is_global_governor) return true;
@@ -1490,8 +1663,8 @@ function ppmtAdminPanel() {
             if (this.user?.can_view_treasury) {
                 tasks.push(this.loadTreasury());
             }
-            if (this.user?.can_manage_announcements) {
-                tasks.push(this.loadAnnouncements(), this.loadAgendas(), this.loadMeetingMinutes());
+            if (this.canManageEditorial) {
+                tasks.push(this.loadAnnouncements(), this.loadNewsArticles(), this.loadAgendas(), this.loadMeetingMinutes());
             }
             if (this.user?.is_global_governor) {
                 tasks.push(this.loadGovernanceData());
@@ -1505,6 +1678,16 @@ function ppmtAdminPanel() {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             };
+        },
+
+        formatNewsLayout(layout) {
+            const labels = {
+                'hero': 'Hero Utama',
+                'thumbnail': 'Kartu Foto',
+                'grid': 'Grid 2 Kolom',
+                'text': 'Daftar Teks'
+            };
+            return labels[layout] || layout;
         },
 
         formatRupiah(value) {
@@ -1639,6 +1822,71 @@ function ppmtAdminPanel() {
             if (res.ok) {
                 const json = await res.json();
                 this.announcements = json.data || [];
+            }
+        },
+
+        async loadNewsArticles() {
+            const res = await fetch('/api/v1/admin/news', { headers: this.headers() });
+            if (res.ok) {
+                const json = await res.json();
+                this.newsArticles = json.data || [];
+            }
+        },
+
+        openNewsEditModal(art) {
+            this.editNewsForm = {
+                id: art.id,
+                title: art.title,
+                category: art.category,
+                layout: art.layout,
+                body: art.body || ''
+            };
+            this.editingNews = art;
+        },
+
+        async saveEditedNews() {
+            if (!this.editNewsForm.id) return;
+            this.savingNews = true;
+            try {
+                const res = await fetch(`/api/v1/admin/news/${this.editNewsForm.id}`, {
+                    method: 'PATCH',
+                    headers: this.headers(),
+                    body: JSON.stringify({
+                        title: this.editNewsForm.title,
+                        category: this.editNewsForm.category,
+                        layout: this.editNewsForm.layout,
+                        body: this.editNewsForm.body
+                    })
+                });
+                const json = await res.json();
+                if (res.ok) {
+                    this.editingNews = null;
+                    this.toastType = 'success';
+                    this.toastMessage = json.message;
+                    await this.loadNewsArticles();
+                } else {
+                    this.toastType = 'error';
+                    this.toastMessage = json.message || 'Gagal menyimpan perubahan berita.';
+                }
+            } finally {
+                this.savingNews = false;
+            }
+        },
+
+        async deleteNewsArticle(art) {
+            if (!confirm(`Hapus berita "${art.title}"?`)) return;
+            const res = await fetch(`/api/v1/admin/news/${art.id}`, {
+                method: 'DELETE',
+                headers: this.headers()
+            });
+            const json = await res.json();
+            if (res.ok) {
+                this.toastType = 'success';
+                this.toastMessage = json.message;
+                await this.loadNewsArticles();
+            } else {
+                this.toastType = 'error';
+                this.toastMessage = json.message || 'Gagal menghapus berita.';
             }
         },
 
