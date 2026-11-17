@@ -37,58 +37,88 @@
             <!-- ========================================================= -->
             <div class="lg:col-span-7 space-y-6">
 
-                <!-- Bagian 1: Pengumuman Warga (Refined Frameless) -->
-                <section class="space-y-2.5" x-data="{ showAllAnnouncements: false }">
-                    <div class="px-1 flex items-center justify-between gap-3">
-                        <h2 class="text-base font-bold text-slate-900 tracking-tight">Pengumuman Warga</h2>
-                        <div class="flex items-center gap-2 shrink-0">
-                            <!-- Indikator Lonceng + Pill Jumlah Pengumuman -->
-                            <div x-show="announcements.length > 0"
-                                 :title="announcements.length + ' Pengumuman aktif'"
-                                 class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50/90 text-amber-900 border border-amber-200/80">
-                                <svg class="w-3.5 h-3.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-                                </svg>
-                                <span class="text-[11px] font-extrabold leading-none" x-text="announcements.length"></span>
-                            </div>
-
-                            <!-- Tombol Ikon Gear Kelola Pengumuman -->
-                            <a x-show="user?.can_manage_announcements"
-                               href="/pengurus"
-                               title="Kelola Pengumuman"
-                               aria-label="Kelola Pengumuman"
-                               class="p-1.5 rounded-lg bg-white text-slate-600 border border-slate-200/90 hover:text-emerald-800 hover:border-emerald-300 hover:bg-emerald-50/60 transition">
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                            </a>
-                        </div>
-                    </div>
-
-                    <div x-show="announcements.length === 0"
-                         class="py-6 px-4 rounded-xl border border-dashed border-slate-300/90 text-center text-xs text-slate-500">
-                        Belum ada pengumuman resmi paguyuban yang diterbitkan saat ini.
-                    </div>
-
-                    <div class="divide-y divide-slate-200/75 border-y border-slate-200/75" x-show="announcements.length > 0">
+                <!-- Bagian 1: Pengumuman Warga (Clean Bootstrap-style Alert Cards) -->
+                <section x-show="announcements.length > 0"
+                         class="space-y-2.5"
+                         x-data="{ showAllAnnouncements: false }">
+                    <!-- Susunan Vertikal Alert Box per Item -->
+                    <div class="space-y-2.5">
                         <template x-for="item in (showAllAnnouncements ? announcements : announcements.slice(0, 5))" :key="item.id">
                             <button type="button"
                                     @click="selectedAnnouncement = item"
-                                    :class="item.is_pinned ? 'bg-amber-50/55 hover:bg-amber-50/90 px-2.5 my-1 rounded-xl border border-amber-200/70' : 'px-1 hover:bg-slate-200/45 rounded-lg'"
-                                    class="w-full py-3 flex items-center justify-between gap-3 text-left transition cursor-pointer group">
-                                <div :class="item.is_pinned ? 'font-bold text-slate-950' : 'font-semibold text-slate-800'"
-                                     class="min-w-0 text-sm group-hover:text-emerald-800 transition leading-snug">
-                                    <!-- Ikon Pin SVG Monokrom -->
-                                    <span x-show="item.is_pinned"
-                                          title="Disematkan"
-                                          class="inline-flex items-center justify-center align-middle mr-1.5 w-5 h-5 rounded-md bg-amber-100 text-amber-700 border border-amber-300/80">
-                                        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                                            <path d="M16 3a1 1 0 0 1 .707.293l4 4a1 1 0 0 1-.493 1.686l-3.437.687-2.61 2.61.556 3.337a1 1 0 0 1-1.693.88L9.5 12.963l-4.793 4.794a1 1 0 0 1-1.414-1.414L8.086 11.55 4.557 8.02a1 1 0 0 1 .88-1.693l3.337.556 2.61-2.61.687-3.437A1 1 0 0 1 13.757.343L16 3Z"/>
+                                    :class="/penting|darurat|mendesak|peringatan|urgent/i.test(item.category || '')
+                                        ? 'bg-rose-50 hover:bg-rose-100/80 border-rose-300 border-l-4 border-l-rose-600 text-rose-950'
+                                        : (item.is_pinned
+                                            ? 'bg-amber-50 hover:bg-amber-100/80 border-amber-300 border-l-4 border-l-amber-500 text-amber-950'
+                                            : 'bg-white hover:bg-emerald-50/50 border-slate-200 border-l-4 border-l-emerald-600 text-slate-900')"
+                                    class="relative w-full px-4 py-3.5 rounded-xl border shadow-xs flex items-center justify-between gap-3.5 text-left transition cursor-pointer group">
+
+                                <!-- Ikon Pin di Pojok Kiri Atas (Hanya untuk item yang di-pin) -->
+                                <span x-show="item.is_pinned"
+                                      title="Pengumuman Disematkan"
+                                      :class="/penting|darurat|mendesak|peringatan|urgent/i.test(item.category || '') ? 'bg-rose-600' : 'bg-amber-500'"
+                                      class="absolute -top-2 -left-2 w-5 h-5 rounded-full text-white shadow-xs flex items-center justify-center ring-2 ring-white">
+                                    <svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M16 3a1 1 0 0 1 .707.293l4 4a1 1 0 0 1-.493 1.686l-3.437.687-2.61 2.61.556 3.337a1 1 0 0 1-1.693.88L9.5 12.963l-4.793 4.794a1 1 0 0 1-1.414-1.414L8.086 11.55 4.557 8.02a1 1 0 0 1 .88-1.693l3.337.556 2.61-2.61.687-3.437A1 1 0 0 1 13.757.343L16 3Z"/>
+                                    </svg>
+                                </span>
+
+                                <!-- Ikon Kategori Berukuran Besar Sejajar Judul -->
+                                <div :title="item.category"
+                                     :class="/penting|darurat|mendesak|peringatan|urgent/i.test(item.category || '')
+                                         ? 'bg-rose-100 text-rose-700 border-rose-300/90'
+                                         : (item.is_pinned
+                                             ? 'bg-amber-100 text-amber-800 border-amber-300/80'
+                                             : 'bg-emerald-50 text-emerald-700 border-emerald-200/80')"
+                                     class="w-10 h-10 rounded-xl border flex items-center justify-center shrink-0">
+                                    <!-- Ikon Penting / Darurat / Mendesak -->
+                                    <template x-if="/penting|darurat|mendesak|peringatan|urgent/i.test(item.category || '')">
+                                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                                         </svg>
-                                    </span><span x-text="item.title"></span>
+                                    </template>
+                                    <!-- Ikon Keamanan / Tertib -->
+                                    <template x-if="!/penting|darurat|mendesak|peringatan|urgent/i.test(item.category || '') && /keamanan|tertib/i.test(item.category || '')">
+                                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                                        </svg>
+                                    </template>
+                                    <!-- Ikon Iuran / Keuangan / Kas -->
+                                    <template x-if="!/penting|darurat|mendesak|peringatan|urgent|keamanan|tertib/i.test(item.category || '') && /iuran|kas|keuangan|sampah/i.test(item.category || '')">
+                                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+                                        </svg>
+                                    </template>
+                                    <!-- Ikon Musyawarah / Rapat / Agenda -->
+                                    <template x-if="!/penting|darurat|mendesak|peringatan|urgent|keamanan|tertib|iuran|kas|keuangan|sampah/i.test(item.category || '') && /musyawarah|rapat|agenda|takmir|musholla/i.test(item.category || '')">
+                                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                                        </svg>
+                                    </template>
+                                    <!-- Ikon Info Umum / Info Lingkungan (Default) -->
+                                    <template x-if="!/penting|darurat|mendesak|peringatan|urgent|keamanan|tertib|iuran|kas|keuangan|sampah|musyawarah|rapat|agenda|takmir|musholla/i.test(item.category || '')">
+                                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                                        </svg>
+                                    </template>
                                 </div>
-                                <span class="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition text-lg font-medium shrink-0">&rsaquo;</span>
+
+                                <!-- Judul Pengumuman -->
+                                <div :class="/penting|darurat|mendesak|peringatan|urgent/i.test(item.category || '')
+                                         ? 'font-extrabold text-rose-950 group-hover:text-rose-800'
+                                         : (item.is_pinned
+                                             ? 'font-extrabold text-amber-950 group-hover:text-emerald-800'
+                                             : 'font-bold text-slate-900 group-hover:text-emerald-800')"
+                                     class="min-w-0 flex-1 text-sm transition leading-snug"
+                                     x-text="item.title"></div>
+
+                                <!-- Panah Indikator Klik -->
+                                <span :class="/penting|darurat|mendesak|peringatan|urgent/i.test(item.category || '')
+                                          ? 'text-rose-600 group-hover:text-rose-800'
+                                          : (item.is_pinned
+                                              ? 'text-amber-700 group-hover:text-emerald-700'
+                                              : 'text-slate-400 group-hover:text-emerald-700')"
+                                      class="group-hover:translate-x-0.5 transition text-lg font-bold shrink-0">&rsaquo;</span>
                             </button>
                         </template>
                     </div>
@@ -232,6 +262,65 @@
                                 Laporan Kas &rarr;
                             </a>
                         </div>
+                    </div>
+                </section>
+
+                <!-- Panel 2B: Sorotan Aspirasi & Petisi Kolektif Warga -->
+                <section x-show="aspirations.length > 0"
+                         x-cloak
+                         class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-2">
+                        <div>
+                            <h2 class="text-base font-bold text-slate-900">Aspirasi &amp; Petisi Warga</h2>
+                            <p class="text-xs text-slate-500 mt-0.5">Suara kolektif kavling untuk audiensi pengembang.</p>
+                        </div>
+                        <span x-show="unsignedOpenAspirations.length > 0"
+                              class="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300/80 shrink-0"
+                              x-text="unsignedOpenAspirations.length + ' Menunggu'">
+                        </span>
+                    </div>
+
+                    <!-- Mode Aktif: Tampilkan maksimal 2 petisi terbuka yang belum didukung kavling user -->
+                    <div x-show="unsignedOpenAspirations.length > 0" class="p-5 space-y-3">
+                        <template x-for="asp in unsignedOpenAspirations.slice(0, 2)" :key="asp.id">
+                            <a href="/komunitas?tab=aspirasi"
+                               class="block p-3.5 rounded-xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-200/90 hover:border-emerald-300 transition space-y-2 group">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded"
+                                          x-text="asp.category"></span>
+                                    <span class="text-[11px] font-bold text-slate-600"
+                                          x-text="asp.signatures_count + '/' + asp.target_signatures + ' kavling'"></span>
+                                </div>
+
+                                <div class="text-xs font-bold text-slate-900 group-hover:text-emerald-900 leading-snug line-clamp-2"
+                                     x-text="asp.title"></div>
+
+                                <div class="w-full h-1.5 rounded-full bg-slate-200 overflow-hidden">
+                                    <div class="h-full rounded-full bg-emerald-600"
+                                         :style="'width: ' + Math.min(100, Math.round((asp.signatures_count / Math.max(1, asp.target_signatures)) * 100)) + '%'">
+                                    </div>
+                                </div>
+                            </a>
+                        </template>
+
+                        <a href="/komunitas?tab=aspirasi"
+                           class="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition">
+                            <span>Tinjau &amp; Beri Dukungan Kavling</span>
+                            <span>&rarr;</span>
+                        </a>
+                    </div>
+
+                    <!-- Mode Ringkas: Jika kavling user sudah mendukung semua petisi terbuka -->
+                    <div x-show="unsignedOpenAspirations.length === 0"
+                         class="px-5 py-4 flex items-center justify-between gap-3 text-xs bg-slate-50/60">
+                        <div class="text-slate-600">
+                            <strong class="text-slate-800" x-text="aspirations.filter(a => ['open', 'submitted'].includes(a.status)).length + ' isu kolektif'"></strong>
+                            sedang dikawal bersama warga.
+                        </div>
+                        <a href="/komunitas?tab=aspirasi"
+                           class="font-bold text-emerald-700 hover:text-emerald-900 shrink-0">
+                            Lihat Semua &rarr;
+                        </a>
                     </div>
                 </section>
 
@@ -452,6 +541,7 @@ function ppmtFamilyRoom() {
         showDuesModal: false,
         announcements: [],
         agendas: [],
+        aspirations: [],
         treasuryReport: null,
 
         inviteForm: {
@@ -471,6 +561,7 @@ function ppmtFamilyRoom() {
                 await Promise.all([
                     this.loadAnnouncements(),
                     this.loadAgendas(),
+                    this.loadAspirations(),
                     this.loadPendingApprovals(),
                     this.loadTreasuryReport()
                 ]);
@@ -527,6 +618,10 @@ function ppmtFamilyRoom() {
             );
         },
 
+        get unsignedOpenAspirations() {
+            return this.aspirations.filter(a => a.status === 'open' && !a.is_signed_by_me);
+        },
+
         async loadTreasuryReport() {
             const res = await fetch('/api/v1/treasury/public-report', { headers: this.headers() });
             if (res.ok) {
@@ -548,6 +643,14 @@ function ppmtFamilyRoom() {
             if (res.ok) {
                 const json = await res.json();
                 this.agendas = json.data || [];
+            }
+        },
+
+        async loadAspirations() {
+            const res = await fetch('/api/v1/aspirations', { headers: this.headers() });
+            if (res.ok) {
+                const json = await res.json();
+                this.aspirations = json.data || [];
             }
         },
 

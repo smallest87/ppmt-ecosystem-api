@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\AnnouncementController;
 use App\Http\Controllers\Api\V1\MeetingMinuteController;
 use App\Http\Controllers\Api\V1\TreasuryController;
 use App\Http\Controllers\Api\V1\AgendaController;
+use App\Http\Controllers\Api\V1\AspirationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -107,6 +108,12 @@ Route::prefix('v1')->group(function () {
             Route::post('/governance/assign', [GovernanceController::class, 'assign']);
             Route::delete('/governance/roles/{role}', [GovernanceController::class, 'revoke']);
             Route::post('/governance/assisted-register', [GovernanceController::class, 'assistedRegister']);
+
+            // Aspirasi & Petisi Kolektif Warga
+            Route::get('/aspirations', [AspirationController::class, 'index']);
+            Route::post('/aspirations', [AspirationController::class, 'store']);
+            Route::post('/aspirations/{aspiration}/sign', [AspirationController::class, 'sign']);
+            Route::patch('/aspirations/{aspiration}/status', [AspirationController::class, 'updateStatus']);
         });
     });
 });
