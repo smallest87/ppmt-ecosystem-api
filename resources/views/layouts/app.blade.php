@@ -69,11 +69,11 @@
                     <div class="hidden md:flex items-center gap-3 shrink-0">
                         <nav class="flex items-center gap-1.5 text-sm font-medium">
                             <a href="/dashboard"
-                                class="px-3 py-1.5 rounded-lg hover:bg-emerald-900 transition {{ request()->is('dashboard') ? 'bg-emerald-900 text-white font-semibold' : 'text-emerald-100' }}">
+                               class="px-3 py-1.5 rounded-lg hover:bg-emerald-900 transition {{ request()->is('dashboard') ? 'bg-emerald-900 text-white font-semibold' : 'text-emerald-100' }}">
                                 Beranda
                             </a>
                             <a href="/komunitas"
-                                class="px-3 py-1.5 rounded-lg hover:bg-emerald-900 transition {{ request()->is('komunitas') ? 'bg-emerald-900 text-white font-semibold' : 'text-emerald-100' }}">
+                               class="px-3 py-1.5 rounded-lg hover:bg-emerald-900 transition {{ request()->is('komunitas') ? 'bg-emerald-900 text-white font-semibold' : 'text-emerald-100' }}">
                                 Komunitas
                             </a>
                         </nav>
@@ -149,9 +149,9 @@
                                 <!-- Item Menu Akun -->
                                 <div class="py-1.5 text-xs font-semibold divide-y divide-slate-100 border-b border-slate-100">
                                     <a href="/pengaturan"
-                                        class="px-4 py-2.5 flex items-center justify-between transition {{ request()->is('pengaturan') ? 'bg-emerald-50 text-emerald-900 font-bold' : 'text-slate-700 hover:bg-slate-50' }}">
-                                            <span>Pengaturan</span>
-                                            <span class="text-slate-400 text-sm">&rsaquo;</span>
+                                       class="px-4 py-2.5 flex items-center justify-between transition {{ request()->is('pengaturan') ? 'bg-emerald-50 text-emerald-900 font-bold' : 'text-slate-700 hover:bg-slate-50' }}">
+                                        <span>Pengaturan</span>
+                                        <span class="text-slate-400 text-sm">&rsaquo;</span>
                                     </a>
                                     <a x-show="hasAdminAccess"
                                        x-cloak
@@ -249,17 +249,17 @@
                 <!-- Tautan Navigasi Utama -->
                 <div class="py-1.5 text-sm font-semibold">
                     <a href="/dashboard"
-                        class="px-5 py-3 flex items-center justify-between transition {{ request()->is('dashboard') ? 'bg-emerald-50/80 text-emerald-900 font-bold border-l-4 border-emerald-600' : 'text-slate-700 hover:bg-slate-50' }}">
+                       class="px-5 py-3 flex items-center justify-between transition {{ request()->is('dashboard') ? 'bg-emerald-50/80 text-emerald-900 font-bold border-l-4 border-emerald-600' : 'text-slate-700 hover:bg-slate-50' }}">
                         <span>Beranda</span>
                         <span class="text-slate-400 text-base">&rsaquo;</span>
                     </a>
                     <a href="/komunitas"
-                        class="px-5 py-3 flex items-center justify-between transition {{ request()->is('komunitas') ? 'bg-emerald-50/80 text-emerald-900 font-bold border-l-4 border-emerald-600' : 'text-slate-700 hover:bg-slate-50' }}">
+                       class="px-5 py-3 flex items-center justify-between transition {{ request()->is('komunitas') ? 'bg-emerald-50/80 text-emerald-900 font-bold border-l-4 border-emerald-600' : 'text-slate-700 hover:bg-slate-50' }}">
                         <span>Komunitas</span>
                         <span class="text-slate-400 text-base">&rsaquo;</span>
                     </a>
                     <a href="/pengaturan"
-                        class="px-5 py-3 flex items-center justify-between transition {{ request()->is('pengaturan') ? 'bg-emerald-50/80 text-emerald-900 font-bold border-l-4 border-emerald-600' : 'text-slate-700 hover:bg-slate-50' }}">
+                       class="px-5 py-3 flex items-center justify-between transition {{ request()->is('pengaturan') ? 'bg-emerald-50/80 text-emerald-900 font-bold border-l-4 border-emerald-600' : 'text-slate-700 hover:bg-slate-50' }}">
                         <span>Pengaturan</span>
                         <span class="text-slate-400 text-base">&rsaquo;</span>
                     </a>
@@ -401,5 +401,6 @@
     }
     </script>
 
+    @stack('scripts')
 </body>
 </html>

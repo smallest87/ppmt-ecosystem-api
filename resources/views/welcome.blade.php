@@ -396,9 +396,11 @@
 
             </div>
         </div>
-    </div>
 </div>
+</div>
+@endsection
 
+@push('scripts')
 <script>
 function ppmtPublicHome() {
     return {
@@ -424,7 +426,7 @@ function ppmtPublicHome() {
             password: ''
         },
 
-        async init() {
+        init() {
             const params = new URLSearchParams(window.location.search);
             const hasInviteParam = Boolean(params.get('invite'));
 
@@ -437,11 +439,11 @@ function ppmtPublicHome() {
                     this.claimForm.unit_number = match[2];
                 }
                 this.claimForm.invite_token = params.get('invite');
-                await this.openModal('register', true);
+                this.openModal('register', true);
             }
         },
 
-        async openModal(step = 'login', bypassAuthGuard = false) {
+        openModal(step = 'login', bypassAuthGuard = false) {
             if (this.hasToken && !bypassAuthGuard) {
                 window.location.href = '/dashboard';
                 return;
@@ -557,4 +559,4 @@ function ppmtPublicHome() {
     }
 }
 </script>
-@endsection
+@endpush

@@ -434,7 +434,9 @@
     </div>
 
 </div>
+@endsection
 
+@push('scripts')
 <script>
 function ppmtFamilyRoom() {
     return {
@@ -631,4 +633,4 @@ function ppmtFamilyRoom() {
     }
 }
 </script>
-@endsection
+@endpush
