@@ -250,11 +250,21 @@ class User extends Authenticatable
             }
         }
 
-        return $this->unitMemberships()
+        $isPrimaryOwner = $this->unitMemberships()
             ->where('unit_id', $unit->id)
             ->where('entity_type', 'owner')
             ->where('sub_role', 'primary_owner')
             ->where('is_approved', true)
+            ->exists();
+
+        if ($isPrimaryOwner) {
+            return true;
+        }
+
+        // Izinkan penjamin yang ditunjuk pada pengajuan pending di unit ini
+        return UnitMembership::where('unit_id', $unit->id)
+            ->where('guarantor_user_id', $this->id)
+            ->where('is_approved', false)
             ->exists();
     }
 }

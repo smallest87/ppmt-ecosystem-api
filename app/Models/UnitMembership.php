@@ -10,6 +10,7 @@ class UnitMembership extends Model
     protected $fillable = [
         'unit_id',
         'user_id',
+        'guarantor_user_id',
         'entity_type',
         'sub_role',
         'is_primary_contact',
@@ -34,5 +35,10 @@ class UnitMembership extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function guarantor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'guarantor_user_id');
     }
 }

@@ -27,10 +27,14 @@ class AuthClaimController extends Controller
         $request->merge([
             'phone' => $request->filled('phone') ? trim((string) $request->input('phone')) : null,
             'username' => $request->filled('username') ? strtolower(trim((string) $request->input('username'))) : null,
+            'guarantor_identifier' => $request->filled('guarantor_identifier')
+                ? trim((string) $request->input('guarantor_identifier'))
+                : null,
         ]);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:150'],
+            'gender' => ['required', Rule::in(['male', 'female'])],
             'phone' => [
                 'nullable',
                 'required_without:username',
@@ -47,7 +51,13 @@ class AuthClaimController extends Controller
                 'regex:/^(?=.*[a-z])[a-z0-9._]{3,40}$/',
                 'unique:resident_profiles,username',
             ],
-            'password' => ['required', 'string', 'min:8'],
+            'guarantor_identifier' => [
+                'nullable',
+                'required_without:phone',
+                'string',
+                'max:60',
+            ],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
             'unit_code' => [
                 'required',
                 'string',
@@ -60,17 +70,62 @@ class AuthClaimController extends Controller
             ])],
             'invite_token' => ['nullable', 'string'],
         ], [
+            'gender.required' => 'Pilih jenis kelamin (Laki-laki atau Perempuan).',
+            'gender.in' => 'Pilihan jenis kelamin tidak valid.',
             'phone.required_without' => 'Isi minimal Nomor WhatsApp atau Username untuk masuk ke akun.',
             'username.required_without' => 'Isi minimal Username atau Nomor WhatsApp untuk masuk ke akun.',
+            'guarantor_identifier.required_without' => 'Pendaftaran dengan Username wajib menyertakan Nomor WA atau Username penjamin.',
             'phone.regex' => 'Nomor WhatsApp harus berupa angka 8–20 digit.',
             'username.regex' => 'Username minimal 3 karakter, wajib mengandung huruf, dan hanya boleh huruf kecil, angka, titik (.), atau garis bawah (_).',
             'phone.unique' => 'Nomor WhatsApp ini sudah terdaftar pada akun warga lain.',
             'username.unique' => 'Username ini sudah digunakan warga lain, silakan pilih yang berbeda.',
+            'password.confirmed' => 'Konfirmasi kata sandi tidak cocok.',
             'unit_code.exists' => 'Nomor kavling tidak ditemukan. Periksa kembali pilihan Blok dan Nomor Rumah Anda.',
         ]);
 
         $unit = Unit::where('code', $validated['unit_code'])->firstOrFail();
         $invite = null;
+        $guarantor = null;
+
+        // Validasi penjamin wajib jika mendaftar menggunakan Username (tanpa Nomor WA)
+        if (empty($validated['phone'])) {
+            $rawGuarantor = $validated['guarantor_identifier'];
+            $lowerGuarantor = strtolower($rawGuarantor);
+
+            if ($lowerGuarantor === $validated['username']) {
+                return response()->json([
+                    'message' => 'Anda tidak dapat menjamin akun Anda sendiri.',
+                ], 422);
+            }
+
+            $guarantor = User::whereHas('profile', function ($q) use ($rawGuarantor, $lowerGuarantor) {
+                $q->where('is_verified', true)
+                  ->where(function ($sub) use ($rawGuarantor, $lowerGuarantor) {
+                      $sub->where('phone', $rawGuarantor)
+                          ->orWhere('username', $lowerGuarantor);
+                  });
+            })->first();
+
+            if (! $guarantor) {
+                return response()->json([
+                    'message' => 'Penjamin tidak ditemukan atau akun penjamin belum terverifikasi di PPMT.',
+                ], 422);
+            }
+
+            // Syarat OR: penghuni terverifikasi di kavling yang sama ATAU pengurus aktif
+            $isSameUnitVerifiedMember = $guarantor->unitMemberships()
+                ->where('unit_id', $unit->id)
+                ->where('is_approved', true)
+                ->exists();
+
+            $isActivePengurus = $guarantor->hasAdminAccess();
+
+            if (! $isSameUnitVerifiedMember && ! $isActivePengurus) {
+                return response()->json([
+                    'message' => "Penjamin ({$guarantor->name}) bukan penghuni terverifikasi di kavling {$unit->code} maupun pengurus paguyuban.",
+                ], 422);
+            }
+        }
 
         if (! empty($validated['invite_token'])) {
             $invite = UnitInvite::where('token', $validated['invite_token'])
@@ -84,7 +139,7 @@ class AuthClaimController extends Controller
             }
         }
 
-        $user = DB::transaction(function () use ($validated, $unit, $invite) {
+        $user = DB::transaction(function () use ($validated, $unit, $invite, $guarantor) {
             $isAutoVerified = ! is_null($invite);
             $syntheticIdentifier = $validated['phone'] ?: $validated['username'];
 
@@ -97,6 +152,7 @@ class AuthClaimController extends Controller
             $user->profile()->create([
                 'phone' => $validated['phone'],
                 'username' => $validated['username'],
+                'gender' => $validated['gender'],
                 'global_role' => 'warga_ppmt',
                 'is_verified' => $isAutoVerified,
                 'privacy_settings' => [
@@ -107,6 +163,7 @@ class AuthClaimController extends Controller
 
             $user->unitMemberships()->create([
                 'unit_id' => $unit->id,
+                'guarantor_user_id' => $guarantor?->id,
                 'entity_type' => $invite ? $invite->entity_type : $validated['entity_type'],
                 'sub_role' => $invite ? $invite->sub_role : $validated['sub_role'],
                 'is_primary_contact' => in_array($validated['sub_role'], ['primary_owner', 'primary_resident']),
@@ -137,10 +194,14 @@ class AuthClaimController extends Controller
 
         $token = $user->createToken('ppmt-client')->plainTextToken;
 
+        $pendingMsg = $guarantor
+            ? "Pendaftaran berhasil dengan penjamin {$guarantor->name}. Menunggu pengesahan dari penjamin atau pengurus wilayah."
+            : "Pendaftaran klaim unit berhasil. Menunggu verifikasi sosial dari Koordinator Zona ({$unit->zone}) atau Pemilik Utama.";
+
         return response()->json([
             'message' => $user->profile->is_verified
                 ? "Selamat datang di PPMT! Keanggotaan unit {$unit->code} langsung aktif melalui undangan sah."
-                : "Pendaftaran klaim unit berhasil. Menunggu verifikasi sosial dari Koordinator Zona ({$unit->zone}) atau Pemilik Utama.",
+                : $pendingMsg,
             'token' => $token,
             'data' => [
                 'user_id' => $user->id,

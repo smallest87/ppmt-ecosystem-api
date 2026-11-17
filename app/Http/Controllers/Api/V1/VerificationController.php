@@ -74,7 +74,12 @@ class VerificationController extends Controller
 
         $query = UnitMembership::query()
             ->where('is_approved', false)
-            ->with(['user:id,name', 'user.profile:user_id,phone', 'unit:id,code,block,zone']);
+            ->with([
+                'user:id,name',
+                'user.profile:user_id,phone,username,gender',
+                'guarantor:id,name',
+                'unit:id,code,block,zone',
+            ]);
 
         if (! $voucher->isGlobalGovernor()) {
             $managedZones = $voucher->governanceRoles()
@@ -102,7 +107,10 @@ class VerificationController extends Controller
                 ->where('is_approved', true)
                 ->pluck('unit_id');
 
-            $query->where(function ($q) use ($managedZones, $managedBlocks, $ownedUnitIds) {
+            $query->where(function ($q) use ($voucher, $managedZones, $managedBlocks, $ownedUnitIds) {
+                // Pengajuan yang menunjuk user ini langsung sebagai penjamin
+                $q->orWhere('guarantor_user_id', $voucher->id);
+
                 if ($managedZones->isNotEmpty()) {
                     $q->orWhereHas('unit', fn ($uq) => $uq->whereIn('zone', $managedZones));
                 }
@@ -112,9 +120,6 @@ class VerificationController extends Controller
                 if ($ownedUnitIds->isNotEmpty()) {
                     $q->orWhereIn('unit_id', $ownedUnitIds);
                 }
-                if ($managedZones->isEmpty() && $managedBlocks->isEmpty() && $ownedUnitIds->isEmpty()) {
-                    $q->whereRaw('1 = 0');
-                }
             });
         }
 
@@ -122,7 +127,10 @@ class VerificationController extends Controller
             'membership_id' => $m->id,
             'target_user_id' => $m->user_id,
             'name' => $m->user->name,
+            'gender' => $m->user->profile?->gender,
             'phone' => $m->user->profile?->phone,
+            'username' => $m->user->profile?->username,
+            'guarantor_name' => $m->guarantor?->name,
             'unit_code' => $m->unit->code,
             'zone' => $m->unit->zone,
             'entity_type' => $m->entity_type,

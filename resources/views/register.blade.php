@@ -91,9 +91,9 @@
                         <div x-show="authMethod === 'phone'">
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor WhatsApp Aktif *</label>
                             <input type="tel"
-                                x-model="claimForm.phone"
-                                placeholder="Contoh: 0812xxxxxxxx"
-                                class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                                   x-model="claimForm.phone"
+                                   placeholder="Contoh: 0812xxxxxxxx"
+                                   class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
                             <p class="text-[11px] text-slate-500 mt-1.5">
                                 Nomor ini akan digunakan sebagai ID masuk ke aplikasi PPMT Digital.
                             </p>
@@ -104,10 +104,10 @@
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1">Username *</label>
                                 <input type="text"
-                                    x-model="claimForm.username"
-                                    @input="claimForm.username = (claimForm.username || '').toLowerCase().replace(/[^a-z0-9._]/g, '')"
-                                    placeholder="Contoh: budi.c21"
-                                    class="w-full rounded-xl border-slate-300 text-sm font-mono lowercase focus:border-emerald-600 focus:ring-emerald-600">
+                                       x-model="claimForm.username"
+                                       @input="claimForm.username = (claimForm.username || '').toLowerCase().replace(/[^a-z0-9._]/g, '')"
+                                       placeholder="Contoh: budi.c21"
+                                       class="w-full rounded-xl border-slate-300 text-sm font-mono lowercase focus:border-emerald-600 focus:ring-emerald-600">
                                 <p class="text-[11px] text-slate-500 mt-1">
                                     Gunakan huruf kecil, angka, titik (.), atau garis bawah (_).
                                 </p>
@@ -127,16 +127,16 @@
                                         Nomor WA atau Username Penjamin *
                                     </label>
                                     <input type="text"
-                                        x-model="claimForm.guarantor_identifier"
-                                        @input="claimForm.guarantor_identifier = (claimForm.guarantor_identifier || '').toLowerCase().replace(/[^a-z0-9._+]/g, '')"
-                                        placeholder="Masukkan No. WA atau Username penjamin"
-                                        class="w-full rounded-xl border-amber-300 bg-white text-sm lowercase focus:border-emerald-600 focus:ring-emerald-600">
+                                           x-model="claimForm.guarantor_identifier"
+                                           @input="claimForm.guarantor_identifier = (claimForm.guarantor_identifier || '').toLowerCase().replace(/[^a-z0-9._+]/g, '')"
+                                           placeholder="Masukkan No. WA atau Username penjamin"
+                                           class="w-full rounded-xl border-amber-300 bg-white text-sm lowercase focus:border-emerald-600 focus:ring-emerald-600">
                                 </div>
 
                                 <label class="flex items-start gap-2 text-[11px] text-slate-700 cursor-pointer select-none pt-0.5">
                                     <input type="checkbox"
-                                        x-model="claimForm.guarantor_confirmed"
-                                        class="mt-0.5 rounded border-amber-400 text-emerald-700 focus:ring-emerald-600">
+                                           x-model="claimForm.guarantor_confirmed"
+                                           class="mt-0.5 rounded border-amber-400 text-emerald-700 focus:ring-emerald-600">
                                     <span>
                                         Saya menyatakan penjamin di atas mengetahui pendaftaran ini dan bersedia mengonfirmasi keabsahan hunian saya.
                                     </span>
@@ -226,7 +226,6 @@
                 <!-- SEGMEN 4: NOMOR KAVLING HUNIAN + KODE UNDANGAN (OPSIONAL) -->
                 <!-- ========================================================= -->
                 <div x-show="step === 4" x-cloak class="space-y-4">
-                    <!-- Nomor Kavling (4 Tombol Blok A-D + Kotak Nomor Unit) -->
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1.5">Nomor Kavling Hunian *</label>
                         <div class="flex items-stretch gap-2">
@@ -255,7 +254,6 @@
                         </p>
                     </div>
 
-                    <!-- Status Keterkaitan & Peran -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Status Keterkaitan *</label>
@@ -374,14 +372,14 @@ function ppmtRegisterPage() {
         showInviteBox: false,
         authMethod: 'phone', // 'phone' | 'username'
         claimForm: {
-            guarantor_identifier: '',
-            guarantor_confirmed: false,
             block: '',
             unit_number: '',
             name: '',
             gender: '',
             phone: '',
             username: '',
+            guarantor_identifier: '',
+            guarantor_confirmed: false,
             entity_type: 'owner',
             sub_role: 'primary_owner',
             password: '',
@@ -540,11 +538,11 @@ function ppmtRegisterPage() {
             this.submitting = true;
             try {
                 const payload = {
-                    guarantor_identifier: this.authMethod === 'username' ? this.claimForm.guarantor_identifier.trim() : null,
                     name: this.claimForm.name.trim(),
                     gender: this.claimForm.gender,
                     phone: this.authMethod === 'phone' ? this.claimForm.phone.trim() : null,
                     username: this.authMethod === 'username' ? this.claimForm.username.trim() : null,
+                    guarantor_identifier: this.authMethod === 'username' ? this.claimForm.guarantor_identifier.trim() : null,
                     password: this.claimForm.password,
                     password_confirmation: this.claimForm.password_confirmation,
                     unit_code: `${this.claimForm.block}-${cleanNumber}`,

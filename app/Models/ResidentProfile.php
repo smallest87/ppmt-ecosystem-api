@@ -10,6 +10,7 @@ class ResidentProfile extends Model
     protected $fillable = [
         'user_id',
         'username',
+        'gender',
         'display_name',
         'phone',
         'global_role',
@@ -26,8 +27,8 @@ class ResidentProfile extends Model
         return [
             'is_verified' => 'boolean',
             'is_ownership_doc_verified' => 'boolean',
-            'nik_encrypted' => 'encrypted', // Enkripsi AES-256 otomatis
-            'kk_encrypted' => 'encrypted',  // Enkripsi AES-256 otomatis
+            'nik_encrypted' => 'encrypted',
+            'kk_encrypted' => 'encrypted',
             'vehicles' => 'array',
             'privacy_settings' => 'array',
         ];

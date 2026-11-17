@@ -887,9 +887,17 @@
                     <div class="space-y-2.5">
                         <template x-for="item in pendingApprovals" :key="item.membership_id">
                             <div class="bg-amber-50/60 p-3.5 rounded-xl border border-amber-200 flex items-center justify-between gap-2">
-                                <div class="text-xs space-y-0.5">
+                                <div class="text-xs space-y-1 min-w-0">
                                     <div class="font-bold text-slate-900" x-text="item.name + ' • Unit ' + item.unit_code"></div>
-                                    <div class="text-slate-600" x-text="(item.phone || item.username || '-') + ' (' + item.sub_role.replace('_', ' ') + ')'"></div>
+                                    <div class="text-slate-600"
+                                        x-text="(item.phone ? 'WA: ' + item.phone : 'Username: @' + (item.username || '-')) + ' (' + item.sub_role.replace('_', ' ') + ')'">
+                                    </div>
+                                    <template x-if="item.guarantor_name">
+                                        <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-100/80 border border-emerald-200 text-[11px] font-semibold text-emerald-900">
+                                            <span>Penjamin:</span>
+                                            <span x-text="item.guarantor_name"></span>
+                                        </div>
+                                    </template>
                                 </div>
                                 <button type="button" @click="approveResident(item)"
                                         class="px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shrink-0 cursor-pointer">
