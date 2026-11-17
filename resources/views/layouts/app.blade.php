@@ -69,12 +69,12 @@
                     <div class="hidden md:flex items-center gap-3 shrink-0">
                         <nav class="flex items-center gap-1.5 text-sm font-medium">
                             <a href="/dashboard"
-                               class="px-3 py-1.5 rounded-lg hover:bg-emerald-900 transition {{ request()->is('dashboard') ? 'bg-emerald-900 text-white font-semibold' : 'text-emerald-100' }}">
-                                Portal Warga
+                                class="px-3 py-1.5 rounded-lg hover:bg-emerald-900 transition {{ request()->is('dashboard') ? 'bg-emerald-900 text-white font-semibold' : 'text-emerald-100' }}">
+                                Beranda
                             </a>
                             <a href="/komunitas"
-                               class="px-3 py-1.5 rounded-lg hover:bg-emerald-900 transition {{ request()->is('komunitas') ? 'bg-emerald-900 text-white font-semibold' : 'text-emerald-100' }}">
-                                Komunitas &amp; Peta
+                                class="px-3 py-1.5 rounded-lg hover:bg-emerald-900 transition {{ request()->is('komunitas') ? 'bg-emerald-900 text-white font-semibold' : 'text-emerald-100' }}">
+                                Komunitas
                             </a>
                         </nav>
 
@@ -113,7 +113,7 @@
                                  x-transition:leave-end="opacity-0 scale-95"
                                  class="absolute right-0 mt-2 w-72 rounded-2xl bg-white text-slate-800 shadow-xl border border-slate-200 overflow-hidden z-50">
 
-                                <!-- Identitas, Nama Kavling (sejajar kanan), & Level Warga -->
+                                <!-- Identitas: Nama Akun + Nomor Kavling, Level Warga, & Jabatan -->
                                 <div class="px-4 py-3.5 bg-slate-50/90 border-b border-slate-100 flex items-center gap-3">
                                     <template x-if="profile.avatar_url">
                                         <img :src="profile.avatar_url"
@@ -125,18 +125,22 @@
                                               x-text="userInitials">
                                         </span>
                                     </template>
-                                    <div class="min-w-0 flex-1 space-y-1">
-                                        <div class="flex items-center justify-between gap-2">
-                                            <div class="text-sm font-bold text-slate-900 leading-snug truncate"
-                                                 x-text="profile.name || 'Warga PPMT'"></div>
+                                    <div class="min-w-0 flex-1 space-y-1.5">
+                                        <div class="flex items-center gap-1.5 min-w-0">
+                                            <span class="text-sm font-bold text-slate-900 leading-snug truncate"
+                                                  x-text="profile.name || 'Warga PPMT'"></span>
                                             <span x-show="profile.unit_codes"
                                                   x-text="profile.unit_codes"
                                                   class="px-2 py-0.5 rounded-md text-[11px] font-bold font-mono bg-slate-200/80 text-slate-800 border border-slate-300/80 shrink-0">
                                             </span>
                                         </div>
-                                        <div>
+                                        <div class="flex flex-wrap items-center gap-1.5">
                                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200"
                                                   x-text="'Lv. ' + profile.level + (profile.level_label ? ' • ' + profile.level_label : '')">
+                                            </span>
+                                            <span x-show="profile.governance_label"
+                                                  x-text="'★ ' + profile.governance_label"
+                                                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300/80">
                                             </span>
                                         </div>
                                     </div>
@@ -145,35 +149,28 @@
                                 <!-- Item Menu Akun -->
                                 <div class="py-1.5 text-xs font-semibold divide-y divide-slate-100 border-b border-slate-100">
                                     <a href="/pengaturan"
-                                       class="px-4 py-2.5 flex items-center justify-between transition {{ request()->is('pengaturan') ? 'bg-emerald-50 text-emerald-900 font-bold' : 'text-slate-700 hover:bg-slate-50' }}">
-                                        <span>Pengaturan Akun</span>
-                                        <span class="text-slate-400 text-sm">&rsaquo;</span>
+                                        class="px-4 py-2.5 flex items-center justify-between transition {{ request()->is('pengaturan') ? 'bg-emerald-50 text-emerald-900 font-bold' : 'text-slate-700 hover:bg-slate-50' }}">
+                                            <span>Pengaturan</span>
+                                            <span class="text-slate-400 text-sm">&rsaquo;</span>
                                     </a>
                                     <a x-show="hasAdminAccess"
                                        x-cloak
                                        href="/pengurus"
-                                       class="px-4 py-2.5 flex items-center justify-between text-indigo-700 hover:bg-indigo-50 transition">
-                                        <span class="flex items-start gap-2 min-w-0">
-                                            <span class="text-sm mt-0.5">&#9733;</span>
-                                            <span class="min-w-0">
-                                                <span class="block font-bold leading-tight">Panel Pengurus</span>
-                                                <span x-show="profile.governance_label"
-                                                      x-text="profile.governance_label"
-                                                      class="block text-[11px] font-medium text-indigo-500 truncate mt-0.5">
-                                                </span>
-                                            </span>
-                                        </span>
-                                        <span class="text-indigo-400 text-sm shrink-0">&rsaquo;</span>
+                                       class="px-4 py-2.5 flex items-center justify-between transition {{ request()->is('pengurus') ? 'bg-emerald-50 text-emerald-900 font-bold' : 'text-slate-700 hover:bg-slate-50' }}">
+                                        <span>Panel Pengurus</span>
+                                        <span class="text-slate-400 text-sm">&rsaquo;</span>
                                     </a>
                                 </div>
 
-                                <!-- Tombol Keluar (Paling Bawah) -->
+                                <!-- Tombol Keluar (Rata Kanan + Ikon) -->
                                 <div class="p-2 bg-slate-50/50">
                                     <button type="button"
                                             @click="logout()"
-                                            class="w-full px-3.5 py-2 rounded-xl text-left text-xs font-bold text-rose-600 hover:bg-rose-50 transition flex items-center justify-between cursor-pointer">
+                                            class="w-full px-3.5 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition flex items-center justify-end gap-2 cursor-pointer">
                                         <span>Keluar</span>
-                                        <span class="text-rose-400">&rarr;</span>
+                                        <svg class="w-4 h-4 text-rose-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                                        </svg>
                                     </button>
                                 </div>
                             </div>
@@ -216,7 +213,7 @@
                  x-transition:leave-end="opacity-0 -translate-y-2"
                  class="md:hidden absolute inset-x-0 top-full bg-white text-slate-800 shadow-2xl border-b border-slate-200 z-40 divide-y divide-slate-100">
 
-                <!-- Bagian Menu Akun: Foto/Inisial, Nama Lengkap + Kavling (sejajar kanan), & Level Warga -->
+                <!-- Bagian Menu Akun: Foto/Inisial, Nama Lengkap + Kavling, Level Warga, & Jabatan -->
                 <div class="px-5 py-4 bg-slate-50/90 flex items-center gap-3.5">
                     <template x-if="profile.avatar_url">
                         <img :src="profile.avatar_url"
@@ -228,18 +225,22 @@
                               x-text="userInitials">
                         </span>
                     </template>
-                    <div class="min-w-0 flex-1 space-y-1">
-                        <div class="flex items-center justify-between gap-2">
-                            <div class="text-sm font-bold text-slate-900 leading-snug truncate"
-                                 x-text="profile.name || 'Warga PPMT'"></div>
+                    <div class="min-w-0 flex-1 space-y-1.5">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <span class="text-sm font-bold text-slate-900 leading-snug truncate"
+                                  x-text="profile.name || 'Warga PPMT'"></span>
                             <span x-show="profile.unit_codes"
                                   x-text="profile.unit_codes"
                                   class="px-2 py-0.5 rounded-md text-[11px] font-bold font-mono bg-slate-200/80 text-slate-800 border border-slate-300/80 shrink-0">
                             </span>
                         </div>
-                        <div>
+                        <div class="flex flex-wrap items-center gap-1.5">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200"
                                   x-text="'Lv. ' + profile.level + (profile.level_label ? ' • ' + profile.level_label : '')">
+                            </span>
+                            <span x-show="profile.governance_label"
+                                  x-text="'★ ' + profile.governance_label"
+                                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300/80">
                             </span>
                         </div>
                     </div>
@@ -248,47 +249,40 @@
                 <!-- Tautan Navigasi Utama -->
                 <div class="py-1.5 text-sm font-semibold">
                     <a href="/dashboard"
-                       class="px-5 py-3 flex items-center justify-between transition {{ request()->is('dashboard') ? 'bg-emerald-50/80 text-emerald-900 font-bold border-l-4 border-emerald-600' : 'text-slate-700 hover:bg-slate-50' }}">
-                        <span>Portal Warga</span>
+                        class="px-5 py-3 flex items-center justify-between transition {{ request()->is('dashboard') ? 'bg-emerald-50/80 text-emerald-900 font-bold border-l-4 border-emerald-600' : 'text-slate-700 hover:bg-slate-50' }}">
+                        <span>Beranda</span>
                         <span class="text-slate-400 text-base">&rsaquo;</span>
                     </a>
                     <a href="/komunitas"
-                       class="px-5 py-3 flex items-center justify-between transition {{ request()->is('komunitas') ? 'bg-emerald-50/80 text-emerald-900 font-bold border-l-4 border-emerald-600' : 'text-slate-700 hover:bg-slate-50' }}">
-                        <span>Komunitas &amp; Peta</span>
+                        class="px-5 py-3 flex items-center justify-between transition {{ request()->is('komunitas') ? 'bg-emerald-50/80 text-emerald-900 font-bold border-l-4 border-emerald-600' : 'text-slate-700 hover:bg-slate-50' }}">
+                        <span>Komunitas</span>
                         <span class="text-slate-400 text-base">&rsaquo;</span>
                     </a>
                     <a href="/pengaturan"
-                       class="px-5 py-3 flex items-center justify-between transition {{ request()->is('pengaturan') ? 'bg-emerald-50/80 text-emerald-900 font-bold border-l-4 border-emerald-600' : 'text-slate-700 hover:bg-slate-50' }}">
-                        <span>Pengaturan Akun</span>
+                        class="px-5 py-3 flex items-center justify-between transition {{ request()->is('pengaturan') ? 'bg-emerald-50/80 text-emerald-900 font-bold border-l-4 border-emerald-600' : 'text-slate-700 hover:bg-slate-50' }}">
+                        <span>Pengaturan</span>
                         <span class="text-slate-400 text-base">&rsaquo;</span>
                     </a>
                 </div>
 
-                <!-- Panel Pengurus (Khusus Pemegang Jabatan Aktif) -->
+                <!-- Panel Pengurus (Gaya Seragam) -->
                 <div x-show="hasAdminAccess" x-cloak class="py-1.5 text-sm font-semibold">
                     <a href="/pengurus"
-                       class="px-5 py-3 flex items-center justify-between transition {{ request()->is('pengurus') ? 'bg-indigo-50/80 text-indigo-900 font-bold border-l-4 border-indigo-600' : 'text-indigo-700 hover:bg-indigo-50/60' }}">
-                        <span class="flex items-start gap-2 min-w-0">
-                            <span class="mt-0.5">&#9733;</span>
-                            <span class="min-w-0">
-                                <span class="block font-bold leading-tight">Panel Pengurus</span>
-                                <span x-show="profile.governance_label"
-                                      x-text="profile.governance_label"
-                                      class="block text-xs font-medium text-indigo-500 truncate mt-0.5">
-                                </span>
-                            </span>
-                        </span>
-                        <span class="text-indigo-400 text-base shrink-0">&rsaquo;</span>
+                       class="px-5 py-3 flex items-center justify-between transition {{ request()->is('pengurus') ? 'bg-emerald-50/80 text-emerald-900 font-bold border-l-4 border-emerald-600' : 'text-slate-700 hover:bg-slate-50' }}">
+                        <span>Panel Pengurus</span>
+                        <span class="text-slate-400 text-base">&rsaquo;</span>
                     </a>
                 </div>
 
-                <!-- Tombol Keluar (Sejajar Presisi px-5) -->
+                <!-- Tombol Keluar (Rata Kanan + Ikon) -->
                 <div class="py-1.5 bg-slate-50/40">
                     <button type="button"
                             @click="logout()"
-                            class="w-full px-5 py-3 text-left text-sm font-bold text-rose-600 hover:bg-rose-50/80 transition flex items-center justify-between cursor-pointer">
+                            class="w-full px-5 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50/80 transition flex items-center justify-end gap-2 cursor-pointer">
                         <span>Keluar</span>
-                        <span class="text-rose-400 text-base">&rarr;</span>
+                        <svg class="w-4 h-4 text-rose-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                        </svg>
                     </button>
                 </div>
             </div>

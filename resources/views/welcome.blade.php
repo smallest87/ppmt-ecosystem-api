@@ -232,8 +232,15 @@
                     <form @submit.prevent="submitLogin()" class="space-y-4">
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor WhatsApp atau Username</label>
-                            <input type="text" x-model="loginForm.login_id" required placeholder="0812xxxxxxxx atau username"
-                                   class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                            <input type="text"
+                                   x-model="loginForm.login_id"
+                                   @input="loginForm.login_id = (loginForm.login_id || '').toLowerCase().replace(/[^a-z0-9._+]/g, '')"
+                                   autocapitalize="none"
+                                   autocorrect="off"
+                                   spellcheck="false"
+                                   required
+                                   placeholder="0812xxxxxxxx atau username"
+                                   class="w-full rounded-xl border-slate-300 text-sm lowercase focus:border-emerald-600 focus:ring-emerald-600">
                         </div>
 
                         <div>
