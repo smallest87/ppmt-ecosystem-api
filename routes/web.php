@@ -8,3 +8,13 @@ Route::view('/pengaturan', 'pengaturan')->name('pengaturan');
 Route::view('/komunitas', 'komunitas')->name('komunitas');
 Route::view('/pengurus', 'admin')->name('pengurus');
 Route::redirect('/admin', '/pengurus');
+
+// Permalink Berita Warga: /berita/2026/11/17/judul-berita-slug
+Route::get('/berita/{year}/{month}/{day}/{slug}', function ($year, $month, $day, $slug) {
+    return view('news.show', compact('year', 'month', 'day', 'slug'));
+})->where([
+    'year'  => '[0-9]{4}',
+    'month' => '[0-9]{2}',
+    'day'   => '[0-9]{2}',
+    'slug'  => '[a-z0-9\-]+'
+])->name('news.show');
