@@ -5,7 +5,14 @@ use Illuminate\Support\Facades\Route;
 Route::view('/', 'welcome')->name('home');
 Route::view('/register', 'register')->name('register');
 Route::view('/dashboard', 'dashboard')->name('dashboard');
-Route::view('/pengaturan', 'pengaturan')->name('pengaturan');
+
+// Pengaturan Modular (Hub + Sub-halaman Terfokus)
+Route::prefix('pengaturan')->name('pengaturan.')->group(function () {
+    Route::view('/', 'pengaturan.index')->name('index');
+    Route::view('/akun', 'pengaturan.akun')->name('akun');
+    Route::view('/hunian', 'pengaturan.hunian')->name('hunian');
+});
+
 Route::view('/komunitas', 'komunitas')->name('komunitas');
 Route::view('/peta-kavling', 'siteplan')->name('siteplan');
 Route::view('/pengurus', 'admin')->name('pengurus');

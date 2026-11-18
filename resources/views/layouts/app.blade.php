@@ -149,7 +149,7 @@
                                 <!-- Item Menu Akun -->
                                 <div class="py-1.5 text-xs font-semibold divide-y divide-slate-100 border-b border-slate-100">
                                     <a href="/pengaturan"
-                                       class="px-4 py-2.5 flex items-center justify-between transition {{ request()->is('pengaturan') ? 'bg-emerald-50 text-emerald-900 font-bold' : 'text-slate-700 hover:bg-slate-50' }}">
+                                       class="px-4 py-2.5 flex items-center justify-between transition {{ request()->is('pengaturan*') ? 'bg-emerald-50 text-emerald-900 font-bold' : 'text-slate-700 hover:bg-slate-50' }}">
                                         <span>Pengaturan</span>
                                         <span class="text-slate-400 text-sm">&rsaquo;</span>
                                     </a>
@@ -259,7 +259,7 @@
                         <span class="text-slate-400 text-base">&rsaquo;</span>
                     </a>
                     <a href="/pengaturan"
-                       class="px-5 py-3 flex items-center justify-between transition {{ request()->is('pengaturan') ? 'bg-emerald-50/80 text-emerald-900 font-bold border-l-4 border-emerald-600' : 'text-slate-700 hover:bg-slate-50' }}">
+                       class="px-5 py-3 flex items-center justify-between transition {{ request()->is('pengaturan*') ? 'bg-emerald-50/80 text-emerald-900 font-bold border-l-4 border-emerald-600' : 'text-slate-700 hover:bg-slate-50' }}">
                         <span>Pengaturan</span>
                         <span class="text-slate-400 text-base">&rsaquo;</span>
                     </a>

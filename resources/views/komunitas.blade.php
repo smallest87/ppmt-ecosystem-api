@@ -41,10 +41,11 @@
                     class="px-3 py-2 rounded-lg transition cursor-pointer">
                 Notulensi &amp; Tatib
             </button>
-            <a href="/peta-kavling"
-               class="px-3 py-2 rounded-lg transition text-slate-600 hover:text-slate-900 text-center">
-                Peta 91 Kavling ↗
-            </a>
+            <button type="button" @click="setTab('siteplan')"
+                    :class="tab === 'siteplan' ? 'bg-emerald-700 text-white shadow' : 'text-slate-600 hover:text-slate-900'"
+                    class="px-3 py-2 rounded-lg transition cursor-pointer">
+                Peta 91 Kavling
+            </button>
         </div>
     </div>
 
@@ -105,9 +106,7 @@
 
                             <p class="text-xs text-slate-600 leading-relaxed" x-text="store.description || 'Lapak usaha warga internal PPMT.'"></p>
                             <div class="text-[11px] text-slate-500">
-                                <a :href="'/peta-kavling?unit=' + encodeURIComponent(store.unit?.code || '')"
-                                   class="font-bold text-emerald-700 hover:underline"
-                                   x-text="'Kavling ' + store.unit?.code"></a> &bull; <span x-text="store.owner?.name"></span>
+                                Kavling <strong class="text-slate-700" x-text="store.unit?.code"></strong> &bull; <span x-text="store.owner?.name"></span>
                             </div>
                         </div>
 
@@ -583,7 +582,7 @@
     <div x-show="tab === 'directory'" class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
         <div class="border-b border-slate-100 pb-3">
             <h2 class="text-lg font-bold text-slate-900">Direktori Warga Terverifikasi</h2>
-            <p class="text-xs text-slate-500">Status hunian ditampilkan untuk koordinasi lingkungan; nomor WhatsApp dan status kepemilikan rumah hanya ditampilkan jika diizinkan oleh pengaturan privasi masing-masing warga.</p>
+            <p class="text-xs text-slate-500">Nomor WhatsApp dan status kepemilikan hanya ditampilkan jika diizinkan oleh pengaturan privasi masing-masing warga.</p>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -597,11 +596,9 @@
 
                     <div class="flex flex-wrap gap-1.5">
                         <template x-for="u in resident.units" :key="u.unit_code">
-                            <a :href="'/peta-kavling?unit=' + encodeURIComponent(u.unit_code)"
-                               title="Lihat lokasi kavling di Peta"
-                               class="px-2 py-0.5 rounded bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-[11px] font-semibold text-slate-700 hover:text-emerald-800 transition"
-                               x-text="u.unit_code + ' (' + u.zone + ')' + (u.sub_role ? ' • ' + u.sub_role : '')">
-                            </a>
+                            <span class="px-2 py-0.5 rounded bg-white border border-slate-200 text-[11px] font-semibold text-slate-700"
+                                  x-text="u.unit_code + ' (' + u.zone + ')' + (u.sub_role ? ' • ' + u.sub_role : '')">
+                            </span>
                         </template>
                     </div>
 

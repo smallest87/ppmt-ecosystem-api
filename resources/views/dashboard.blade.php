@@ -3,25 +3,31 @@
 @section('title', 'Beranda Warga — PPMT Digital')
 
 @section('content')
-<div x-data="ppmtFamilyRoom()" x-init="init()" @keydown.escape.window="selectedAnnouncement = null; showDuesModal = false; showContributeModal = false" class="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-6">
+<div x-data="ppmtFamilyRoom()"
+    x-init="init()"
+    x-effect="document.body.classList.toggle('overflow-hidden', Boolean(selectedAnnouncement || showDuesModal || showContributeModal))"
+    @keydown.escape.window="selectedAnnouncement = null; showDuesModal = false; showContributeModal = false"
+    class="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-6">
 
     <!-- Loading State -->
     <div x-show="loading" class="bg-white rounded-2xl p-12 text-center text-slate-500 border border-slate-200">
         Memuat beranda warga PPMT...
     </div>
 
-    <div x-show="!loading && user" class="space-y-6">
+    <div x-show="!loading && user" x-cloak class="space-y-6">
 
         <!-- Notifikasi Global -->
         <div x-show="toastMessage"
+             x-cloak
              :class="toastType === 'error' ? 'bg-rose-50 text-rose-800 border-rose-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'"
              class="p-4 rounded-xl border text-sm font-medium flex justify-between items-center shadow-sm">
             <span x-text="toastMessage"></span>
-            <button @click="toastMessage = ''" class="text-xs opacity-70 hover:opacity-100 cursor-pointer">✕</button>
+            <button type="button" @click="toastMessage = ''" class="text-xs opacity-70 hover:opacity-100 cursor-pointer">✕</button>
         </div>
 
         <!-- Banner Peringatan Akun Pending -->
         <div x-show="!user?.is_verified"
+             x-cloak
              class="bg-amber-50 border-l-4 border-amber-500 p-5 rounded-r-2xl shadow-sm space-y-1">
             <h2 class="font-bold text-amber-900 text-base">⏳ Akun Anda Menunggu Verifikasi Sosial Tetangga</h2>
             <p class="text-xs sm:text-sm text-amber-800 leading-relaxed">
@@ -30,7 +36,7 @@
         </div>
 
         <!-- Konten Utama (Hanya aktif jika sudah terverifikasi) -->
-        <div x-show="user?.is_verified" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div x-show="user?.is_verified" x-cloak class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
             <!-- ========================================================= -->
             <!-- KOLOM KIRI (7 Kolom): KABAR PAGUYUBAN & AGENDA LINGKUNGAN -->
@@ -39,13 +45,13 @@
 
                 <!-- Bagian 1: Pengumuman Warga (Clean Bootstrap-style Alert Cards) -->
                 <section x-show="announcements.length > 0"
-                         class="space-y-2.5"
-                         x-data="{ showAllAnnouncements: false }">
+                        class="space-y-2.5"
+                        x-data="{ showAllAnnouncements: false }">
                     <!-- Susunan Vertikal Alert Box per Item -->
                     <div class="space-y-2.5">
                         <template x-for="item in (showAllAnnouncements ? announcements : announcements.slice(0, 5))" :key="item.id">
                             <button type="button"
-                                    @click="selectedAnnouncement = item"
+                                @click="copiedAnnouncement = false; selectedAnnouncement = item"
                                     :class="/penting|darurat|mendesak|peringatan|urgent/i.test(item.category || '')
                                         ? 'bg-rose-50 hover:bg-rose-100/80 border-rose-300 border-l-4 border-l-rose-600 text-rose-950'
                                         : (item.is_pinned
@@ -55,9 +61,9 @@
 
                                 <!-- Ikon Pin di Pojok Kiri Atas (Hanya untuk item yang di-pin) -->
                                 <span x-show="item.is_pinned"
-                                      title="Pengumuman Disematkan"
-                                      :class="/penting|darurat|mendesak|peringatan|urgent/i.test(item.category || '') ? 'bg-rose-600' : 'bg-amber-500'"
-                                      class="absolute -top-2 -left-2 w-5 h-5 rounded-full text-white shadow-xs flex items-center justify-center ring-2 ring-white">
+                                    title="Pengumuman Disematkan"
+                                    :class="/penting|darurat|mendesak|peringatan|urgent/i.test(item.category || '') ? 'bg-rose-600' : 'bg-amber-500'"
+                                    class="absolute -top-2 -left-2 w-5 h-5 rounded-full text-white shadow-xs flex items-center justify-center ring-2 ring-white">
                                     <svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M16 3a1 1 0 0 1 .707.293l4 4a1 1 0 0 1-.493 1.686l-3.437.687-2.61 2.61.556 3.337a1 1 0 0 1-1.693.88L9.5 12.963l-4.793 4.794a1 1 0 0 1-1.414-1.414L8.086 11.55 4.557 8.02a1 1 0 0 1 .88-1.693l3.337.556 2.61-2.61.687-3.437A1 1 0 0 1 13.757.343L16 3Z"/>
                                     </svg>
