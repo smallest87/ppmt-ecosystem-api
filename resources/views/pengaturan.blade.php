@@ -142,8 +142,8 @@
                 <div @click="togglePrivacy('show_ownership')"
                      class="px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/80 transition cursor-pointer select-none">
                     <div class="space-y-0.5">
-                        <div class="text-sm font-semibold text-slate-800">Tampilkan Status Kepemilikan &amp; Hunian Rumah</div>
-                        <div class="text-xs text-slate-500">Menampilkan status pemilik/penghuni Anda pada direktori dan peta kavling internal.</div>
+                        <div class="text-sm font-semibold text-slate-800">Tampilkan Status Kepemilikan Rumah ke Tetangga</div>
+                        <div class="text-xs text-slate-500">Jika dimatikan, status Anda sebagai pemilik kavling &amp; pengesahan NIB SHM disembunyikan dari warga umum (informasi penghuni tetap tampil untuk koordinasi lingkungan).</div>
                     </div>
                     <button type="button"
                             role="switch"

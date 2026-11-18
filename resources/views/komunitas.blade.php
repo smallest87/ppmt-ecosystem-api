@@ -583,7 +583,7 @@
     <div x-show="tab === 'directory'" class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
         <div class="border-b border-slate-100 pb-3">
             <h2 class="text-lg font-bold text-slate-900">Direktori Warga Terverifikasi</h2>
-            <p class="text-xs text-slate-500">Nomor WhatsApp dan status kepemilikan hanya ditampilkan jika diizinkan oleh pengaturan privasi masing-masing warga.</p>
+            <p class="text-xs text-slate-500">Status hunian ditampilkan untuk koordinasi lingkungan; nomor WhatsApp dan status kepemilikan rumah hanya ditampilkan jika diizinkan oleh pengaturan privasi masing-masing warga.</p>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

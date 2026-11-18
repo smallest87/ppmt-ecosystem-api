@@ -137,17 +137,23 @@ class SiteplanController extends Controller
 
                         $isOwner = (bool) ($m->is_owner ?? ($m->entity_type === 'owner'));
                         $isOccupant = (bool) ($m->is_occupant ?? true);
-                        $ownershipStatus = $m->ownership_verification_status ?: ($isOwner ? 'unverified_claim' : 'none');
-                        $isVerifiedShm = $canSeeOwnership && $isOwner && $ownershipStatus === 'verified_shm';
+                        $visibleOwner = $canSeeOwnership && $isOwner;
 
+                        $ownershipStatus = $m->ownership_verification_status ?: ($isOwner ? 'unverified_claim' : 'none');
+                        $isVerifiedShm = $visibleOwner && $ownershipStatus === 'verified_shm';
+
+                        // Status hunian fisik selalu terbuka sebagai fakta sosial lingkungan;
+                        // hanya status kepemilikan rumah yang tunduk pada kontrol privasi.
                         $roleParts = [];
-                        if ($isOwner) {
+                        if ($visibleOwner) {
                             $roleParts[] = $subRoleLabels[$m->owner_role ?: 'primary_owner'] ?? 'Pemilik';
                         }
                         if ($isOccupant) {
                             $roleParts[] = $subRoleLabels[$m->resident_role ?: 'primary_resident'] ?? 'Penghuni';
-                        } else {
+                        } elseif ($visibleOwner) {
                             $roleParts[] = 'Tidak Menghuni';
+                        } else {
+                            $roleParts[] = 'Warga Terhubung (Kepemilikan Diprivasi)';
                         }
 
                         return [
@@ -155,15 +161,15 @@ class SiteplanController extends Controller
                             'user_id' => $m->user_id,
                             'name' => $canSeeFullName ? $fullName : $publicName,
                             'phone' => $canSeePhone ? $profile?->phone : null,
-                            'is_owner' => $canSeeOwnership ? $isOwner : false,
-                            'is_occupant' => $canSeeOwnership ? $isOccupant : true,
-                            'ownership_verification_status' => $canSeeOwnership ? $ownershipStatus : 'none',
+                            'is_owner' => $visibleOwner,
+                            'is_occupant' => $isOccupant,
+                            'ownership_verification_status' => $visibleOwner ? $ownershipStatus : 'none',
                             'is_verified_shm' => $isVerifiedShm,
                             'endorsement_count' => $isVerifiedShm ? $m->ownershipVerifications->count() : 0,
                             'endorsed_by_sentence' => $isVerifiedShm ? $m->endorsed_by_sentence : null,
-                            'entity_type' => $canSeeOwnership ? $m->entity_type : 'member',
-                            'sub_role' => $canSeeOwnership ? $m->sub_role : null,
-                            'sub_role_label' => $canSeeOwnership ? implode(' • ', $roleParts) : 'Warga Terverifikasi',
+                            'entity_type' => $visibleOwner ? 'owner' : ($isOccupant ? 'resident' : 'member'),
+                            'sub_role' => $visibleOwner ? ($m->owner_role ?: 'primary_owner') : ($isOccupant ? ($m->resident_role ?: 'primary_resident') : null),
+                            'sub_role_label' => implode(' • ', $roleParts),
                             'is_approved' => (bool) $m->is_approved,
                             'is_primary_contact' => (bool) $m->is_primary_contact,
                         ];
@@ -171,19 +177,28 @@ class SiteplanController extends Controller
                     ->values()
                 : collect();
 
-            // Ringkasan status bukti kepemilikan NIB SHM untuk ikon pada peta kavling
-            $approvedOwners = $isInteractive
-                ? $unit->memberships->filter(function ($m) {
-                    return $m->is_approved && (bool) ($m->is_owner ?? ($m->entity_type === 'owner'));
+            // Ringkasan status bukti kepemilikan NIB SHM untuk ikon pada peta kavling (mematuhi privasi pemilik)
+            $publicApprovedOwners = $isInteractive
+                ? $unit->memberships->filter(function ($m) use ($viewer, $hasGovernanceScopeOnUnit, $isMyUnit) {
+                    if (! $m->is_approved || ! (bool) ($m->is_owner ?? ($m->entity_type === 'owner'))) {
+                        return false;
+                    }
+                    $user = $m->user;
+                    $privacy = $user?->profile?->privacy_settings ?? [];
+                    $bypassPrivacy = $hasGovernanceScopeOnUnit
+                        || $isMyUnit
+                        || ($user && (int) $user->id === (int) $viewer->id);
+
+                    return $bypassPrivacy || ($privacy['show_ownership'] ?? false);
                 })
                 : collect();
 
-            $hasVerifiedShm = $approvedOwners->contains(
+            $hasVerifiedShm = $publicApprovedOwners->contains(
                 fn ($m) => ($m->ownership_verification_status ?: 'unverified_claim') === 'verified_shm'
             );
-            $hasUnverifiedClaim = ! $hasVerifiedShm && $approvedOwners->isNotEmpty();
+            $hasUnverifiedClaim = ! $hasVerifiedShm && $publicApprovedOwners->isNotEmpty();
 
-            $ownersSummary = $approvedOwners->map(function ($m) use ($viewer, $hasGovernanceScopeOnUnit, $isMyUnit) {
+            $ownersSummary = $publicApprovedOwners->map(function ($m) use ($viewer, $hasGovernanceScopeOnUnit, $isMyUnit) {
                 $user = $m->user;
                 $profile = $user?->profile;
                 $privacy = $profile?->privacy_settings ?? [];
@@ -193,7 +208,6 @@ class SiteplanController extends Controller
                     || ($user && (int) $user->id === (int) $viewer->id);
 
                 $canSeeFullName = $bypassPrivacy || ($privacy['show_full_name'] ?? false);
-                $canSeeOwnership = $bypassPrivacy || ($privacy['show_ownership'] ?? false);
 
                 $fullName = $user?->name ?? 'Warga';
                 $publicName = $profile?->display_name ?: explode(' ', trim($fullName))[0];
@@ -203,8 +217,8 @@ class SiteplanController extends Controller
                     'name' => $canSeeFullName ? $fullName : $publicName,
                     'is_verified_shm' => $isVerifiedShm,
                     'endorsement_count' => $isVerifiedShm ? $m->ownershipVerifications->count() : 0,
-                    'endorsed_by_sentence' => ($canSeeOwnership && $isVerifiedShm) ? $m->endorsed_by_sentence : null,
-                    'owner_role' => $canSeeOwnership ? ($m->owner_role ?: 'primary_owner') : null,
+                    'endorsed_by_sentence' => $isVerifiedShm ? $m->endorsed_by_sentence : null,
+                    'owner_role' => $m->owner_role ?: 'primary_owner',
                 ];
             })->values();
 
@@ -229,7 +243,7 @@ class SiteplanController extends Controller
                 'is_my_unit' => $isMyUnit,
                 'is_interactive' => $isInteractive,
                 'can_manage_unit' => $isInteractive && ($hasGovernanceScopeOnUnit || $canApproveUnit),
-                'has_owner_claim' => $approvedOwners->isNotEmpty(),
+                'has_owner_claim' => $publicApprovedOwners->isNotEmpty(),
                 'has_verified_shm' => $hasVerifiedShm,
                 'has_unverified_claim' => $hasUnverifiedClaim,
                 'owners' => $ownersSummary,

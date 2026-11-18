@@ -25,6 +25,16 @@ class ResidentDirectoryResource extends JsonResource
 
         $publicName = $profile?->display_name ?: explode(' ', trim($this->name))[0];
 
+        $subRoleLabels = [
+            'primary_owner' => 'Pemilik Utama',
+            'co_owner' => 'Pemilik Bersama',
+            'primary_resident' => 'Penghuni Utama',
+            'family_member' => 'Anggota Keluarga',
+            'co_resident' => 'Penghuni Bersama',
+            'tenant' => 'Penyewa / Kontrak',
+            'caretaker' => 'Penjaga Rumah',
+        ];
+
         return [
             'id' => $this->id,
             'name' => $canSeeFullName ? $this->name : $publicName,
@@ -33,12 +43,31 @@ class ResidentDirectoryResource extends JsonResource
             'reputation_badge' => $profile?->reputation_badge,
             'units' => $this->unitMemberships
                 ->where('is_approved', true)
-                ->map(function ($membership) use ($canSeeOwnership) {
+                ->map(function ($membership) use ($canSeeOwnership, $subRoleLabels) {
+                    $isOwner = (bool) ($membership->is_owner ?? ($membership->entity_type === 'owner'));
+                    $isOccupant = (bool) ($membership->is_occupant ?? true);
+
+                    $visibleOwner = $canSeeOwnership && $isOwner;
+
+                    $roleParts = [];
+                    if ($visibleOwner) {
+                        $roleParts[] = $subRoleLabels[$membership->owner_role ?: 'primary_owner'] ?? 'Pemilik';
+                    }
+                    if ($isOccupant) {
+                        $roleParts[] = $subRoleLabels[$membership->resident_role ?: 'primary_resident'] ?? 'Penghuni';
+                    } elseif ($visibleOwner) {
+                        $roleParts[] = 'Tidak Menghuni';
+                    } else {
+                        $roleParts[] = 'Warga Terhubung';
+                    }
+
                     return [
                         'unit_code' => $membership->unit->code,
                         'zone' => $membership->unit->zone,
-                        'entity_type' => $canSeeOwnership ? $membership->entity_type : 'member',
-                        'sub_role' => $canSeeOwnership ? $membership->sub_role : null,
+                        'is_owner' => $visibleOwner,
+                        'is_occupant' => $isOccupant,
+                        'entity_type' => $visibleOwner ? 'owner' : ($isOccupant ? 'resident' : 'member'),
+                        'sub_role' => implode(' • ', $roleParts),
                     ];
                 })->values(),
         ];

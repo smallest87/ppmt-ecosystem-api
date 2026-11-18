@@ -428,7 +428,7 @@
                                             <div :class="m.is_approved ? 'bg-white border-slate-200' : 'bg-amber-50 border-amber-300'"
                                                  class="relative p-3 rounded-xl border text-xs space-y-1.5 shadow-2xs">
 
-                                                <!-- Ikon Berkas HANYA muncul jika penghuni ini juga berstatus Pemilik -->
+                                                <!-- Ikon Berkas HANYA muncul jika penghuni ini juga berstatus Pemilik (dan privasi kepemilikan dibuka) -->
                                                 <span x-show="m.hasOwnerDocument"
                                                       :title="m.is_verified_shm ? (m.endorsed_by_sentence || 'Pemilik Terverifikasi dengan Bukti NIB SHM') : 'Klaim Pemilik Sepihak Tanpa Bukti NIB SHM (Belum Terverifikasi)'"
                                                       :class="m.is_verified_shm
@@ -485,15 +485,15 @@
                                     </div>
                                 </div>
 
-                                <!-- ZONA 3 (LUAR BAWAH): Warga Terverifikasi dengan Privasi Peran Tertutup -->
+                                <!-- ZONA 3 (LUAR BAWAH): Warga Terhubung Non-Penghuni dengan Privasi Kepemilikan Tertutup -->
                                 <div x-show="unitRolesBreakdown.privateMembers.length > 0"
                                      class="pt-2 border-t border-dashed border-slate-200 space-y-2">
                                     <div class="space-y-0.5 px-1">
                                         <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                                            Warga Terverifikasi (Status Peran Diprivasi)
+                                            Warga Terhubung (Status Kepemilikan Diprivasi)
                                         </div>
                                         <p class="text-[10px] text-slate-400 leading-relaxed">
-                                            Warga di bawah ini terhubung resmi dengan kavling <span x-text="selectedUnit?.code"></span>, namun menyembunyikan detail status kepemilikan maupun huniannya dari publik.
+                                            Warga terverifikasi yang tercatat terhubung dengan kavling <span x-text="selectedUnit?.code"></span> di luar hunian fisik, dengan status kepemilikan aset disembunyikan dari publik.
                                         </p>
                                     </div>
 
@@ -657,14 +657,14 @@ function ppmtSiteplan() {
             const privateMembers = [];
 
             for (const m of unit.members) {
-                // 1. Warga yang menyembunyikan status kepemilikan/huniannya
-                if (m.entity_type === 'member' && !m.is_owner && m.sub_role === null) {
+                const isOwner = typeof m.is_owner === 'boolean' ? m.is_owner : m.entity_type === 'owner';
+                const isOccupant = typeof m.is_occupant === 'boolean' ? m.is_occupant : true;
+
+                // 1. Warga terhubung yang tidak menghuni & status kepemilikannya diprivasi
+                if (!isOwner && !isOccupant) {
                     privateMembers.push(m);
                     continue;
                 }
-
-                const isOwner = typeof m.is_owner === 'boolean' ? m.is_owner : m.entity_type === 'owner';
-                const isOccupant = typeof m.is_occupant === 'boolean' ? m.is_occupant : true;
 
                 // 2. Pemilik yang TIDAK menghuni kavling (Zona 1: di luar bingkai)
                 if (isOwner && !isOccupant) {
@@ -676,7 +676,7 @@ function ppmtSiteplan() {
                     continue;
                 }
 
-                // 3. Menghuni di dalam bingkai kavling (Zona 2: baik pemilik sekaligus penghuni, maupun penghuni non-pemilik)
+                // 3. Menghuni di dalam bingkai kavling (Zona 2: status hunian selalu terbuka, atribut pemilik hanya tampil bila show_ownership aktif)
                 if (isOccupant) {
                     insideOccupants.push({
                         ...m,
