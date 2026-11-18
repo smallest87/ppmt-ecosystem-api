@@ -135,6 +135,8 @@ Route::prefix('v1')->group(function () {
 
             // Peta Kavling / Siteplan Internal (Hanya Warga PPMT Terverifikasi & Pengurus)
             Route::get('/siteplan/units', [SiteplanController::class, 'index']);
+
+            Route::post('/verifications/ownership/{membership}', [VerificationController::class, 'verifyOwnership']);
         });
     });
 });

@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 
 class VerificationController extends Controller
 {
@@ -139,5 +140,63 @@ class VerificationController extends Controller
         ]);
 
         return response()->json(['data' => $pendingList]);
+    }
+
+    public function verifyOwnership(Request $request, UnitMembership $membership): JsonResponse
+    {
+        $unit = $membership->unit;
+        Gate::authorize('vouchUser', [VerificationVoucher::class, $unit]);
+
+        $validated = $request->validate([
+            'action' => ['required', Rule::in(['approve_shm', 'revoke_shm'])],
+            'nib_shm' => ['nullable', 'string', 'max:60'],
+        ]);
+
+        if (! $membership->is_owner) {
+            return response()->json([
+                'message' => 'Warga ini tidak mencentang status sebagai pemilik pada kavling tersebut.',
+            ], 422);
+        }
+
+        $actor = $request->user();
+
+        DB::transaction(function () use ($membership, $validated, $actor) {
+            if ($validated['action'] === 'approve_shm') {
+                $nib = ! empty($validated['nib_shm'])
+                    ? strtoupper(trim($validated['nib_shm']))
+                    : $membership->nib_shm_encrypted;
+
+                $membership->update([
+                    'nib_shm_encrypted' => $nib,
+                    'ownership_verification_status' => 'verified_shm',
+                    'ownership_verified_at' => now(),
+                    'ownership_verified_by_user_id' => $actor->id,
+                ]);
+            } else {
+                $membership->update([
+                    'ownership_verification_status' => 'unverified_claim',
+                    'ownership_verified_at' => null,
+                    'ownership_verified_by_user_id' => null,
+                ]);
+            }
+
+            $hasAnyVerifiedShm = UnitMembership::where('user_id', $membership->user_id)
+                ->where('is_owner', true)
+                ->where('ownership_verification_status', 'verified_shm')
+                ->exists();
+
+            $membership->user->profile()->update([
+                'is_ownership_doc_verified' => $hasAnyVerifiedShm,
+            ]);
+        });
+
+        $msg = $validated['action'] === 'approve_shm'
+            ? "Bukti NIB SHM {$membership->user->name} pada Kavling {$unit->code} telah disahkan."
+            : "Status NIB SHM {$membership->user->name} dikembalikan menjadi klaim belum terverifikasi.";
+
+        return response()->json([
+            'message' => $msg,
+            'data' => $membership->fresh(),
+        ]);
     }
 }

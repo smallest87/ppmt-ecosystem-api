@@ -159,68 +159,135 @@ class ProfileController extends Controller
         $isSelf = $membership->user_id === $actor->id;
         $isGovernor = method_exists($actor, 'isGlobalGovernor') && $actor->isGlobalGovernor();
 
-        $isPrimaryOwnerOfUnit = $actor->unitMemberships()
+        $isVerifiedPrimaryOwnerOfUnit = $actor->unitMemberships()
             ->where('unit_id', $membership->unit_id)
-            ->where('entity_type', 'owner')
-            ->where('sub_role', 'primary_owner')
+            ->where('is_owner', true)
+            ->where('owner_role', 'primary_owner')
+            ->where('ownership_verification_status', 'verified_shm')
             ->where('is_approved', true)
             ->exists();
 
-        if (! $isSelf && ! $isGovernor && ! $isPrimaryOwnerOfUnit) {
+        if (! $isSelf && ! $isGovernor && ! $isVerifiedPrimaryOwnerOfUnit) {
             return response()->json([
                 'message' => 'Anda tidak memiliki hak untuk mengubah status entitas/peran pada keanggotaan kavling ini.',
             ], 403);
         }
 
         $validated = $request->validate([
-            'entity_type' => ['required', Rule::in(['owner', 'resident'])],
-            'sub_role' => ['required', Rule::in([
-                'primary_owner', 'co_owner',
+            'is_owner' => ['required', 'boolean'],
+            'owner_role' => ['nullable', Rule::in(['primary_owner', 'co_owner'])],
+            'is_occupant' => ['required', 'boolean'],
+            'resident_role' => ['nullable', Rule::in([
                 'primary_resident', 'family_member', 'co_resident', 'tenant', 'caretaker',
             ])],
+            'nib_shm' => ['nullable', 'string', 'max:60'],
+            'clear_nib_shm' => ['sometimes', 'boolean'],
             'valid_until' => ['nullable', 'date', 'after:today'],
         ]);
 
-        // Validasi kecocokan pasangan Entity Type <-> Sub Role
-        $validSubRoles = $validated['entity_type'] === 'owner'
-            ? ['primary_owner', 'co_owner']
-            : ['primary_resident', 'family_member', 'co_resident', 'tenant', 'caretaker'];
-
-        if (! in_array($validated['sub_role'], $validSubRoles, true)) {
+        if (! $validated['is_owner'] && ! $validated['is_occupant']) {
             return response()->json([
-                'message' => 'Peran yang dipilih tidak sesuai dengan jenis Entitas (Pemilik vs Penghuni).',
+                'message' => 'Pilih minimal satu peran: sebagai Pemilik Kavling, Penghuni Kavling, atau keduanya.',
             ], 422);
         }
 
-        // Jika warga biasa (bukan pengurus/pemilik utama kavling) menaikkan statusnya menjadi owner,
-        // wajib melalui persetujuan sosial ulang agar aman dari klaim kepemilikan sepihak.
-        $elevatingToOwner = $validated['entity_type'] === 'owner' && $membership->entity_type !== 'owner';
-        $requiresReapproval = $isSelf && ! $isGovernor && ! $isPrimaryOwnerOfUnit && $elevatingToOwner;
+        $isOwner = (bool) $validated['is_owner'];
+        $isOccupant = (bool) $validated['is_occupant'];
+        $ownerRole = $isOwner ? ($validated['owner_role'] ?? 'primary_owner') : null;
+        $residentRole = $isOccupant ? ($validated['resident_role'] ?? 'primary_resident') : null;
 
-        DB::transaction(function () use ($membership, $validated, $requiresReapproval) {
+        // Kolom warisan (legacy compatibility)
+        $legacyEntityType = $isOwner ? 'owner' : 'resident';
+        $legacySubRole = $isOwner ? $ownerRole : $residentRole;
+
+        // Penentuan status verifikasi kepemilikan NIB SHM
+        $newNibShm = isset($validated['nib_shm']) && trim($validated['nib_shm']) !== ''
+            ? strtoupper(trim($validated['nib_shm']))
+            : null;
+
+        $ownershipStatus = 'none';
+        $nibToSave = $membership->nib_shm_encrypted;
+        $verifiedAt = $membership->ownership_verified_at;
+        $verifiedBy = $membership->ownership_verified_by_user_id;
+
+        if (! $isOwner) {
+            $ownershipStatus = 'none';
+            $nibToSave = null;
+            $verifiedAt = null;
+            $verifiedBy = null;
+        } else {
+            if (! empty($validated['clear_nib_shm'])) {
+                $nibToSave = null;
+                $ownershipStatus = 'unverified_claim';
+                $verifiedAt = null;
+                $verifiedBy = null;
+            } elseif ($newNibShm !== null) {
+                $nibToSave = $newNibShm;
+                // Jika pengurus pusat yang menginputkan langsung, bisa langsung verified; jika warga biasa, statusnya menunggu verifikasi NIB SHM
+                $ownershipStatus = $isGovernor ? 'verified_shm' : 'unverified_claim';
+                $verifiedAt = $isGovernor ? now() : null;
+                $verifiedBy = $isGovernor ? $actor->id : null;
+            } else {
+                // Pertahankan status verified_shm jika sebelumnya sudah sah dan tidak diubah NIB-nya, selain itu unverified_claim
+                $ownershipStatus = ($membership->is_owner && $membership->ownership_verification_status === 'verified_shm')
+                    ? 'verified_shm'
+                    : 'unverified_claim';
+            }
+        }
+
+        DB::transaction(function () use (
+            $membership,
+            $isOwner,
+            $ownerRole,
+            $isOccupant,
+            $residentRole,
+            $legacyEntityType,
+            $legacySubRole,
+            $ownershipStatus,
+            $nibToSave,
+            $verifiedAt,
+            $verifiedBy,
+            $validated
+        ) {
             $membership->update([
-                'entity_type' => $validated['entity_type'],
-                'sub_role' => $validated['sub_role'],
-                'is_primary_contact' => in_array($validated['sub_role'], ['primary_owner', 'primary_resident'], true),
-                'valid_until' => $validated['sub_role'] === 'tenant' ? ($validated['valid_until'] ?? $membership->valid_until) : null,
-                'is_approved' => $requiresReapproval ? false : $membership->is_approved,
+                'is_owner' => $isOwner,
+                'owner_role' => $ownerRole,
+                'is_occupant' => $isOccupant,
+                'resident_role' => $residentRole,
+                'ownership_verification_status' => $ownershipStatus,
+                'nib_shm_encrypted' => $nibToSave,
+                'ownership_verified_at' => $verifiedAt,
+                'ownership_verified_by_user_id' => $verifiedBy,
+                'entity_type' => $legacyEntityType,
+                'sub_role' => $legacySubRole,
+                'is_primary_contact' => $ownerRole === 'primary_owner' || $residentRole === 'primary_resident',
+                'valid_until' => $residentRole === 'tenant' ? ($validated['valid_until'] ?? $membership->valid_until) : null,
             ]);
 
-            // Sinkronkan status hunian kavling jika sudah disetujui
-            if (! $requiresReapproval && $membership->is_approved) {
+            // Sinkronkan badge reputasi level 4 pada profil warga
+            $hasAnyVerifiedShm = UnitMembership::where('user_id', $membership->user_id)
+                ->where('is_owner', true)
+                ->where('ownership_verification_status', 'verified_shm')
+                ->exists();
+
+            $membership->user->profile()->update([
+                'is_ownership_doc_verified' => $hasAnyVerifiedShm,
+            ]);
+
+            // Sinkronkan status hunian kavling jika keanggotaan sudah disetujui
+            if ($membership->is_approved && $isOccupant) {
                 $membership->unit()->update([
-                    'occupancy_status' => $validated['sub_role'] === 'tenant' ? 'rented' : 'occupied',
+                    'occupancy_status' => $residentRole === 'tenant' ? 'rented' : 'occupied',
                 ]);
             }
         });
 
-        $message = $requiresReapproval
-            ? "Perubahan ke status Pemilik pada Kavling {$membership->unit->code} disimpan dan menunggu pengesahan Koordinator Zona/Blok."
-            : "Status Entitas & Peran pada Kavling {$membership->unit->code} berhasil diperbarui.";
+        $message = $isOwner && $ownershipStatus === 'unverified_claim'
+            ? "Peran pada Kavling {$membership->unit->code} diperbarui. Status kepemilikan tercatat sebagai 'Klaim Sepihak Tanpa Bukti NIB SHM (Belum Terverifikasi)' hingga disahkan pengurus."
+            : "Status kepemilikan & hunian pada Kavling {$membership->unit->code} berhasil diperbarui.";
 
         return response()->json([
             'message' => $message,
-            'requires_reapproval' => $requiresReapproval,
             'data' => $membership->fresh('unit'),
         ]);
     }

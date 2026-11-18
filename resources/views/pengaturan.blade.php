@@ -9,7 +9,7 @@
 
     <!-- Sub-keterangan singkat -->
     <p class="text-xs sm:text-sm text-slate-500">
-        Kelola identitas warga, privasi direktori, dokumen terenkripsi, dan peran kavling Anda.
+        Kelola identitas warga, privasi direktori, dokumen terenkripsi, dan peran kepemilikan maupun hunian kavling Anda.
     </p>
 
     <!-- Loading State -->
@@ -142,8 +142,8 @@
                 <div @click="togglePrivacy('show_ownership')"
                      class="px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/80 transition cursor-pointer select-none">
                     <div class="space-y-0.5">
-                        <div class="text-sm font-semibold text-slate-800">Tampilkan Status Kepemilikan Rumah</div>
-                        <div class="text-xs text-slate-500">Menampilkan apakah Anda pemilik atau penyewa pada direktori internal.</div>
+                        <div class="text-sm font-semibold text-slate-800">Tampilkan Status Kepemilikan &amp; Hunian Rumah</div>
+                        <div class="text-xs text-slate-500">Menampilkan status pemilik/penghuni Anda pada direktori dan peta kavling internal.</div>
                     </div>
                     <button type="button"
                             role="switch"
@@ -220,29 +220,48 @@
         </section>
 
         <!-- ========================================================= -->
-        <!-- KARTU 4: STATUS ENTITAS & PERAN DI KAVLING (Interactive)  -->
+        <!-- KARTU 4: KEPEMILIKAN & HUNIAN DI KAVLING (2 Dimensi)      -->
         <!-- ========================================================= -->
         <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-100">
-                <h2 class="text-base font-bold text-slate-900">4. Status Entitas &amp; Peran di Kavling</h2>
-                <p class="text-xs text-slate-500 mt-0.5">Klik pada kavling di bawah ini untuk mengoreksi status kepemilikan atau peran hunian Anda.</p>
+                <h2 class="text-base font-bold text-slate-900">4. Status Kepemilikan &amp; Hunian di Kavling</h2>
+                <p class="text-xs text-slate-500 mt-0.5">Klik pada kavling di bawah ini untuk mengatur status pemilik (beserta bukti NIB SHM) dan/atau status penghuni.</p>
             </div>
 
             <div class="divide-y divide-slate-100">
                 <template x-for="m in (user?.memberships || [])" :key="m.id">
                     <button type="button" @click="openMembershipModal(m)"
                             class="w-full px-6 py-4 flex items-center justify-between gap-4 text-left hover:bg-slate-50/90 transition cursor-pointer group">
-                        <div class="space-y-1">
+                        <div class="space-y-1.5">
                             <div class="flex flex-wrap items-center gap-2">
                                 <span class="text-sm font-bold text-slate-900"
                                       x-text="'Kavling ' + m.unit?.code + ' (' + m.unit?.zone + ')'"></span>
                                 <span :class="m.is_approved ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200'"
                                       class="px-2 py-0.5 rounded-full text-[10px] font-bold border"
-                                      x-text="m.is_approved ? '✓ Disahkan' : '⏳ Menunggu Pengesahan'">
+                                      x-text="m.is_approved ? '✓ Warga Disahkan' : '⏳ Menunggu Pengesahan'">
                                 </span>
                             </div>
-                            <div class="text-xs text-slate-600 font-medium" x-text="formatMembershipSummary(m)"></div>
-                            <div x-show="m.sub_role === 'tenant' && m.valid_until"
+
+                            <!-- Ringkasan 2 Dimensi -->
+                            <div class="text-xs text-slate-700 font-medium" x-text="formatMembershipSummary(m)"></div>
+
+                            <!-- Badge Status Verifikasi Kepemilikan NIB SHM (Jika dicentang Pemilik) -->
+                            <div x-show="isMemberOwner(m)" class="flex flex-wrap items-center gap-1.5 pt-0.5">
+                                <span x-show="m.ownership_verification_status === 'verified_shm'"
+                                      class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-900 border border-emerald-300 text-[11px] font-bold">
+                                    &#10003; Klaim Terverifikasi dengan Bukti NIB SHM
+                                </span>
+                                <span x-show="m.ownership_verification_status !== 'verified_shm'"
+                                      class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-950 border border-amber-300 text-[11px] font-bold">
+                                    &#9888; Klaim Sepihak Tanpa Bukti NIB SHM (Belum Terverifikasi)
+                                </span>
+                                <span x-show="m.has_nib_shm && m.ownership_verification_status !== 'verified_shm'"
+                                      class="text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                                    Nomor NIB SHM terenkripsi, menunggu cek pengurus
+                                </span>
+                            </div>
+
+                            <div x-show="isMemberOccupant(m) && (m.resident_role || m.sub_role) === 'tenant' && m.valid_until"
                                  class="text-[11px] text-slate-500"
                                  x-text="'Batas masa sewa: ' + (m.valid_until ? m.valid_until.slice(0, 10) : '-')">
                             </div>
@@ -262,7 +281,7 @@
          x-cloak
          class="fixed inset-0 z-50 !mt-0 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-[1px] overflow-y-auto">
         <div @click.away="closeModal()"
-             class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-[calc(100vw-1.5rem)] sm:max-w-md max-h-[90dvh] flex flex-col overflow-hidden my-auto">
+             class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-[calc(100vw-1.5rem)] sm:max-w-lg max-h-[90dvh] flex flex-col overflow-hidden my-auto">
 
             <div class="px-5 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3 shrink-0">
                 <h3 class="text-base font-bold text-slate-900 leading-snug" x-text="modalTitle"></h3>
@@ -400,55 +419,110 @@
                     </div>
                 </template>
 
+                <!-- MODAL KEANGGOTAAN 2 DIMENSI: KEPEMILIKAN (NIB SHM) & HUNIAN -->
                 <template x-if="activeModal === 'membership'">
-                    <div class="space-y-3">
-                        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
-                            <span class="font-bold text-slate-900"
+                    <div class="space-y-4">
+                        <div class="p-3 rounded-xl bg-slate-900 text-white flex items-center justify-between text-xs">
+                            <span class="font-extrabold"
                                   x-text="'Kavling ' + modalForm.membership.unit_code + ' (' + modalForm.membership.zone + ')'"></span>
-                            <span class="text-slate-500">Status Saat Ini</span>
+                            <span class="text-slate-300 text-[11px]">Dapat dicentang salah satu atau keduanya</span>
                         </div>
 
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Entitas di Kavling *</label>
-                            <select x-model="modalForm.membership.entity_type"
-                                    @change="modalForm.membership.sub_role = modalForm.membership.entity_type === 'owner' ? 'primary_owner' : 'primary_resident'"
-                                    class="w-full rounded-xl border-slate-300 text-sm">
-                                <option value="owner">Pemilik Rumah</option>
-                                <option value="resident">Penghuni</option>
-                            </select>
-                        </div>
+                        <!-- DIMENSI A: STATUS KEPEMILIKAN + NIB SHM -->
+                        <div :class="modalForm.membership.is_owner ? 'border-amber-400 bg-amber-50/40' : 'border-slate-200 bg-white'"
+                             class="rounded-2xl border-2 p-4 space-y-3 transition">
+                            <label class="flex items-start gap-3 cursor-pointer select-none">
+                                <input type="checkbox"
+                                       x-model="modalForm.membership.is_owner"
+                                       class="mt-0.5 rounded border-slate-300 text-amber-600 focus:ring-amber-500">
+                                <div class="space-y-0.5">
+                                    <div class="text-sm font-bold text-slate-900">Saya adalah Pemilik Kavling ini</div>
+                                    <div class="text-[11px] text-slate-600 leading-relaxed">
+                                        Centang jika nama Anda (atau pasangan dalam satu keluarga inti) tercantum pada hak milik kavling ini.
+                                    </div>
+                                </div>
+                            </label>
 
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Peran Spesifik *</label>
-                            <select x-model="modalForm.membership.sub_role" class="w-full rounded-xl border-slate-300 text-sm">
-                                <template x-if="modalForm.membership.entity_type === 'owner'">
-                                    <optgroup label="Pemilik">
+                            <div x-show="modalForm.membership.is_owner" x-transition class="space-y-3 pt-2 border-t border-amber-200/80">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Peran Kepemilikan</label>
+                                    <select x-model="modalForm.membership.owner_role" class="w-full rounded-xl border-slate-300 text-xs">
                                         <option value="primary_owner">Pemilik Utama</option>
-                                        <option value="co_owner">Pemilik Bersama</option>
-                                    </optgroup>
-                                </template>
-                                <template x-if="modalForm.membership.entity_type === 'resident'">
-                                    <optgroup label="Penghuni">
-                                        <option value="primary_resident">Penghuni Utama</option>
-                                        <option value="family_member">Anggota Keluarga</option>
+                                        <option value="co_owner">Pemilik Bersama (Pasangan / Keluarga)</option>
+                                    </select>
+                                </div>
+
+                                <!-- Status Verifikasi NIB SHM Saat Ini -->
+                                <div class="p-3 rounded-xl border text-xs space-y-1.5"
+                                     :class="modalForm.membership.ownership_verification_status === 'verified_shm'
+                                        ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
+                                        : 'bg-amber-100/80 border-amber-300 text-amber-950'">
+                                    <div class="font-extrabold flex items-center gap-1.5">
+                                        <span x-show="modalForm.membership.ownership_verification_status === 'verified_shm'">&#10003; Status: Klaim Terverifikasi dengan Bukti NIB SHM</span>
+                                        <span x-show="modalForm.membership.ownership_verification_status !== 'verified_shm'">&#9888; Status: Klaim Sepihak Tanpa Bukti NIB SHM (Belum Terverifikasi)</span>
+                                    </div>
+                                    <p class="text-[11px] leading-relaxed opacity-90">
+                                        Untuk mencegah klaim kepemilikan sepihak, status <strong>Pemilik Terverifikasi</strong> hanya aktif setelah Nomor NIB SHM dicocokkan dan disahkan oleh Pengurus / Koordinator Wilayah.
+                                    </p>
+                                </div>
+
+                                <!-- Input Nomor NIB SHM -->
+                                <div class="space-y-1.5">
+                                    <div class="flex items-center justify-between">
+                                        <label class="block text-xs font-semibold text-slate-700">
+                                            Nomor Identifikasi Bidang (NIB) / Nomor SHM
+                                        </label>
+                                        <span x-show="modalForm.membership.has_nib_shm"
+                                              class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                            &#128274; Tersimpan Terenkripsi
+                                        </span>
+                                    </div>
+                                    <input type="text"
+                                           x-model="modalForm.membership.nib_shm"
+                                           :placeholder="modalForm.membership.has_nib_shm ? 'Isi hanya jika ingin memperbarui Nomor NIB SHM' : 'Contoh: 12.16.08.04.01234 / SHM No. 567'"
+                                           class="w-full rounded-xl border-slate-300 text-xs font-mono uppercase focus:border-amber-600 focus:ring-amber-600">
+                                    <p class="text-[10px] text-slate-500 leading-relaxed">
+                                        Nomor NIB SHM dienkripsi (AES-256) di server dan hanya dapat diperiksa oleh Pengurus Berwenang untuk pengesahan kepemilikan.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- DIMENSI B: STATUS MENGHUNI FISIK -->
+                        <div :class="modalForm.membership.is_occupant ? 'border-emerald-500 bg-emerald-50/35' : 'border-slate-200 bg-white'"
+                             class="rounded-2xl border-2 p-4 space-y-3 transition">
+                            <label class="flex items-start gap-3 cursor-pointer select-none">
+                                <input type="checkbox"
+                                       x-model="modalForm.membership.is_occupant"
+                                       class="mt-0.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                                <div class="space-y-0.5">
+                                    <div class="text-sm font-bold text-slate-900">Saya tinggal / menghuni di Kavling ini</div>
+                                    <div class="text-[11px] text-slate-600 leading-relaxed">
+                                        Centang jika Anda berdomisili fisik di kavling ini. Kosongkan jika kavling masih kosong atau disewakan ke pihak lain.
+                                    </div>
+                                </div>
+                            </label>
+
+                            <div x-show="modalForm.membership.is_occupant" x-transition class="space-y-3 pt-2 border-t border-emerald-200/80">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Peran Hunian di Kavling</label>
+                                    <select x-model="modalForm.membership.resident_role" class="w-full rounded-xl border-slate-300 text-xs">
+                                        <option value="primary_resident">Penghuni Utama / Kepala Keluarga</option>
+                                        <option value="family_member">Anggota Keluarga (Pasangan / Anak / Orang Tua)</option>
                                         <option value="co_resident">Penghuni Bersama</option>
-                                        <option value="tenant">Penyewa / Kontrak</option>
-                                        <option value="caretaker">Penjaga Rumah</option>
-                                    </optgroup>
-                                </template>
-                            </select>
+                                        <option value="tenant" x-show="!modalForm.membership.is_owner">Penyewa / Kontrak</option>
+                                        <option value="caretaker" x-show="!modalForm.membership.is_owner">Penjaga Rumah</option>
+                                    </select>
+                                </div>
+
+                                <div x-show="modalForm.membership.resident_role === 'tenant' && !modalForm.membership.is_owner">
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Batas Akhir Masa Sewa (Opsional)</label>
+                                    <input type="date" x-model="modalForm.membership.valid_until"
+                                           class="w-full rounded-xl border-slate-300 text-xs">
+                                </div>
+                            </div>
                         </div>
 
-                        <div x-show="modalForm.membership.sub_role === 'tenant'">
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Batas Akhir Masa Sewa (Opsional)</label>
-                            <input type="date" x-model="modalForm.membership.valid_until"
-                                   class="w-full rounded-xl border-slate-300 text-sm">
-                        </div>
-
-                        <p x-show="modalForm.membership.entity_type === 'owner'"
-                           class="text-[11px] text-amber-800 bg-amber-50 p-2.5 rounded-lg border border-amber-200 leading-relaxed">
-                            Catatan: Perubahan status dari Penghuni menjadi <strong>Pemilik Rumah</strong> memerlukan pengesahan ulang oleh Koordinator Zona/Blok terkait.
-                        </p>
                     </div>
                 </template>
 
@@ -493,7 +567,19 @@ function ppmtSettings() {
             nik: '',
             kk: '',
             vehicles: [],
-            membership: { id: null, unit_code: '', zone: '', entity_type: 'owner', sub_role: 'primary_owner', valid_until: '' }
+            membership: {
+                id: null,
+                unit_code: '',
+                zone: '',
+                is_owner: false,
+                owner_role: 'primary_owner',
+                is_occupant: true,
+                resident_role: 'primary_resident',
+                ownership_verification_status: 'none',
+                has_nib_shm: false,
+                nib_shm: '',
+                valid_until: ''
+            }
         },
         privacySettings: { show_full_name: false, show_phone: false, show_ownership: false },
 
@@ -513,6 +599,14 @@ function ppmtSettings() {
             };
         },
 
+        isMemberOwner(m) {
+            return typeof m?.is_owner === 'boolean' ? m.is_owner : m?.entity_type === 'owner';
+        },
+
+        isMemberOccupant(m) {
+            return typeof m?.is_occupant === 'boolean' ? m.is_occupant : true;
+        },
+
         subRoleLabel(role) {
             const labels = {
                 'primary_owner': 'Pemilik Utama',
@@ -527,8 +621,18 @@ function ppmtSettings() {
         },
 
         formatMembershipSummary(m) {
-            const entityLabel = m.entity_type === 'owner' ? 'Pemilik Rumah' : 'Penghuni';
-            return `${entityLabel} • ${this.subRoleLabel(m.sub_role)}`;
+            const owner = this.isMemberOwner(m);
+            const occupant = this.isMemberOccupant(m);
+            const ownerText = this.subRoleLabel(m.owner_role || (m.entity_type === 'owner' ? m.sub_role : 'primary_owner'));
+            const residentText = this.subRoleLabel(m.resident_role || (m.entity_type === 'resident' ? m.sub_role : 'primary_resident'));
+
+            if (owner && occupant) {
+                return `${ownerText} • Sekaligus Menghuni (${residentText})`;
+            }
+            if (owner && !occupant) {
+                return `${ownerText} • Tidak Menghuni Kavling`;
+            }
+            return `Penghuni Kavling • ${residentText}`;
         },
 
         get modalTitle() {
@@ -541,7 +645,7 @@ function ppmtSettings() {
                 'nik': 'Perbarui NIK (Terenkripsi AES-256)',
                 'kk': 'Perbarui Nomor KK (Terenkripsi AES-256)',
                 'vehicles': 'Kelola Kendaraan Terdaftar',
-                'membership': 'Koreksi Status Entitas & Peran Kavling'
+                'membership': 'Atur Status Kepemilikan & Hunian Kavling'
             };
             return titles[this.activeModal] || '';
         },
@@ -565,19 +669,38 @@ function ppmtSettings() {
                 nik: '',
                 kk: '',
                 vehicles: existingVehicles,
-                membership: { id: null, unit_code: '', zone: '', entity_type: 'owner', sub_role: 'primary_owner', valid_until: '' }
+                membership: {
+                    id: null,
+                    unit_code: '',
+                    zone: '',
+                    is_owner: false,
+                    owner_role: 'primary_owner',
+                    is_occupant: true,
+                    resident_role: 'primary_resident',
+                    ownership_verification_status: 'none',
+                    has_nib_shm: false,
+                    nib_shm: '',
+                    valid_until: ''
+                }
             };
             this.activeModal = type;
         },
 
         openMembershipModal(m) {
             this.openModal('membership');
+            const isOwner = this.isMemberOwner(m);
+            const isOccupant = this.isMemberOccupant(m);
             this.modalForm.membership = {
                 id: m.id,
                 unit_code: m.unit?.code || '',
                 zone: m.unit?.zone || '',
-                entity_type: m.entity_type,
-                sub_role: m.sub_role,
+                is_owner: isOwner,
+                owner_role: m.owner_role || (m.entity_type === 'owner' ? m.sub_role : 'primary_owner'),
+                is_occupant: isOccupant,
+                resident_role: m.resident_role || (m.entity_type === 'resident' ? m.sub_role : 'primary_resident'),
+                ownership_verification_status: m.ownership_verification_status || (isOwner ? 'unverified_claim' : 'none'),
+                has_nib_shm: Boolean(m.has_nib_shm),
+                nib_shm: '',
                 valid_until: m.valid_until ? m.valid_until.slice(0, 10) : ''
             };
         },
@@ -593,13 +716,22 @@ function ppmtSettings() {
             try {
                 if (this.activeModal === 'membership') {
                     const m = this.modalForm.membership;
+                    if (!m.is_owner && !m.is_occupant) {
+                        this.modalError = 'Centang minimal satu pilihan: Pemilik Kavling, Penghuni Kavling, atau keduanya.';
+                        return;
+                    }
                     const res = await fetch(`/api/v1/memberships/${m.id}`, {
                         method: 'PATCH',
                         headers: this.headers(),
                         body: JSON.stringify({
-                            entity_type: m.entity_type,
-                            sub_role: m.sub_role,
-                            valid_until: m.sub_role === 'tenant' ? (m.valid_until || null) : null
+                            is_owner: Boolean(m.is_owner),
+                            owner_role: m.is_owner ? m.owner_role : null,
+                            is_occupant: Boolean(m.is_occupant),
+                            resident_role: m.is_occupant ? m.resident_role : null,
+                            nib_shm: m.is_owner && (m.nib_shm || '').trim() !== '' ? m.nib_shm.trim() : null,
+                            valid_until: (m.is_occupant && m.resident_role === 'tenant' && !m.is_owner)
+                                ? (m.valid_until || null)
+                                : null
                         })
                     });
                     const json = await res.json();
@@ -609,7 +741,7 @@ function ppmtSettings() {
                     }
                     this.closeModal();
                     this.toastType = 'success';
-                    this.toastMessage = json.message || 'Status keanggotaan kavling berhasil diperbarui.';
+                    this.toastMessage = json.message || 'Status kepemilikan & hunian kavling berhasil diperbarui.';
                     await this.loadMe();
                     return;
                 }
