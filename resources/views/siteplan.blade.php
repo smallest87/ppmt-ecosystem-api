@@ -27,35 +27,52 @@
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-emerald-800/80 pb-4">
                 <div class="space-y-1">
                     <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-emerald-800/80 text-emerald-200 text-[11px] font-bold">
-                        <span>&#128274; Area Terproteksi Warga Terverifikasi PPMT</span>
+                        <span>🔒 Area Terproteksi Warga Terverifikasi PPMT</span>
                     </div>
                     <h1 class="text-xl sm:text-2xl font-extrabold">Peta Kavling &amp; Tata Ruang Lingkungan (<span x-text="stats?.total_units ?? 0"></span> Unit)</h1>
                     <p class="text-xs text-emerald-200">
-                        Klik salah satu nomor kavling untuk melihat informasi hunian, lapak usaha tetangga, serta status koordinasi wilayah.
+                        Klik salah satu kavling pada peta atau grid untuk melihat informasi hunian, lapak usaha tetangga, serta status koordinasi wilayah.
                     </p>
                 </div>
 
-                <!-- Mode Lapisan (Layer Switcher) -->
-                <div class="flex flex-wrap items-center gap-1.5 bg-emerald-900/90 p-1.5 rounded-xl border border-emerald-800 shrink-0">
-                    <button type="button"
-                            @click="mapLayer = 'occupancy'"
-                            :class="mapLayer === 'occupancy' ? 'bg-amber-400 text-slate-950 shadow' : 'text-emerald-100 hover:bg-emerald-800/70'"
-                            class="px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer">
-                        Lapisan Hunian
-                    </button>
-                    <button type="button"
-                            @click="mapLayer = 'umkm'"
-                            :class="mapLayer === 'umkm' ? 'bg-amber-400 text-slate-950 shadow' : 'text-emerald-100 hover:bg-emerald-800/70'"
-                            class="px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer">
-                        Pasar Tetangga
-                    </button>
-                    <button x-show="viewerContext?.can_view_treasury"
-                            type="button"
-                            @click="mapLayer = 'treasury'"
-                            :class="mapLayer === 'treasury' ? 'bg-amber-400 text-slate-950 shadow' : 'text-emerald-100 hover:bg-emerald-800/70'"
-                            class="px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer">
-                        Iuran Sampah
-                    </button>
+                <!-- Kontrol Tampilan (Switcher View Mode & Lapisan) -->
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <div class="flex items-center bg-emerald-900/90 p-1.5 rounded-xl border border-emerald-800 shrink-0">
+                        <button type="button"
+                                @click="viewMode = 'grid'"
+                                :class="viewMode === 'grid' ? 'bg-white text-slate-950 shadow' : 'text-emerald-100 hover:bg-emerald-800/70'"
+                                class="px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer">
+                            Grid per Blok
+                        </button>
+                        <button type="button"
+                                @click="viewMode = 'matrix'"
+                                :class="viewMode === 'matrix' ? 'bg-amber-400 text-slate-950 shadow' : 'text-emerald-100 hover:bg-emerald-800/70'"
+                                class="px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer">
+                            Denah Matriks 1:1
+                        </button>
+                    </div>
+
+                    <div class="flex items-center bg-emerald-900/90 p-1.5 rounded-xl border border-emerald-800 shrink-0">
+                        <button type="button"
+                                @click="mapLayer = 'occupancy'"
+                                :class="mapLayer === 'occupancy' ? 'bg-amber-400 text-slate-950 shadow' : 'text-emerald-100 hover:bg-emerald-800/70'"
+                                class="px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer">
+                            Hunian
+                        </button>
+                        <button type="button"
+                                @click="mapLayer = 'umkm'"
+                                :class="mapLayer === 'umkm' ? 'bg-amber-400 text-slate-950 shadow' : 'text-emerald-100 hover:bg-emerald-800/70'"
+                                class="px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer">
+                            Pasar Tetangga
+                        </button>
+                        <button x-show="viewerContext?.can_view_treasury"
+                                type="button"
+                                @click="mapLayer = 'treasury'"
+                                :class="mapLayer === 'treasury' ? 'bg-amber-400 text-slate-950 shadow' : 'text-emerald-100 hover:bg-emerald-800/70'"
+                                class="px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer">
+                            Iuran
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -104,7 +121,7 @@
                     Mode Wilayah Tugas
                 </span>
                 <span>
-                    Anda masuk sebagai koordinator wilayah (<strong x-text="(viewerContext?.active_scopes || []).join(', ')"></strong>). Hanya kotak kavling di dalam wilayah cakupan Anda (serta kavling pribadi &amp; fasum) yang aktif dan dapat diinspeksi.
+                    Anda masuk sebagai koordinator wilayah (<strong x-text="(viewerContext?.active_scopes || []).join(', ')"></strong>). Hanya kavling di dalam wilayah cakupan Anda (serta kavling pribadi &amp; fasum) yang aktif dan dapat diinspeksi.
                 </span>
             </div>
         </div>
@@ -168,17 +185,91 @@
                     <div class="flex flex-wrap items-center gap-3">
                         <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-emerald-100 border border-emerald-400"></span> Lunas (<span x-text="viewerContext?.current_month"></span>)</span>
                         <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-rose-100 border border-rose-400"></span> Belum Lunas</span>
-                        <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-slate-100 border border-slate-300"></span> Kosong / Bebas</span>
+                        <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-slate-100 border border-slate-200"></span> Kosong / Bebas</span>
                     </div>
                 </template>
             </div>
         </section>
 
-        <!-- Konten Utama: Grid Peta (Kiri/Atas) + Inspector Detail Unit (Kanan/Bawah) -->
+        <!-- Konten Utama: Peta Matriks 1:1 (Mode Matrix) vs Grid Blok (Mode Grid) + Inspector Detail Unit -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-            <!-- Kolom Peta Kavling -->
-            <div :class="selectedUnit ? 'lg:col-span-8' : 'lg:col-span-12'"
+            <!-- ========================================================= -->
+            <!-- MODE 1: DENAH MATRIKS 1:1 PPMT_v3.bmp (36 × 70 PIKSEL)    -->
+            <!-- ========================================================= -->
+            <div x-show="viewMode === 'matrix'"
+                 :class="selectedUnit ? 'lg:col-span-8' : 'lg:col-span-12'"
+                 class="bg-slate-900 rounded-2xl p-4 sm:p-6 border border-slate-800 shadow-xl overflow-x-auto transition-all">
+
+                <div class="flex flex-wrap items-center justify-between gap-2 pb-4 mb-4 border-b border-slate-800 text-xs text-slate-400">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                        <span class="font-bold text-slate-200">Denah Matriks 1:1 PPMT_v3.bmp (Kanvas 36 × 70 Piksel)</span>
+                    </div>
+                    <span>Rasio Proporsional Eksak (2×3, 3×2, 6×2, 5×3) • Utara di Atas</span>
+                </div>
+
+                <!-- Kanvas CSS Grid 36 Kolom × 70 Baris dengan Sel Bujur Sangkar (1:1) -->
+                <div class="min-w-[680px] flex justify-center py-2">
+                    <div class="grid bg-slate-950 p-3 rounded-xl border border-slate-800 shadow-inner"
+                        style="grid-template-columns: repeat(36, 16px); grid-template-rows: repeat(70, 16px);">
+
+                        <!-- Layer 1: Latar Belakang Spasial (Jalan Cyan, Taman Hijau, Sempadan) -->
+                        <template x-for="(bg, idx) in matrixBackgroundBlocks" :key="'bg-' + idx">
+                            <div :style="`grid-column: ${bg.x + 1} / span ${bg.w}; grid-row: ${bg.y + 1} / span ${bg.h};`"
+                                 :class="bg.className"
+                                 :title="bg.label || ''"
+                                 class="pointer-events-none"></div>
+                        </template>
+
+                        <!-- Layer 2: 91 Unit Kavling / Ruko / Fasum Ibadah dengan Bounding Box Eksak (x, y, w, h) -->
+                        <template x-for="unit in matrixUnits" :key="'munit-' + unit.id">
+                            <button type="button"
+                                    :disabled="!unit.is_interactive"
+                                    @click="selectUnit(unit)"
+                                    :style="`grid-column: ${unit.map_coordinates.x + 1} / span ${unit.map_coordinates.w}; grid-row: ${unit.map_coordinates.y + 1} / span ${unit.map_coordinates.h};`"
+                                    :title="unit.is_interactive ? ('Kavling ' + unit.code + ' (' + unit.zone + ') — Rasio ' + unit.map_coordinates.w + '×' + unit.map_coordinates.h) : ('Kavling ' + unit.code + ' di luar wilayah tugas')"
+                                    :class="[
+                                        getMatrixUnitClass(unit),
+                                        isUnitDimmedByFilter(unit) ? 'opacity-25' : '',
+                                        !unit.is_interactive
+                                            ? 'opacity-35 cursor-not-allowed grayscale'
+                                            : (selectedUnit?.id === unit.id
+                                                ? 'ring-2 ring-white ring-offset-1 ring-offset-slate-900 scale-105 z-30 cursor-pointer'
+                                                : 'hover:brightness-110 hover:z-20 cursor-pointer')
+                                    ]"
+                                    class="relative rounded-[2px] border text-[8px] leading-none font-mono font-extrabold flex items-center justify-center transition-all select-none overflow-hidden px-0.5">
+
+                                <!-- Badge Kavling Anda -->
+                                <span x-show="unit.is_my_unit"
+                                      class="absolute top-0 left-0 w-1.5 h-1.5 bg-indigo-400 rounded-br-xs"></span>
+
+                                <!-- Badge Lapak Buka -->
+                                <span x-show="unit.active_stores_count > 0"
+                                      class="absolute top-0 right-0 w-1.5 h-1.5 bg-amber-300 rounded-bl-xs"></span>
+
+                                <span class="truncate tracking-tighter"
+                                      x-text="unit.code === 'FASUM-IBADAH' ? 'IBADAH' : unit.code"></span>
+                            </button>
+                        </template>
+
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-center gap-4 pt-4 mt-4 border-t border-slate-800 text-[11px] text-slate-400">
+                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-sky-300/35 border border-sky-400/30"></span> Jalan Lingkungan</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-rose-600 border border-rose-400"></span> Pos Satpam</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-emerald-600"></span> Fasum Taman</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-amber-400"></span> Fasum Ibadah</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-slate-700 border border-slate-500"></span> Kavling / Ruko (Proporsi 1:1)</span>
+                </div>
+            </div>
+
+            <!-- ========================================================= -->
+            <!-- MODE 2: GRID PER BLOK (Tampilan Stabil Sebelumnya)       -->
+            <!-- ========================================================= -->
+            <div x-show="viewMode === 'grid'"
+                 :class="selectedUnit ? 'lg:col-span-8' : 'lg:col-span-12'"
                  class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-6 transition-all">
 
                 <div x-show="filteredUnits.length === 0"
@@ -211,21 +302,18 @@
                                         ]"
                                         class="relative px-2 py-2.5 rounded-xl border text-xs text-center flex flex-col items-center justify-center transition select-none">
 
-                                    <!-- Badge Rumah Sendiri -->
                                     <span x-show="unit.is_my_unit"
                                           title="Kavling Anda"
                                           class="absolute -top-1.5 -left-1.5 px-1.5 py-0.2 rounded-full bg-indigo-700 text-white text-[8px] font-extrabold shadow-xs">
                                         KU
                                     </span>
 
-                                    <!-- Badge Lapak UMKM Aktif -->
                                     <span x-show="unit.active_stores_count > 0"
                                           title="Memiliki Lapak Pasar Tetangga Buka"
                                           class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-amber-400 text-slate-950 text-[9px] font-extrabold flex items-center justify-center shadow-xs">
                                         ★
                                     </span>
 
-                                    <!-- Badge Antrean Verifikasi untuk Pengurus/Penjamin -->
                                     <span x-show="unit.pending_count > 0 && unit.can_manage_unit && unit.active_stores_count === 0"
                                           title="Ada pendaftar menunggu verifikasi"
                                           class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white text-[9px] font-extrabold flex items-center justify-center shadow-xs">
@@ -241,7 +329,9 @@
                 </template>
             </div>
 
-            <!-- Kolom Inspector Detail Kavling (Muncul saat kavling diklik) -->
+            <!-- ========================================================= -->
+            <!-- KOLOM INSPECTOR DETAIL KAVLING (Muncul saat diklik)        -->
+            <!-- ========================================================= -->
             <aside x-show="selectedUnit !== null"
                    x-transition
                    class="lg:col-span-4 bg-white rounded-2xl border border-slate-200 shadow-md overflow-hidden sticky top-20">
@@ -302,23 +392,10 @@
                             </span>
                         </div>
 
-                        <!-- Legenda Mikro Ikon Berkas (NIB SHM) vs Bingkai Hunian -->
                         <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[10px] text-slate-600 bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-200/80">
                             <span class="inline-flex items-center gap-1 font-bold text-emerald-900">
-                                <span class="w-4 h-4 rounded bg-emerald-600 text-white inline-flex items-center justify-center shadow-2xs">
-                                    <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                </span>
-                                Pemilik Sah (Terverifikasi Bukti NIB SHM)
-                            </span>
-                            <span class="inline-flex items-center gap-1 font-bold text-amber-900">
-                                <span class="w-4 h-4 rounded bg-amber-100 border border-dashed border-amber-700 text-amber-800 inline-flex items-center justify-center">
-                                    <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-dasharray="3 2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                </span>
-                                Klaim Sepihak Tanpa Bukti NIB SHM
+                                <span class="w-4 h-4 rounded bg-emerald-600 text-white inline-flex items-center justify-center">✓</span>
+                                Pemilik Sah (Terverifikasi NIB SHM)
                             </span>
                             <span class="inline-flex items-center gap-1 font-semibold text-emerald-800">
                                 <span class="w-3.5 h-3.5 rounded border-2 border-emerald-600 bg-emerald-50 inline-block"></span>
@@ -334,7 +411,7 @@
                         <template x-if="(selectedUnit?.members?.length || 0) > 0">
                             <div class="space-y-3">
 
-                                <!-- ZONA 1 (LUAR ATAS): Pemilik Tidak Menghuni Kavling -->
+                                <!-- ZONA 1: Pemilik Tidak Menghuni Kavling -->
                                 <div x-show="unitRolesBreakdown.externalOwners.length > 0" class="space-y-1.5">
                                     <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-amber-800 px-1">
                                         <span>Pemilik (Di Luar Kavling)</span>
@@ -345,20 +422,6 @@
                                         <template x-for="m in unitRolesBreakdown.externalOwners" :key="m.membership_id">
                                             <div :class="m.is_approved ? 'bg-amber-50/60 border-amber-300' : 'bg-amber-100/80 border-amber-400'"
                                                  class="relative p-3 rounded-xl border text-xs space-y-1.5 shadow-2xs">
-                                                <!-- Ikon Berkas Kepemilikan (Solid jika Terverifikasi NIB SHM, Garis Putus-putus jika Klaim Sepihak) -->
-                                                <span :title="m.is_verified_shm ? (m.endorsed_by_sentence || 'Klaim Terverifikasi dengan Bukti NIB SHM') : 'Klaim Sepihak Tanpa Bukti NIB SHM (Belum Terverifikasi)'"
-                                                      :class="m.is_verified_shm
-                                                        ? 'bg-emerald-600 border-emerald-700 text-white'
-                                                        : 'bg-amber-100 border-dashed border-amber-700 text-amber-900'"
-                                                      class="absolute -top-2 -right-2 w-6 h-6 rounded-lg border flex items-center justify-center shadow-xs">
-                                                    <svg x-show="m.is_verified_shm" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                    </svg>
-                                                    <svg x-show="!m.is_verified_shm" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.1" stroke-dasharray="3 2">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                    </svg>
-                                                </span>
-
                                                 <div class="flex items-start justify-between gap-2 pr-5">
                                                     <div class="space-y-0.5">
                                                         <div class="font-bold text-slate-900" x-text="m.name"></div>
@@ -398,14 +461,12 @@
                                             </div>
                                         </template>
                                     </div>
-
-                                    <!-- Garis Penghubung Hak Milik ke Bingkai Kavling -->
                                     <div class="flex justify-center">
                                         <div class="h-3 border-l-2 border-dashed border-amber-400"></div>
                                     </div>
                                 </div>
 
-                                <!-- ZONA 2 (TENGAH): Bingkai Fisik Kavling (Semua yang Menghuni) -->
+                                <!-- ZONA 2: Bingkai Fisik Kavling (Semua yang Menghuni) -->
                                 <div :class="unitRolesBreakdown.insideOccupants.length > 0 ? 'border-emerald-600 bg-emerald-50/35' : 'border-dashed border-slate-300 bg-slate-50/70'"
                                      class="rounded-2xl border-2 p-3.5 space-y-2.5">
                                     <div class="flex items-center justify-between border-b border-slate-200/80 pb-1.5">
@@ -427,23 +488,7 @@
                                         <template x-for="m in unitRolesBreakdown.insideOccupants" :key="m.membership_id">
                                             <div :class="m.is_approved ? 'bg-white border-slate-200' : 'bg-amber-50 border-amber-300'"
                                                  class="relative p-3 rounded-xl border text-xs space-y-1.5 shadow-2xs">
-
-                                                <!-- Ikon Berkas HANYA muncul jika penghuni ini juga berstatus Pemilik (dan privasi kepemilikan dibuka) -->
-                                                <span x-show="m.hasOwnerDocument"
-                                                      :title="m.is_verified_shm ? (m.endorsed_by_sentence || 'Pemilik Terverifikasi dengan Bukti NIB SHM') : 'Klaim Pemilik Sepihak Tanpa Bukti NIB SHM (Belum Terverifikasi)'"
-                                                      :class="m.is_verified_shm
-                                                        ? 'bg-emerald-600 border-emerald-700 text-white'
-                                                        : 'bg-amber-100 border-dashed border-amber-700 text-amber-900'"
-                                                      class="absolute -top-2 -right-2 w-6 h-6 rounded-lg border flex items-center justify-center shadow-xs">
-                                                    <svg x-show="m.is_verified_shm" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                    </svg>
-                                                    <svg x-show="!m.is_verified_shm" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.1" stroke-dasharray="3 2">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                    </svg>
-                                                </span>
-
-                                                <div class="flex items-start justify-between gap-2" :class="m.hasOwnerDocument ? 'pr-5' : ''">
+                                                <div class="flex items-start justify-between gap-2">
                                                     <div class="space-y-0.5">
                                                         <div class="font-bold text-slate-900" x-text="m.name"></div>
                                                         <div class="text-[11px] text-slate-500" x-text="m.sub_role_label"></div>
@@ -485,18 +530,14 @@
                                     </div>
                                 </div>
 
-                                <!-- ZONA 3 (LUAR BAWAH): Warga Terhubung Non-Penghuni dengan Privasi Kepemilikan Tertutup -->
+                                <!-- ZONA 3: Warga Terhubung Non-Penghuni dengan Privasi Kepemilikan Tertutup -->
                                 <div x-show="unitRolesBreakdown.privateMembers.length > 0"
                                      class="pt-2 border-t border-dashed border-slate-200 space-y-2">
                                     <div class="space-y-0.5 px-1">
                                         <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                                             Warga Terhubung (Status Kepemilikan Diprivasi)
                                         </div>
-                                        <p class="text-[10px] text-slate-400 leading-relaxed">
-                                            Warga terverifikasi yang tercatat terhubung dengan kavling <span x-text="selectedUnit?.code"></span> di luar hunian fisik, dengan status kepemilikan aset disembunyikan dari publik.
-                                        </p>
                                     </div>
-
                                     <div class="space-y-1.5">
                                         <template x-for="m in unitRolesBreakdown.privateMembers" :key="m.membership_id">
                                             <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs flex items-center justify-between gap-2">
@@ -538,15 +579,6 @@
                             </template>
                         </div>
                     </div>
-
-                    <!-- Aksi Cepat Pengurus Pusat untuk Kavling Belum Terklaim -->
-                    <div x-show="viewerContext?.is_global_governor && selectedUnit?.unit_type !== 'fasum' && selectedUnit?.occupancy_status === 'unclaimed'"
-                         class="pt-3 border-t border-slate-100">
-                        <a :href="'/pengurus?prefill_unit=' + encodeURIComponent(selectedUnit?.code || '') + '#assisted-register'"
-                           class="w-full py-2.5 px-4 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition">
-                            <span>+ Daftarkan Tetangga di Kavling <span x-text="selectedUnit?.code"></span></span>
-                        </a>
-                    </div>
                 </div>
             </aside>
 
@@ -569,6 +601,7 @@ function ppmtSiteplan() {
         stats: null,
         viewerContext: null,
         selectedUnit: null,
+        viewMode: 'grid', // 'grid' atau 'matrix'
         mapLayer: 'occupancy',
         searchQuery: '',
         filterBlock: '',
@@ -577,6 +610,42 @@ function ppmtSiteplan() {
         approvingMembershipId: null,
         toastMessage: '',
         toastType: 'success',
+
+        // Latar belakang spasial eksak 1:1 sesuai PPMT_v3.bmp (36x70) + koreksi presisi
+        matrixBackgroundBlocks: [
+            // Koridor Jalan Lingkungan Utama (Cyan)
+            { x: 16, y: 0, w: 6, h: 3, className: 'bg-sky-400/25 border-b border-dashed border-emerald-400/60', label: 'Gerbang Utara (Jl. Pandowo)' },
+            { x: 19, y: 3, w: 3, h: 42, className: 'bg-sky-400/25', label: 'Jalan Utama ROW 6' },
+            { x: 22, y: 33, w: 6, h: 3, className: 'bg-sky-400/25', label: 'Jalan Blok B' },
+            { x: 1, y: 42, w: 18, h: 3, className: 'bg-sky-400/25', label: 'Jalan ROW 6 Tengah Utara 1' },
+            { x: 22, y: 42, w: 14, h: 3, className: 'bg-sky-400/25', label: 'Jalan ROW 6 Tengah Utara 2' },
+            { x: 1, y: 45, w: 3, h: 6, className: 'bg-sky-400/25', label: 'Jalan ROW 6 Barat' },
+            { x: 33, y: 45, w: 3, h: 6, className: 'bg-sky-400/25', label: 'Jalan ROW 6 Timur' },
+            { x: 1, y: 51, w: 18, h: 3, className: 'bg-sky-400/25', label: 'Jalan ROW 6 Tengah Selatan 1' },
+            { x: 22, y: 51, w: 14, h: 3, className: 'bg-sky-400/25', label: 'Jalan ROW 6 Tengah Selatan 2' },
+            { x: 3, y: 54, w: 3, h: 7, className: 'bg-sky-400/25', label: 'Jalan ROW 7 Barat Daya' },
+            { x: 19, y: 51, w: 3, h: 19, className: 'bg-sky-400/25', label: 'Jalan ROW 6 Selatan' },
+            { x: 13, y: 60, w: 6, h: 3, className: 'bg-sky-400/25', label: 'Jalan Blok D 1' },
+            { x: 22, y: 60, w: 8, h: 3, className: 'bg-sky-400/25', label: 'Jalan Blok D 2' },
+            { x: 16, y: 63, w: 3, h: 7, className: 'bg-sky-400/25', label: 'Jalan ROW 6 Blok D-14/D-15' },
+            { x: 22, y: 66, w: 3, h: 4, className: 'bg-sky-400/25', label: 'Jalan ROW 6 Blok D-16/D-17' },
+
+            // Pos Satpam (Sisi kanan R2)
+            { x: 18, y: 3, w: 1, h: 2, className: 'bg-rose-600 border border-rose-400/60', label: 'Pos Satpam Gerbang Utama' },
+
+            // Fasum Taman (Hijau)
+            { x: 18, y: 5, w: 1, h: 2, className: 'bg-emerald-600', label: 'Taman Samping Pos Satpam' },
+            { x: 15, y: 0, w: 1, h: 39, className: 'bg-emerald-600/85', label: 'Jalur Hijau Barat Utara' },
+            { x: 0, y: 38, w: 15, h: 1, className: 'bg-emerald-600/85', label: 'Jalur Hijau Utara Blok A' },
+            { x: 0, y: 39, w: 1, h: 15, className: 'bg-emerald-600/85', label: 'Jalur Hijau Barat' },
+            { x: 0, y: 54, w: 3, h: 1, className: 'bg-emerald-600/85', label: 'Taman Utara D-1' },
+            { x: 30, y: 54, w: 6, h: 1, className: 'bg-emerald-600/85', label: 'Jalur Hijau Tenggara' },
+            { x: 4, y: 48, w: 1, h: 3, className: 'bg-emerald-600/85', label: 'Taman Ujung Barat Pulau' },
+            { x: 32, y: 45, w: 1, h: 3, className: 'bg-emerald-600/85', label: 'Taman Ujung Timur Pulau' },
+            { x: 6, y: 57, w: 9, h: 4, className: 'bg-emerald-600', label: 'Fasum Taman Utama' },
+            { x: 13, y: 63, w: 3, h: 3, className: 'bg-emerald-600', label: 'Fasum Taman Selatan' },
+            { x: 19, y: 69, w: 3, h: 1, className: 'bg-emerald-600', label: 'Taman Ujung Selatan' },
+        ],
 
         async init() {
             if (!this.token) {
@@ -593,7 +662,6 @@ function ppmtSiteplan() {
                 const meJson = await meRes.json();
                 this.me = meJson.data;
 
-                // Blokir total akses bagi akun terdaftar yang belum terverifikasi
                 if (!this.me?.is_verified) {
                     window.location.href = '/dashboard';
                     return;
@@ -646,12 +714,60 @@ function ppmtSiteplan() {
             window.history.replaceState({}, '', url);
         },
 
+        get matrixUnits() {
+            return this.units.filter(u =>
+                u.map_coordinates &&
+                typeof u.map_coordinates.x === 'number' &&
+                typeof u.map_coordinates.y === 'number'
+            );
+        },
+
+        isUnitDimmedByFilter(unit) {
+            const q = (this.searchQuery || '').trim().toLowerCase();
+            const hasFilter = this.filterBlock || this.filterZone || this.filterStatus || q;
+            if (!hasFilter) return false;
+            return !this.filteredUnits.some(f => f.id === unit.id);
+        },
+
+        getMatrixUnitClass(unit) {
+            if (this.mapLayer === 'umkm') {
+                if ((unit.active_stores_count || 0) > 0) {
+                    return 'bg-amber-400 text-slate-950 border-amber-200';
+                }
+                return 'bg-slate-800 text-slate-400 border-slate-700';
+            }
+
+            if (this.mapLayer === 'treasury') {
+                if (unit.unit_type === 'fasum' || unit.dues_status === 'vacant' || unit.dues_status === 'exempt') {
+                    return 'bg-slate-800 text-slate-400 border-slate-700';
+                }
+                if (unit.dues_status === 'paid') {
+                    return 'bg-emerald-600 text-white border-emerald-400';
+                }
+                return 'bg-rose-600 text-white border-rose-400';
+            }
+
+            // Default: Lapisan Hunian
+            if (unit.code === 'FASUM-IBADAH' || unit.unit_type === 'fasum') {
+                return 'bg-amber-400 text-slate-950 border-amber-200';
+            }
+            if (unit.occupancy_status === 'occupied') {
+                return 'bg-emerald-600 text-white border-emerald-400';
+            }
+            if (unit.occupancy_status === 'rented') {
+                return 'bg-sky-600 text-white border-sky-400';
+            }
+            if (unit.occupancy_status === 'pending') {
+                return 'bg-amber-500 text-slate-950 border-amber-300';
+            }
+            return 'bg-slate-700 text-slate-100 border-slate-500';
+        },
+
         get unitRolesBreakdown() {
             const unit = this.selectedUnit;
             if (!unit || !Array.isArray(unit.members)) {
                 return { externalOwners: [], insideOccupants: [], privateMembers: [] };
             }
-
             const externalOwners = [];
             const insideOccupants = [];
             const privateMembers = [];
@@ -660,32 +776,18 @@ function ppmtSiteplan() {
                 const isOwner = typeof m.is_owner === 'boolean' ? m.is_owner : m.entity_type === 'owner';
                 const isOccupant = typeof m.is_occupant === 'boolean' ? m.is_occupant : true;
 
-                // 1. Warga terhubung yang tidak menghuni & status kepemilikannya diprivasi
                 if (!isOwner && !isOccupant) {
                     privateMembers.push(m);
                     continue;
                 }
-
-                // 2. Pemilik yang TIDAK menghuni kavling (Zona 1: di luar bingkai)
                 if (isOwner && !isOccupant) {
-                    externalOwners.push({
-                        ...m,
-                        hasOwnerDocument: true,
-                        is_verified_shm: Boolean(m.is_verified_shm)
-                    });
+                    externalOwners.push({ ...m, hasOwnerDocument: true, is_verified_shm: Boolean(m.is_verified_shm) });
                     continue;
                 }
-
-                // 3. Menghuni di dalam bingkai kavling (Zona 2: status hunian selalu terbuka, atribut pemilik hanya tampil bila show_ownership aktif)
                 if (isOccupant) {
-                    insideOccupants.push({
-                        ...m,
-                        hasOwnerDocument: isOwner,
-                        is_verified_shm: Boolean(m.is_verified_shm)
-                    });
+                    insideOccupants.push({ ...m, hasOwnerDocument: isOwner, is_verified_shm: Boolean(m.is_verified_shm) });
                 }
             }
-
             return { externalOwners, insideOccupants, privateMembers };
         },
 
@@ -694,7 +796,6 @@ function ppmtSiteplan() {
             return this.units.filter(u => {
                 if (this.filterBlock && u.block !== this.filterBlock) return false;
                 if (this.filterZone && u.zone !== this.filterZone) return false;
-
                 if (this.filterStatus === 'filled' && !['occupied', 'rented'].includes(u.occupancy_status)) return false;
                 if (this.filterStatus === 'unclaimed' && (u.occupancy_status !== 'unclaimed' || u.unit_type === 'fasum')) return false;
                 if (this.filterStatus === 'pending' && u.occupancy_status !== 'pending') return false;
@@ -707,7 +808,6 @@ function ppmtSiteplan() {
                     const matchStore = (u.active_stores || []).some(s => (s.store_name || '').toLowerCase().includes(q));
                     if (!matchCode && !matchMember && !matchStore) return false;
                 }
-
                 return true;
             });
         },
@@ -721,40 +821,20 @@ function ppmtSiteplan() {
         },
 
         getUnitTileClass(unit) {
-            if (!unit.is_interactive) {
-                return 'bg-slate-100 text-slate-400 border-slate-200';
-            }
-
+            if (!unit.is_interactive) return 'bg-slate-100 text-slate-400 border-slate-200';
             if (this.mapLayer === 'umkm') {
-                if ((unit.active_stores_count || 0) > 0) {
-                    return 'bg-amber-100 text-amber-950 border-amber-400 shadow-xs';
-                }
+                if ((unit.active_stores_count || 0) > 0) return 'bg-amber-100 text-amber-950 border-amber-400 shadow-xs';
                 return 'bg-slate-50 text-slate-400 border-slate-200';
             }
-
             if (this.mapLayer === 'treasury') {
-                if (unit.unit_type === 'fasum' || unit.dues_status === 'vacant' || unit.dues_status === 'exempt') {
-                    return 'bg-slate-100 text-slate-500 border-slate-200';
-                }
-                if (unit.dues_status === 'paid') {
-                    return 'bg-emerald-100 text-emerald-900 border-emerald-400';
-                }
+                if (unit.unit_type === 'fasum' || unit.dues_status === 'vacant' || unit.dues_status === 'exempt') return 'bg-slate-100 text-slate-500 border-slate-200';
+                if (unit.dues_status === 'paid') return 'bg-emerald-100 text-emerald-900 border-emerald-400';
                 return 'bg-rose-100 text-rose-900 border-rose-400';
             }
-
-            // Default: Lapisan Hunian
-            if (unit.unit_type === 'fasum') {
-                return 'bg-teal-50 text-teal-800 border-teal-300';
-            }
-            if (unit.occupancy_status === 'rented') {
-                return 'bg-sky-50 text-sky-900 border-sky-300';
-            }
-            if (unit.occupancy_status === 'occupied') {
-                return 'bg-emerald-50 text-emerald-900 border-emerald-300';
-            }
-            if (unit.occupancy_status === 'pending') {
-                return 'bg-amber-50 text-amber-900 border-amber-300';
-            }
+            if (unit.unit_type === 'fasum') return 'bg-teal-50 text-teal-800 border-teal-300';
+            if (unit.occupancy_status === 'rented') return 'bg-sky-50 text-sky-900 border-sky-300';
+            if (unit.occupancy_status === 'occupied') return 'bg-emerald-50 text-emerald-900 border-emerald-300';
+            if (unit.occupancy_status === 'pending') return 'bg-amber-50 text-amber-900 border-amber-300';
             return 'bg-slate-100 text-slate-600 border-slate-200';
         },
 
@@ -771,22 +851,12 @@ function ppmtSiteplan() {
         },
 
         formatUnitStatus(status) {
-            const labels = {
-                'unclaimed': 'Belum Terklaim',
-                'pending': 'Menunggu Verifikasi',
-                'occupied': 'Berpenghuni',
-                'rented': 'Disewakan'
-            };
+            const labels = { 'unclaimed': 'Belum Terklaim', 'pending': 'Menunggu Verifikasi', 'occupied': 'Berpenghuni', 'rented': 'Disewakan' };
             return labels[status] || status;
         },
 
         formatDuesStatus(status) {
-            const labels = {
-                'paid': 'Lunas',
-                'unpaid': 'Belum Lunas',
-                'exempt': 'Dibebaskan',
-                'vacant': 'Kavling Kosong'
-            };
+            const labels = { 'paid': 'Lunas', 'unpaid': 'Belum Lunas', 'exempt': 'Dibebaskan', 'vacant': 'Kavling Kosong' };
             return labels[status] || status;
         },
 
@@ -796,10 +866,7 @@ function ppmtSiteplan() {
                 const res = await fetch('/api/v1/verifications/approve', {
                     method: 'POST',
                     headers: this.headers(),
-                    body: JSON.stringify({
-                        target_user_id: member.user_id,
-                        unit_code: unit.code
-                    })
+                    body: JSON.stringify({ target_user_id: member.user_id, unit_code: unit.code })
                 });
                 const json = await res.json();
                 if (res.ok) {
