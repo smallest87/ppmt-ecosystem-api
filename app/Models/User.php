@@ -96,6 +96,71 @@ class User extends Authenticatable
         return $this->isBendaharaPaguyuban() || $this->isKetuaPaguyuban();
     }
 
+    /**
+     * Visibilitas Level 2 (Angka Penuh NIB SHM):
+     * Tertutup penuh (false) bagi seluruh pengurus paguyuban & admin sistem.
+     * Hanya terbuka jika kelak jabatan otoritas legal (developer / bpn) ditambahkan.
+     */
+    public function canViewPlainNibShm(): bool
+    {
+        return $this->governanceRoles()
+            ->whereIn('role_code', ['developer', 'bpn'])
+            ->exists();
+    }
+
+    /**
+     * Menentukan jabatan aktif paling relevan yang dipakai pengurus saat mengesahkan kavling.
+     */
+    public function resolveVerifierRoleForUnit(Unit $unit): array
+    {
+        $roles = $this->governanceRoles()->get();
+
+        $priorityOrder = [
+            'developer',
+            'bpn',
+            'ketua_paguyuban',
+            'koordinator_blok',
+            'koordinator_zona',
+            'sekretaris_paguyuban',
+            'bendahara_paguyuban',
+            'keamanan_lingkungan',
+            'operator_aplikasi',
+            'admin',
+        ];
+
+        foreach ($priorityOrder as $code) {
+            $matched = $roles->first(function (UserGovernanceRole $r) use ($code, $unit) {
+                if ($r->role_code !== $code) {
+                    return false;
+                }
+                if ($r->scope_type === 'block') {
+                    return strtoupper((string) $r->scope_value) === strtoupper((string) $unit->block);
+                }
+                if ($r->scope_type === 'zone') {
+                    return strtoupper((string) $r->scope_value) === strtoupper((string) $unit->zone);
+                }
+                return true;
+            });
+
+            if ($matched) {
+                return [
+                    'role_code' => $matched->role_code,
+                    'role_label' => $matched->display_label,
+                ];
+            }
+        }
+
+        if ($this->profile?->global_role === 'admin') {
+            return ['role_code' => 'admin', 'role_label' => 'Admin Sistem'];
+        }
+
+        if ($this->profile?->global_role === 'koordinator_blok') {
+            return ['role_code' => 'koordinator_blok', 'role_label' => 'Koordinator Blok ' . $unit->block];
+        }
+
+        return ['role_code' => 'pengurus', 'role_label' => 'Pengurus PPMT'];
+    }
+
     public function hasCentralOccupancyAccess(): bool
     {
         if ($this->isGlobalGovernor()) {

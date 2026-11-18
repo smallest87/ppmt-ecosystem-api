@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use App\Models\MeetingMinute;
+use App\Models\OwnershipVerification;
 use App\Models\UnitMembership;
 use App\Models\User;
 use App\Models\UserGovernanceRole;
@@ -26,13 +27,15 @@ class GovernanceController extends Controller
             return response()->json(['data' => []]);
         }
 
+        $canSeeRawNib = $actor->canViewPlainNibShm();
+
         $items = UnitMembership::query()
             ->where('is_owner', true)
-            ->where('ownership_verification_status', '!=', 'verified_shm')
             ->with([
                 'unit:id,code,block,zone',
                 'user:id,name',
                 'user.profile:id,user_id,display_name,phone,username',
+                'ownershipVerifications.verifier:id,name',
             ])
             ->latest('updated_at')
             ->get()
@@ -41,9 +44,18 @@ class GovernanceController extends Controller
                     return false;
                 }
 
-                return $m->unit && $actor->canVouchUnit($m->unit);
+                if (! $m->unit || ! $actor->canVouchUnit($m->unit)) {
+                    return false;
+                }
+
+                // Jangan tampilkan lagi di antrean pribadi jika pengurus ini sudah ikut mengesahkan
+                $alreadyEndorsedByMe = $m->ownershipVerifications->contains(
+                    fn (OwnershipVerification $v) => (int) $v->user_id === (int) $actor->id
+                );
+
+                return ! $alreadyEndorsedByMe;
             })
-            ->map(function (UnitMembership $m) {
+            ->map(function (UnitMembership $m) use ($canSeeRawNib) {
                 $fullName = $m->user?->name ?? 'Warga';
                 $displayName = $m->user?->profile?->display_name;
 
@@ -57,7 +69,11 @@ class GovernanceController extends Controller
                     'unit_code' => $m->unit->code,
                     'zone' => $m->unit->zone,
                     'owner_role_label' => ($m->owner_role === 'co_owner') ? 'Pemilik Bersama' : 'Pemilik Utama',
-                    'nib_shm_plain' => $m->nib_shm_encrypted,
+                    'can_see_raw_nib' => $canSeeRawNib,
+                    'nib_shm_plain' => $canSeeRawNib ? $m->nib_shm_encrypted : null,
+                    'nib_shm_masked' => '•••••••••••••••• (Nomor NIB SHM Terisi & Terenkripsi)',
+                    'endorsement_count' => $m->ownershipVerifications->count(),
+                    'endorsed_by_sentence' => $m->endorsed_by_sentence,
                     'submitted_at' => $m->updated_at?->diffForHumans(),
                 ];
             })
@@ -83,6 +99,7 @@ class GovernanceController extends Controller
                 'memberships' => fn ($q) => $q->orderByDesc('is_approved')->orderByDesc('is_primary_contact'),
                 'memberships.user:id,name',
                 'memberships.user.profile:id,user_id,display_name,phone,username,is_verified',
+                'memberships.ownershipVerifications.verifier:id,name',
             ])
             ->orderBy('sort_order')
             ->orderBy('id')
@@ -110,14 +127,17 @@ class GovernanceController extends Controller
                 ->pluck('user_id');
         })->unique()->count();
 
-        $formattedUnits = $units->map(function (Unit $unit) use ($subRoleLabels, $actor) {
+        $canSeeRawNib = $actor->canViewPlainNibShm();
+
+        $formattedUnits = $units->map(function (Unit $unit) use ($subRoleLabels, $actor, $canSeeRawNib) {
             $canVerifyUnit = $actor->canVouchUnit($unit);
 
-            $members = $unit->memberships->map(function ($m) use ($subRoleLabels, $canVerifyUnit) {
+            $members = $unit->memberships->map(function ($m) use ($subRoleLabels, $canVerifyUnit, $actor, $canSeeRawNib) {
                 $fullName = $m->user?->name ?? 'Warga';
                 $displayName = $m->user?->profile?->display_name;
                 $isOwner = (bool) ($m->is_owner ?? ($m->entity_type === 'owner'));
                 $isOccupant = (bool) ($m->is_occupant ?? true);
+                $hasNib = ! empty($m->nib_shm_encrypted);
 
                 $roleParts = [];
                 if ($isOwner) {
@@ -129,6 +149,10 @@ class GovernanceController extends Controller
                     $roleParts[] = 'Tidak Menghuni';
                 }
 
+                $isEndorsedByMe = $m->ownershipVerifications->contains(
+                    fn (OwnershipVerification $v) => (int) $v->user_id === (int) $actor->id
+                );
+
                 return [
                     'membership_id' => $m->id,
                     'user_id' => $m->user_id,
@@ -139,8 +163,13 @@ class GovernanceController extends Controller
                     'is_owner' => $isOwner,
                     'is_occupant' => $isOccupant,
                     'ownership_verification_status' => $m->ownership_verification_status ?: ($isOwner ? 'unverified_claim' : 'none'),
-                    'has_nib_shm' => ! empty($m->nib_shm_encrypted),
-                    'nib_shm_plain' => $canVerifyUnit ? $m->nib_shm_encrypted : null,
+                    'has_nib_shm' => $hasNib,
+                    'can_see_raw_nib' => $canSeeRawNib,
+                    'nib_shm_plain' => ($canVerifyUnit && $canSeeRawNib) ? $m->nib_shm_encrypted : null,
+                    'nib_shm_masked' => $hasNib ? '•••••••••••••••• (Terenkripsi & Tertutup)' : null,
+                    'endorsement_count' => $m->ownershipVerifications->count(),
+                    'endorsed_by_sentence' => $m->endorsed_by_sentence,
+                    'is_endorsed_by_me' => $isEndorsedByMe,
                     'can_verify_ownership' => $canVerifyUnit,
                     'entity_type' => $m->entity_type,
                     'sub_role' => $m->sub_role,
@@ -403,7 +432,7 @@ class GovernanceController extends Controller
                 ],
             ]);
 
-            $user->unitMemberships()->create([
+            $membership = $user->unitMemberships()->create([
                 'unit_id' => $unit->id,
                 'is_owner' => $isOwner,
                 'owner_role' => $ownerRole,
@@ -418,6 +447,17 @@ class GovernanceController extends Controller
                 'is_primary_contact' => $ownerRole === 'primary_owner' || $residentRole === 'primary_resident',
                 'is_approved' => true,
             ]);
+
+            if ($ownershipStatus === 'verified_shm') {
+                $roleInfo = $actor->resolveVerifierRoleForUnit($unit);
+                OwnershipVerification::create([
+                    'unit_membership_id' => $membership->id,
+                    'user_id' => $actor->id,
+                    'role_code' => $roleInfo['role_code'],
+                    'role_label' => $roleInfo['role_label'],
+                    'verified_at' => now(),
+                ]);
+            }
 
             VerificationVoucher::create([
                 'target_user_id' => $user->id,

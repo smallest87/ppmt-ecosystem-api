@@ -62,6 +62,7 @@ class SiteplanController extends Controller
                 'memberships' => fn ($q) => $q->orderByDesc('is_approved')->orderByDesc('is_primary_contact'),
                 'memberships.user:id,name',
                 'memberships.user.profile:id,user_id,display_name,phone,username,is_verified,privacy_settings',
+                'memberships.ownershipVerifications.verifier:id,name',
                 'umkmStores' => fn ($q) => $q->whereIn('status', ['open', 'open_po']),
             ])
             ->orderByRaw("
@@ -137,6 +138,7 @@ class SiteplanController extends Controller
                         $isOwner = (bool) ($m->is_owner ?? ($m->entity_type === 'owner'));
                         $isOccupant = (bool) ($m->is_occupant ?? true);
                         $ownershipStatus = $m->ownership_verification_status ?: ($isOwner ? 'unverified_claim' : 'none');
+                        $isVerifiedShm = $canSeeOwnership && $isOwner && $ownershipStatus === 'verified_shm';
 
                         $roleParts = [];
                         if ($isOwner) {
@@ -156,7 +158,9 @@ class SiteplanController extends Controller
                             'is_owner' => $canSeeOwnership ? $isOwner : false,
                             'is_occupant' => $canSeeOwnership ? $isOccupant : true,
                             'ownership_verification_status' => $canSeeOwnership ? $ownershipStatus : 'none',
-                            'is_verified_shm' => $canSeeOwnership && $isOwner && $ownershipStatus === 'verified_shm',
+                            'is_verified_shm' => $isVerifiedShm,
+                            'endorsement_count' => $isVerifiedShm ? $m->ownershipVerifications->count() : 0,
+                            'endorsed_by_sentence' => $isVerifiedShm ? $m->endorsed_by_sentence : null,
                             'entity_type' => $canSeeOwnership ? $m->entity_type : 'member',
                             'sub_role' => $canSeeOwnership ? $m->sub_role : null,
                             'sub_role_label' => $canSeeOwnership ? implode(' • ', $roleParts) : 'Warga Terverifikasi',
@@ -198,6 +202,8 @@ class SiteplanController extends Controller
                 return [
                     'name' => $canSeeFullName ? $fullName : $publicName,
                     'is_verified_shm' => $isVerifiedShm,
+                    'endorsement_count' => $isVerifiedShm ? $m->ownershipVerifications->count() : 0,
+                    'endorsed_by_sentence' => ($canSeeOwnership && $isVerifiedShm) ? $m->endorsed_by_sentence : null,
                     'owner_role' => $canSeeOwnership ? ($m->owner_role ?: 'primary_owner') : null,
                 ];
             })->values();

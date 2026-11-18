@@ -44,18 +44,18 @@
             </div>
         </section>
 
-        <!-- BANNER NOTIFIKASI PENGESAHAN NIB SHM (Muncul otomatis jika ada warga mengirim NIB SHM) -->
+        <!-- BANNER NOTIFIKASI PENGESAHAN NIB SHM (Muncul otomatis jika ada klaim NIB SHM yang belum Anda sahkan) -->
         <section x-show="pendingOwnerships.length > 0"
                  class="bg-amber-50 border-2 border-amber-400 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="space-y-1">
                 <div class="flex items-center gap-2">
                     <span class="px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[11px] font-extrabold">
-                        &#128196; <span x-text="pendingOwnerships.length"></span> Pengajuan Bukti NIB SHM
+                        &#128196; <span x-text="pendingOwnerships.length"></span> Berkas NIB SHM Menunggu Pengesahan Anda
                     </span>
-                    <span class="text-xs font-bold text-amber-950">Menunggu Pemeriksaan &amp; Pengesahan Pengurus</span>
+                    <span class="text-xs font-bold text-amber-950">Verifikasi Kolektif Kepemilikan Kavling</span>
                 </div>
                 <p class="text-xs text-amber-900">
-                    Terdapat warga yang telah menginputkan Nomor NIB / SHM untuk verifikasi kepemilikan kavling di wilayah cakupan Anda.
+                    Warga di wilayah cakupan Anda telah menginputkan nomor NIB SHM terenkripsi. Tambahkan pengesahan jabatan Anda untuk memperkuat kredibilitas kepemilikan kavling.
                 </p>
             </div>
             <a href="#antrean-nib-shm"
@@ -116,7 +116,7 @@
         </section>
 
         <!-- ================================================================= -->
-        <!-- MODUL ANTREAN VERIFIKASI NIB SHM (LANGSUNG TERLIHAT DI ATAS)      -->
+        <!-- MODUL ANTREAN VERIFIKASI NIB SHM KOLEKTIF                         -->
         <!-- ================================================================= -->
         <section id="antrean-nib-shm"
                  x-show="pendingOwnerships.length > 0"
@@ -129,7 +129,7 @@
                               x-text="pendingOwnerships.length"></span>
                     </div>
                     <p class="text-xs text-slate-500 mt-0.5">
-                        Cocokkan nomor NIB / SHM yang diinputkan warga dengan data kepemilikan fisik kavling sebelum mengesahkan.
+                        Nomor NIB SHM dirahasiakan penuh secara sistem; pengurus mengesahkan berdasarkan kecocokan data pemilik kavling di lapangan. Makin banyak pejabat yang mengesahkan, makin kredibel status kepemilikannya.
                     </p>
                 </div>
             </div>
@@ -150,16 +150,29 @@
                             <div class="text-slate-600"
                                  x-text="item.owner_role_label + ' • ' + item.zone + ' • Kontak: ' + item.contact"></div>
 
-                            <div class="p-2.5 rounded-lg bg-white border border-amber-200 font-mono text-xs text-slate-900">
-                                Nomor NIB / SHM: <strong class="text-emerald-800" x-text="item.nib_shm_plain"></strong>
+                            <!-- Status Input NIB SHM (Tertutup Penuh bagi Pengurus Sosial/Admin, Terbuka Hanya bagi Otoritas Legal) -->
+                            <div class="p-2.5 rounded-lg bg-white border border-amber-200 text-xs text-slate-800 flex items-center justify-between gap-2">
+                                <span>
+                                    Berkas NIB SHM:
+                                    <strong class="font-mono text-slate-900"
+                                            x-text="item.can_see_raw_nib ? item.nib_shm_plain : item.nib_shm_masked"></strong>
+                                </span>
+                                <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-semibold shrink-0"
+                                      x-text="item.can_see_raw_nib ? 'Akses Legal' : 'Rahasia Tertutup'"></span>
+                            </div>
+
+                            <!-- Keterangan jika sudah ada pejabat lain yang mengesahkan lebih dulu -->
+                            <div x-show="item.endorsed_by_sentence"
+                                 class="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-[11px] font-semibold text-emerald-900">
+                                &#10003; <span x-text="item.endorsed_by_sentence"></span>
                             </div>
                         </div>
 
-                        <div class="flex items-center justify-end gap-2 pt-1 border-t border-amber-200/70">
+                        <div class="flex items-center justify-end gap-2 pt-1.5 border-t border-amber-200/70">
                             <button type="button"
                                     @click="verifyUnitOwnership(item.unit_code, item, 'approve_shm')"
                                     class="px-3.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-xs transition cursor-pointer">
-                                ✓ Sahkan NIB SHM
+                                <span x-text="item.endorsement_count > 0 ? '+ Tambahkan Pengesahan Saya' : '✓ Sahkan NIB SHM'"></span>
                             </button>
                         </div>
                     </div>
@@ -1049,7 +1062,7 @@
                                             <option value="co_owner">Pemilik Bersama</option>
                                         </select>
                                         <input type="text" x-model="assistForm.nib_shm"
-                                               placeholder="Nomor NIB SHM (isi jika sudah diverifikasi)"
+                                               placeholder="Nomor NIB SHM (opsional, otomatis terenkripsi)"
                                                class="w-full rounded-lg border-slate-300 text-xs font-mono uppercase">
                                     </div>
                                 </div>
@@ -1290,35 +1303,42 @@
                                              x-text="'Masa sewa s/d: ' + m.valid_until">
                                         </div>
 
-                                        <!-- Status Verifikasi Kepemilikan NIB SHM & Tombol Pengesahan Pengurus -->
+                                        <!-- Status Verifikasi Kepemilikan NIB SHM Kolektif & Masking Penuh -->
                                         <div x-show="m.is_owner" class="mt-1.5 pt-1.5 border-t border-slate-100 space-y-1.5">
                                             <div class="flex flex-wrap items-center justify-between gap-1">
                                                 <span x-show="m.ownership_verification_status === 'verified_shm'"
                                                       class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px] font-bold">
-                                                    &#10003; NIB SHM Terverifikasi
+                                                    &#10003; NIB SHM Sah (<span x-text="m.endorsement_count"></span> Pengesah)
                                                 </span>
                                                 <span x-show="m.ownership_verification_status !== 'verified_shm'"
                                                       class="px-2 py-0.5 rounded bg-amber-100 text-amber-950 border border-dashed border-amber-400 text-[10px] font-bold">
-                                                    &#9888; Klaim Tanpa NIB SHM
+                                                    &#9888; Klaim Tanpa Bukti NIB SHM
                                                 </span>
 
-                                                <button x-show="m.can_verify_ownership && m.ownership_verification_status !== 'verified_shm'"
+                                                <button x-show="m.can_verify_ownership && !m.is_endorsed_by_me"
                                                         type="button"
                                                         @click="verifyUnitOwnership(u.code, m, 'approve_shm')"
-                                                        class="px-2 py-0.5 rounded bg-emerald-700 hover:bg-emerald-800 text-white text-[10px] font-bold transition cursor-pointer">
-                                                    Sahkan SHM
+                                                        class="px-2 py-0.5 rounded bg-emerald-700 hover:bg-emerald-800 text-white text-[10px] font-bold transition cursor-pointer"
+                                                        x-text="m.endorsement_count > 0 ? '+ Sahkan Juga' : 'Sahkan SHM'">
                                                 </button>
 
-                                                <button x-show="m.can_verify_ownership && m.ownership_verification_status === 'verified_shm'"
+                                                <button x-show="m.can_verify_ownership && m.is_endorsed_by_me"
                                                         type="button"
                                                         @click="verifyUnitOwnership(u.code, m, 'revoke_shm')"
                                                         class="px-2 py-0.5 rounded border border-slate-200 hover:bg-rose-50 text-rose-600 text-[10px] font-semibold transition cursor-pointer">
-                                                    Cabut SHM
+                                                    Cabut Pengesahan Saya
                                                 </button>
                                             </div>
 
-                                            <div x-show="m.nib_shm_plain" class="text-[10px] font-mono text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
-                                                NIB/SHM: <strong x-text="m.nib_shm_plain"></strong>
+                                            <!-- Rincian Siapa Saja yang Mengesahkan -->
+                                            <div x-show="m.endorsed_by_sentence"
+                                                 class="text-[10px] text-emerald-800 font-medium leading-snug bg-emerald-50/80 px-2 py-1 rounded border border-emerald-200/80"
+                                                 x-text="m.endorsed_by_sentence">
+                                            </div>
+
+                                            <!-- Status Input NIB SHM (Tertutup Penuh bagi Pengurus Sosial/Admin) -->
+                                            <div x-show="m.has_nib_shm" class="text-[10px] font-mono text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                                                NIB/SHM: <strong x-text="m.can_see_raw_nib ? m.nib_shm_plain : m.nib_shm_masked"></strong>
                                             </div>
                                         </div>
                                     </div>
@@ -2507,16 +2527,23 @@ function ppmtAdminPanel() {
         },
 
         async verifyUnitOwnership(unitCode, member, action) {
-            let nibInput = member.nib_shm_plain || '';
+            let nibInput = '';
+
             if (action === 'approve_shm') {
-                const entered = prompt(
-                    `Konfirmasi / masukkan Nomor NIB SHM untuk ${member.name} (Kavling ${unitCode}):\n(Kosongkan jika sudah terverifikasi fisik secara langsung)`,
-                    nibInput
-                );
-                if (entered === null) return;
-                nibInput = entered.trim();
+                if (member.can_see_raw_nib) {
+                    const entered = prompt(
+                        `Konfirmasi / masukkan Nomor NIB SHM untuk ${member.name} (Kavling ${unitCode}):`,
+                        member.nib_shm_plain || ''
+                    );
+                    if (entered === null) return;
+                    nibInput = entered.trim();
+                } else {
+                    if (!confirm(`Sahkan bukti kepemilikan NIB SHM untuk ${member.name} pada Kavling ${unitCode} atas nama jabatan Anda?`)) {
+                        return;
+                    }
+                }
             } else {
-                if (!confirm(`Kembalikan status kepemilikan ${member.name} pada Kavling ${unitCode} menjadi "Klaim Sepihak Tanpa Bukti NIB SHM"?`)) {
+                if (!confirm(`Cabut pengesahan Anda atas klaim kepemilikan ${member.name} pada Kavling ${unitCode}?\n(Pengesahan dari pejabat lain, jika ada, akan tetap dipertahankan)`)) {
                     return;
                 }
             }
@@ -2536,7 +2563,7 @@ function ppmtAdminPanel() {
                 await Promise.all([this.loadPendingOwnerships(), this.loadOccupancyRegistry()]);
             } else {
                 this.toastType = 'error';
-                this.toastMessage = json.message || 'Gagal memproses status NIB SHM.';
+                this.toastMessage = json.message || 'Gagal memproses pengesahan NIB SHM.';
             }
         }
     }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\OwnershipVerification;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\VerificationVoucher;
@@ -109,7 +110,6 @@ class VerificationController extends Controller
                 ->pluck('unit_id');
 
             $query->where(function ($q) use ($voucher, $managedZones, $managedBlocks, $ownedUnitIds) {
-                // Pengajuan yang menunjuk user ini langsung sebagai penjamin
                 $q->orWhere('guarantor_user_id', $voucher->id);
 
                 if ($managedZones->isNotEmpty()) {
@@ -160,17 +160,43 @@ class VerificationController extends Controller
 
         $actor = $request->user();
 
-        DB::transaction(function () use ($membership, $validated, $actor) {
+        $summaryText = DB::transaction(function () use ($membership, $validated, $actor, $unit) {
             if ($validated['action'] === 'approve_shm') {
-                $nib = ! empty($validated['nib_shm'])
-                    ? strtoupper(trim($validated['nib_shm']))
-                    : $membership->nib_shm_encrypted;
+                // Hanya peran legal (developer/bpn) yang dapat mengganti angka NIB SHM bila sudah diisi warga
+                if ($actor->canViewPlainNibShm() && ! empty($validated['nib_shm'])) {
+                    $membership->nib_shm_encrypted = strtoupper(trim($validated['nib_shm']));
+                }
 
+                $roleInfo = $actor->resolveVerifierRoleForUnit($unit);
+
+                OwnershipVerification::updateOrCreate(
+                    [
+                        'unit_membership_id' => $membership->id,
+                        'user_id' => $actor->id,
+                    ],
+                    [
+                        'role_code' => $roleInfo['role_code'],
+                        'role_label' => $roleInfo['role_label'],
+                        'verified_at' => now(),
+                    ]
+                );
+            } else {
+                // Hanya mencabut pengesahan milik aktor ini sendiri; pengesah lain tetap utuh
+                OwnershipVerification::where('unit_membership_id', $membership->id)
+                    ->where('user_id', $actor->id)
+                    ->delete();
+            }
+
+            $remaining = OwnershipVerification::where('unit_membership_id', $membership->id)
+                ->orderBy('verified_at')
+                ->get();
+
+            if ($remaining->isNotEmpty()) {
+                $first = $remaining->first();
                 $membership->update([
-                    'nib_shm_encrypted' => $nib,
                     'ownership_verification_status' => 'verified_shm',
-                    'ownership_verified_at' => now(),
-                    'ownership_verified_by_user_id' => $actor->id,
+                    'ownership_verified_at' => $first->verified_at,
+                    'ownership_verified_by_user_id' => $first->user_id,
                 ]);
             } else {
                 $membership->update([
@@ -188,15 +214,17 @@ class VerificationController extends Controller
             $membership->user->profile()->update([
                 'is_ownership_doc_verified' => $hasAnyVerifiedShm,
             ]);
+
+            return $membership->fresh('ownershipVerifications.verifier')->endorsed_by_sentence;
         });
 
         $msg = $validated['action'] === 'approve_shm'
-            ? "Bukti NIB SHM {$membership->user->name} pada Kavling {$unit->code} telah disahkan."
-            : "Status NIB SHM {$membership->user->name} dikembalikan menjadi klaim belum terverifikasi.";
+            ? "Pengesahan Anda untuk bukti NIB SHM {$membership->user->name} (Kavling {$unit->code}) telah dicatat. Status saat ini: {$summaryText}."
+            : "Pengesahan Anda atas klaim {$membership->user->name} (Kavling {$unit->code}) telah ditarik kembali.";
 
         return response()->json([
             'message' => $msg,
-            'data' => $membership->fresh(),
+            'data' => $membership->fresh('ownershipVerifications.verifier'),
         ]);
     }
 }

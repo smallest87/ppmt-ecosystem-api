@@ -346,7 +346,7 @@
                                             <div :class="m.is_approved ? 'bg-amber-50/60 border-amber-300' : 'bg-amber-100/80 border-amber-400'"
                                                  class="relative p-3 rounded-xl border text-xs space-y-1.5 shadow-2xs">
                                                 <!-- Ikon Berkas Kepemilikan (Solid jika Terverifikasi NIB SHM, Garis Putus-putus jika Klaim Sepihak) -->
-                                                <span :title="m.is_verified_shm ? 'Klaim Terverifikasi dengan Bukti NIB SHM' : 'Klaim Sepihak Tanpa Bukti NIB SHM (Belum Terverifikasi)'"
+                                                <span :title="m.is_verified_shm ? (m.endorsed_by_sentence || 'Klaim Terverifikasi dengan Bukti NIB SHM') : 'Klaim Sepihak Tanpa Bukti NIB SHM (Belum Terverifikasi)'"
                                                       :class="m.is_verified_shm
                                                         ? 'bg-emerald-600 border-emerald-700 text-white'
                                                         : 'bg-amber-100 border-dashed border-amber-700 text-amber-900'"
@@ -364,8 +364,8 @@
                                                         <div class="font-bold text-slate-900" x-text="m.name"></div>
                                                         <div class="text-[11px] text-amber-900 font-medium" x-text="m.sub_role_label"></div>
                                                         <div :class="m.is_verified_shm ? 'text-emerald-700 font-bold' : 'text-amber-800 font-semibold'"
-                                                             class="text-[10px]"
-                                                             x-text="m.is_verified_shm ? '✓ Terverifikasi Bukti NIB SHM' : '⚠ Klaim Sepihak Tanpa Bukti NIB SHM'">
+                                                             class="text-[10px] leading-snug"
+                                                             x-text="m.is_verified_shm ? ('✓ ' + (m.endorsed_by_sentence || 'Terverifikasi Bukti NIB SHM')) : '⚠ Klaim Sepihak Tanpa Bukti NIB SHM'">
                                                         </div>
                                                     </div>
                                                     <span :class="m.is_approved ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-200 text-amber-950'"
@@ -430,7 +430,7 @@
 
                                                 <!-- Ikon Berkas HANYA muncul jika penghuni ini juga berstatus Pemilik -->
                                                 <span x-show="m.hasOwnerDocument"
-                                                      :title="m.is_verified_shm ? 'Pemilik Terverifikasi dengan Bukti NIB SHM' : 'Klaim Pemilik Sepihak Tanpa Bukti NIB SHM (Belum Terverifikasi)'"
+                                                      :title="m.is_verified_shm ? (m.endorsed_by_sentence || 'Pemilik Terverifikasi dengan Bukti NIB SHM') : 'Klaim Pemilik Sepihak Tanpa Bukti NIB SHM (Belum Terverifikasi)'"
                                                       :class="m.is_verified_shm
                                                         ? 'bg-emerald-600 border-emerald-700 text-white'
                                                         : 'bg-amber-100 border-dashed border-amber-700 text-amber-900'"
@@ -449,8 +449,8 @@
                                                         <div class="text-[11px] text-slate-500" x-text="m.sub_role_label"></div>
                                                         <div x-show="m.hasOwnerDocument"
                                                              :class="m.is_verified_shm ? 'text-emerald-700 font-bold' : 'text-amber-800 font-semibold'"
-                                                             class="text-[10px]"
-                                                             x-text="m.is_verified_shm ? '✓ Terverifikasi Bukti NIB SHM' : '⚠ Klaim Sepihak Tanpa Bukti NIB SHM'">
+                                                             class="text-[10px] leading-snug"
+                                                             x-text="m.is_verified_shm ? ('✓ ' + (m.endorsed_by_sentence || 'Terverifikasi Bukti NIB SHM')) : '⚠ Klaim Sepihak Tanpa Bukti NIB SHM'">
                                                         </div>
                                                     </div>
                                                     <span :class="m.is_approved ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-200 text-amber-950'"

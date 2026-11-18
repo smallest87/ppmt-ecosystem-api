@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class UnitMembership extends Model
 {
@@ -33,6 +34,7 @@ class UnitMembership extends Model
     protected $appends = [
         'has_nib_shm',
         'ownership_status_label',
+        'endorsed_by_sentence',
     ];
 
     protected function casts(): array
@@ -60,9 +62,40 @@ class UnitMembership extends Model
         }
 
         return match ($this->ownership_verification_status) {
-            'verified_shm' => 'Klaim Terverifikasi (Bukti NIB SHM Sah)',
+            'verified_shm' => $this->endorsed_by_sentence ?: 'Klaim Terverifikasi (Bukti NIB SHM Sah)',
             default => 'Klaim Sepihak Tanpa Bukti NIB SHM (Belum Terverifikasi)',
         };
+    }
+
+    public function getEndorsedBySentenceAttribute(): ?string
+    {
+        if (! $this->is_owner) {
+            return null;
+        }
+
+        $verifications = $this->relationLoaded('ownershipVerifications')
+            ? $this->ownershipVerifications
+            : $this->ownershipVerifications()->with('verifier:id,name')->get();
+
+        if ($verifications->isEmpty()) {
+            return null;
+        }
+
+        $labels = $verifications->map(function (OwnershipVerification $v) {
+            $name = $v->verifier?->name ?? 'Pengurus';
+            return $v->role_label ? "{$name} ({$v->role_label})" : $name;
+        })->values()->all();
+
+        $count = count($labels);
+        if ($count === 1) {
+            return 'Disahkan oleh ' . $labels[0];
+        }
+        if ($count === 2) {
+            return 'Disahkan oleh ' . $labels[0] . ' dan ' . $labels[1];
+        }
+
+        $last = array_pop($labels);
+        return 'Disahkan oleh ' . implode(', ', $labels) . ', dan ' . $last;
     }
 
     public function unit(): BelongsTo
@@ -83,5 +116,10 @@ class UnitMembership extends Model
     public function ownershipVerifiedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'ownership_verified_by_user_id');
+    }
+
+    public function ownershipVerifications(): HasMany
+    {
+        return $this->hasMany(OwnershipVerification::class)->orderBy('verified_at');
     }
 }
