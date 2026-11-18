@@ -428,7 +428,7 @@ function ppmtWaReconcilePage() {
             const unitCode = c.matched_unit?.code || c.detected_unit_code || '';
             if (unitCode) params.set('prefill_unit', unitCode);
 
-            return '/pengurus?' + params.toString() + '#assisted-register';
+            return '/pengurus/buku-induk?' + params.toString() + '#assisted-register';
         },
 
         async init() {

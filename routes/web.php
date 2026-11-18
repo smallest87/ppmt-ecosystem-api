@@ -13,6 +13,16 @@ Route::prefix('pengaturan')->name('pengaturan.')->group(function () {
     Route::view('/hunian', 'pengaturan.hunian')->name('hunian');
 });
 
+// Panel Pengurus Modular (Hub + Sub-halaman Terfokus)
+Route::prefix('pengurus')->name('pengurus.')->group(function () {
+    Route::view('/', 'admin')->name('index');
+    Route::view('/keuangan', 'pengurus.keuangan')->name('keuangan');
+    Route::view('/publikasi', 'pengurus.publikasi')->name('publikasi');
+    Route::view('/buku-induk', 'pengurus.buku-induk')->name('buku-induk');
+    Route::view('/pemadupadanan-kontak', 'admin-wa-contacts')->name('wa-contacts');
+});
+Route::redirect('/admin', '/pengurus');
+
 Route::view('/komunitas', 'komunitas')->name('komunitas');
 Route::view('/peta-kavling', 'siteplan')->name('siteplan');
 Route::view('/pengurus', 'admin')->name('pengurus');
