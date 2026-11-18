@@ -44,6 +44,26 @@
             </div>
         </section>
 
+        <!-- BANNER NOTIFIKASI PENGESAHAN NIB SHM (Muncul otomatis jika ada warga mengirim NIB SHM) -->
+        <section x-show="pendingOwnerships.length > 0"
+                 class="bg-amber-50 border-2 border-amber-400 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[11px] font-extrabold">
+                        &#128196; <span x-text="pendingOwnerships.length"></span> Pengajuan Bukti NIB SHM
+                    </span>
+                    <span class="text-xs font-bold text-amber-950">Menunggu Pemeriksaan &amp; Pengesahan Pengurus</span>
+                </div>
+                <p class="text-xs text-amber-900">
+                    Terdapat warga yang telah menginputkan Nomor NIB / SHM untuk verifikasi kepemilikan kavling di wilayah cakupan Anda.
+                </p>
+            </div>
+            <a href="#antrean-nib-shm"
+               class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-extrabold transition shrink-0 text-center">
+                Periksa &amp; Sahkan Sekarang ↓
+            </a>
+        </section>
+
         <!-- ================================================================= -->
         <!-- STATS STRIP: RINGKASAN KONDISI HUNIAN & ADMINISTRASI              -->
         <!-- ================================================================= -->
@@ -73,13 +93,13 @@
             <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm">
                 <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Antrean Verifikasi</div>
                 <div class="mt-1.5 flex items-baseline gap-1.5">
-                    <span :class="pendingApprovals.length > 0 ? 'text-amber-600' : 'text-slate-900'"
+                    <span :class="(pendingApprovals.length + pendingOwnerships.length) > 0 ? 'text-amber-600' : 'text-slate-900'"
                           class="text-2xl font-extrabold"
-                          x-text="pendingApprovals.length"></span>
-                    <span class="text-xs font-semibold text-slate-400">pendaftar</span>
+                          x-text="pendingApprovals.length + pendingOwnerships.length"></span>
+                    <span class="text-xs font-semibold text-slate-400">berkas</span>
                 </div>
                 <div class="text-[11px] text-slate-500 mt-1"
-                     x-text="(registryStats?.pending_units ?? 0) + ' kavling berstatus pending'">
+                     x-text="pendingApprovals.length + ' warga baru • ' + pendingOwnerships.length + ' NIB SHM'">
                 </div>
             </div>
 
@@ -92,6 +112,58 @@
                 <div class="text-[11px] text-slate-500 mt-1"
                      x-text="(registryStats?.total_minutes ?? 0) + ' dokumen notulensi & tatib'">
                 </div>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- MODUL ANTREAN VERIFIKASI NIB SHM (LANGSUNG TERLIHAT DI ATAS)      -->
+        <!-- ================================================================= -->
+        <section id="antrean-nib-shm"
+                 x-show="pendingOwnerships.length > 0"
+                 class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border-2 border-amber-300 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-base font-bold text-slate-900">Antrean Pengesahan Bukti Kepemilikan (NIB SHM)</h2>
+                        <span class="px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-xs font-extrabold"
+                              x-text="pendingOwnerships.length"></span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-0.5">
+                        Cocokkan nomor NIB / SHM yang diinputkan warga dengan data kepemilikan fisik kavling sebelum mengesahkan.
+                    </p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                <template x-for="item in pendingOwnerships" :key="item.membership_id">
+                    <div class="p-4 rounded-xl bg-amber-50/70 border border-amber-300 flex flex-col justify-between gap-3">
+                        <div class="space-y-1.5 text-xs">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2.5 py-0.5 rounded-lg bg-slate-900 text-white font-extrabold"
+                                          x-text="item.unit_code"></span>
+                                    <span class="font-bold text-slate-900 text-sm" x-text="item.name"></span>
+                                </div>
+                                <span class="text-[11px] text-slate-500" x-text="item.submitted_at"></span>
+                            </div>
+
+                            <div class="text-slate-600"
+                                 x-text="item.owner_role_label + ' • ' + item.zone + ' • Kontak: ' + item.contact"></div>
+
+                            <div class="p-2.5 rounded-lg bg-white border border-amber-200 font-mono text-xs text-slate-900">
+                                Nomor NIB / SHM: <strong class="text-emerald-800" x-text="item.nib_shm_plain"></strong>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-end gap-2 pt-1 border-t border-amber-200/70">
+                            <button type="button"
+                                    @click="verifyUnitOwnership(item.unit_code, item, 'approve_shm')"
+                                    class="px-3.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-xs transition cursor-pointer">
+                                ✓ Sahkan NIB SHM
+                            </button>
+                        </div>
+                    </div>
+                </template>
             </div>
         </section>
 
@@ -964,35 +1036,40 @@
                             </select>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1">Entitas</label>
-                                <select x-model="assistForm.entity_type"
-                                        @change="assistForm.sub_role = assistForm.entity_type === 'owner' ? 'primary_owner' : 'primary_resident'"
-                                        class="w-full rounded-xl border-slate-300 text-xs">
-                                    <option value="owner">Pemilik Rumah</option>
-                                    <option value="resident">Penghuni</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 mb-1">Peran</label>
-                                <select x-model="assistForm.sub_role" class="w-full rounded-xl border-slate-300 text-xs">
-                                    <template x-if="assistForm.entity_type === 'owner'">
-                                        <optgroup label="Pemilik">
+                        <div class="space-y-2.5 p-3 rounded-xl bg-white/95 border border-emerald-200 text-xs">
+                            <div class="font-bold text-slate-800">Peran Tetangga di Kavling (Pilih satu atau keduanya):</div>
+
+                            <label class="flex items-start gap-2 cursor-pointer">
+                                <input type="checkbox" x-model="assistForm.is_owner" class="mt-0.5 rounded text-amber-600 focus:ring-amber-500">
+                                <div class="flex-1 space-y-1.5">
+                                    <span class="font-semibold text-slate-900">Pemilik Kavling</span>
+                                    <div x-show="assistForm.is_owner" class="space-y-1.5">
+                                        <select x-model="assistForm.owner_role" class="w-full rounded-lg border-slate-300 text-xs">
                                             <option value="primary_owner">Pemilik Utama</option>
                                             <option value="co_owner">Pemilik Bersama</option>
-                                        </optgroup>
-                                    </template>
-                                    <template x-if="assistForm.entity_type === 'resident'">
-                                        <optgroup label="Penghuni">
+                                        </select>
+                                        <input type="text" x-model="assistForm.nib_shm"
+                                               placeholder="Nomor NIB SHM (isi jika sudah diverifikasi)"
+                                               class="w-full rounded-lg border-slate-300 text-xs font-mono uppercase">
+                                    </div>
+                                </div>
+                            </label>
+
+                            <label class="flex items-start gap-2 cursor-pointer pt-1 border-t border-slate-100">
+                                <input type="checkbox" x-model="assistForm.is_occupant" class="mt-0.5 rounded text-emerald-600 focus:ring-emerald-600">
+                                <div class="flex-1 space-y-1.5">
+                                    <span class="font-semibold text-slate-900">Menghuni / Tinggal di Kavling</span>
+                                    <div x-show="assistForm.is_occupant">
+                                        <select x-model="assistForm.resident_role" class="w-full rounded-lg border-slate-300 text-xs">
                                             <option value="primary_resident">Penghuni Utama</option>
                                             <option value="family_member">Anggota Keluarga</option>
-                                            <option value="tenant">Penyewa / Kontrak</option>
-                                            <option value="caretaker">Penjaga Rumah</option>
-                                        </optgroup>
-                                    </template>
-                                </select>
-                            </div>
+                                            <option value="co_resident">Penghuni Bersama</option>
+                                            <option value="tenant" x-show="!assistForm.is_owner">Penyewa / Kontrak</option>
+                                            <option value="caretaker" x-show="!assistForm.is_owner">Penjaga Rumah</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </label>
                         </div>
 
                         <button type="submit"
@@ -1211,6 +1288,38 @@
                                         </div>
                                         <div x-show="m.valid_until" class="text-[10px] text-sky-700 font-semibold mt-0.5"
                                              x-text="'Masa sewa s/d: ' + m.valid_until">
+                                        </div>
+
+                                        <!-- Status Verifikasi Kepemilikan NIB SHM & Tombol Pengesahan Pengurus -->
+                                        <div x-show="m.is_owner" class="mt-1.5 pt-1.5 border-t border-slate-100 space-y-1.5">
+                                            <div class="flex flex-wrap items-center justify-between gap-1">
+                                                <span x-show="m.ownership_verification_status === 'verified_shm'"
+                                                      class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px] font-bold">
+                                                    &#10003; NIB SHM Terverifikasi
+                                                </span>
+                                                <span x-show="m.ownership_verification_status !== 'verified_shm'"
+                                                      class="px-2 py-0.5 rounded bg-amber-100 text-amber-950 border border-dashed border-amber-400 text-[10px] font-bold">
+                                                    &#9888; Klaim Tanpa NIB SHM
+                                                </span>
+
+                                                <button x-show="m.can_verify_ownership && m.ownership_verification_status !== 'verified_shm'"
+                                                        type="button"
+                                                        @click="verifyUnitOwnership(u.code, m, 'approve_shm')"
+                                                        class="px-2 py-0.5 rounded bg-emerald-700 hover:bg-emerald-800 text-white text-[10px] font-bold transition cursor-pointer">
+                                                    Sahkan SHM
+                                                </button>
+
+                                                <button x-show="m.can_verify_ownership && m.ownership_verification_status === 'verified_shm'"
+                                                        type="button"
+                                                        @click="verifyUnitOwnership(u.code, m, 'revoke_shm')"
+                                                        class="px-2 py-0.5 rounded border border-slate-200 hover:bg-rose-50 text-rose-600 text-[10px] font-semibold transition cursor-pointer">
+                                                    Cabut SHM
+                                                </button>
+                                            </div>
+
+                                            <div x-show="m.nib_shm_plain" class="text-[10px] font-mono text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                                                NIB/SHM: <strong x-text="m.nib_shm_plain"></strong>
+                                            </div>
                                         </div>
                                     </div>
                                 </template>
@@ -1523,6 +1632,7 @@ function ppmtAdminPanel() {
         toastMessage: '',
         toastType: 'success',
         pendingApprovals: [],
+        pendingOwnerships: [],
         verifiedResidents: [],
         governanceList: [],
         allUnits: [],
@@ -1623,8 +1733,11 @@ function ppmtAdminPanel() {
             name: '',
             phone: '',
             username: '',
-            entity_type: 'owner',
-            sub_role: 'primary_owner',
+            is_owner: true,
+            owner_role: 'primary_owner',
+            is_occupant: true,
+            resident_role: 'primary_resident',
+            nib_shm: '',
             password: ''
         },
 
@@ -1711,6 +1824,7 @@ function ppmtAdminPanel() {
 
             const tasks = [
                 this.loadPendingApprovals(),
+                this.loadPendingOwnerships(),
                 this.loadOccupancyRegistry()
             ];
             if (this.user?.can_view_treasury) {
@@ -2240,6 +2354,14 @@ function ppmtAdminPanel() {
             }
         },
 
+        async loadPendingOwnerships() {
+            const res = await fetch('/api/v1/verifications/ownership-pending', { headers: this.headers() });
+            if (res.ok) {
+                const json = await res.json();
+                this.pendingOwnerships = json.data || [];
+            }
+        },
+
         async loadGovernanceData() {
             const [govRes, dirRes, unitsRes] = await Promise.all([
                 fetch('/api/v1/governance/roles', { headers: this.headers() }),
@@ -2313,13 +2435,24 @@ function ppmtAdminPanel() {
                 return;
             }
 
+            if (!this.assistForm.is_owner && !this.assistForm.is_occupant) {
+                this.toastType = 'error';
+                this.toastMessage = 'Centang minimal satu peran: Pemilik Kavling atau Penghuni Kavling.';
+                return;
+            }
+
             const payload = {
                 unit_code: this.assistForm.unit_code,
                 name: this.assistForm.name,
                 phone: this.assistForm.phone || null,
                 username: this.assistForm.username || null,
-                entity_type: this.assistForm.entity_type,
-                sub_role: this.assistForm.sub_role,
+                is_owner: Boolean(this.assistForm.is_owner),
+                owner_role: this.assistForm.is_owner ? this.assistForm.owner_role : null,
+                is_occupant: Boolean(this.assistForm.is_occupant),
+                resident_role: this.assistForm.is_occupant ? this.assistForm.resident_role : null,
+                nib_shm: this.assistForm.is_owner && (this.assistForm.nib_shm || '').trim() !== ''
+                    ? this.assistForm.nib_shm.trim()
+                    : null,
                 password: this.assistForm.password
             };
 
@@ -2336,9 +2469,10 @@ function ppmtAdminPanel() {
                 this.assistForm.name = '';
                 this.assistForm.phone = '';
                 this.assistForm.username = '';
+                this.assistForm.nib_shm = '';
                 this.assistForm.password = '';
 
-                const afterRegisterTasks = [this.loadGovernanceData(), this.loadOccupancyRegistry()];
+                const afterRegisterTasks = [this.loadGovernanceData(), this.loadOccupancyRegistry(), this.loadPendingOwnerships()];
                 if (this.user?.is_operator_aplikasi) {
                     afterRegisterTasks.push(fetch('/api/v1/admin/wa-contacts/reconcile', {
                         method: 'POST',
@@ -2369,6 +2503,40 @@ function ppmtAdminPanel() {
             } else {
                 this.toastType = 'error';
                 this.toastMessage = json.message || 'Gagal mengesahkan warga.';
+            }
+        },
+
+        async verifyUnitOwnership(unitCode, member, action) {
+            let nibInput = member.nib_shm_plain || '';
+            if (action === 'approve_shm') {
+                const entered = prompt(
+                    `Konfirmasi / masukkan Nomor NIB SHM untuk ${member.name} (Kavling ${unitCode}):\n(Kosongkan jika sudah terverifikasi fisik secara langsung)`,
+                    nibInput
+                );
+                if (entered === null) return;
+                nibInput = entered.trim();
+            } else {
+                if (!confirm(`Kembalikan status kepemilikan ${member.name} pada Kavling ${unitCode} menjadi "Klaim Sepihak Tanpa Bukti NIB SHM"?`)) {
+                    return;
+                }
+            }
+
+            const res = await fetch(`/api/v1/verifications/ownership/${member.membership_id}`, {
+                method: 'POST',
+                headers: this.headers(),
+                body: JSON.stringify({
+                    action: action,
+                    nib_shm: nibInput || null
+                })
+            });
+            const json = await res.json();
+            if (res.ok) {
+                this.toastType = 'success';
+                this.toastMessage = json.message;
+                await Promise.all([this.loadPendingOwnerships(), this.loadOccupancyRegistry()]);
+            } else {
+                this.toastType = 'error';
+                this.toastMessage = json.message || 'Gagal memproses status NIB SHM.';
             }
         }
     }

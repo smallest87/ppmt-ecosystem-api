@@ -134,20 +134,73 @@ class SiteplanController extends Controller
                         $fullName = $user?->name ?? 'Warga';
                         $publicName = $profile?->display_name ?: explode(' ', trim($fullName))[0];
 
+                        $isOwner = (bool) ($m->is_owner ?? ($m->entity_type === 'owner'));
+                        $isOccupant = (bool) ($m->is_occupant ?? true);
+                        $ownershipStatus = $m->ownership_verification_status ?: ($isOwner ? 'unverified_claim' : 'none');
+
+                        $roleParts = [];
+                        if ($isOwner) {
+                            $roleParts[] = $subRoleLabels[$m->owner_role ?: 'primary_owner'] ?? 'Pemilik';
+                        }
+                        if ($isOccupant) {
+                            $roleParts[] = $subRoleLabels[$m->resident_role ?: 'primary_resident'] ?? 'Penghuni';
+                        } else {
+                            $roleParts[] = 'Tidak Menghuni';
+                        }
+
                         return [
                             'membership_id' => $m->id,
                             'user_id' => $m->user_id,
                             'name' => $canSeeFullName ? $fullName : $publicName,
                             'phone' => $canSeePhone ? $profile?->phone : null,
+                            'is_owner' => $canSeeOwnership ? $isOwner : false,
+                            'is_occupant' => $canSeeOwnership ? $isOccupant : true,
+                            'ownership_verification_status' => $canSeeOwnership ? $ownershipStatus : 'none',
+                            'is_verified_shm' => $canSeeOwnership && $isOwner && $ownershipStatus === 'verified_shm',
                             'entity_type' => $canSeeOwnership ? $m->entity_type : 'member',
                             'sub_role' => $canSeeOwnership ? $m->sub_role : null,
-                            'sub_role_label' => $canSeeOwnership ? ($subRoleLabels[$m->sub_role] ?? $m->sub_role) : 'Warga Terverifikasi',
+                            'sub_role_label' => $canSeeOwnership ? implode(' • ', $roleParts) : 'Warga Terverifikasi',
                             'is_approved' => (bool) $m->is_approved,
                             'is_primary_contact' => (bool) $m->is_primary_contact,
                         ];
                     })
                     ->values()
                 : collect();
+
+            // Ringkasan status bukti kepemilikan NIB SHM untuk ikon pada peta kavling
+            $approvedOwners = $isInteractive
+                ? $unit->memberships->filter(function ($m) {
+                    return $m->is_approved && (bool) ($m->is_owner ?? ($m->entity_type === 'owner'));
+                })
+                : collect();
+
+            $hasVerifiedShm = $approvedOwners->contains(
+                fn ($m) => ($m->ownership_verification_status ?: 'unverified_claim') === 'verified_shm'
+            );
+            $hasUnverifiedClaim = ! $hasVerifiedShm && $approvedOwners->isNotEmpty();
+
+            $ownersSummary = $approvedOwners->map(function ($m) use ($viewer, $hasGovernanceScopeOnUnit, $isMyUnit) {
+                $user = $m->user;
+                $profile = $user?->profile;
+                $privacy = $profile?->privacy_settings ?? [];
+
+                $bypassPrivacy = $hasGovernanceScopeOnUnit
+                    || $isMyUnit
+                    || ($user && (int) $user->id === (int) $viewer->id);
+
+                $canSeeFullName = $bypassPrivacy || ($privacy['show_full_name'] ?? false);
+                $canSeeOwnership = $bypassPrivacy || ($privacy['show_ownership'] ?? false);
+
+                $fullName = $user?->name ?? 'Warga';
+                $publicName = $profile?->display_name ?: explode(' ', trim($fullName))[0];
+                $isVerifiedShm = ($m->ownership_verification_status ?: 'unverified_claim') === 'verified_shm';
+
+                return [
+                    'name' => $canSeeFullName ? $fullName : $publicName,
+                    'is_verified_shm' => $isVerifiedShm,
+                    'owner_role' => $canSeeOwnership ? ($m->owner_role ?: 'primary_owner') : null,
+                ];
+            })->values();
 
             $activeStores = $isInteractive
                 ? $unit->umkmStores->map(fn ($store) => [
@@ -170,6 +223,10 @@ class SiteplanController extends Controller
                 'is_my_unit' => $isMyUnit,
                 'is_interactive' => $isInteractive,
                 'can_manage_unit' => $isInteractive && ($hasGovernanceScopeOnUnit || $canApproveUnit),
+                'has_owner_claim' => $approvedOwners->isNotEmpty(),
+                'has_verified_shm' => $hasVerifiedShm,
+                'has_unverified_claim' => $hasUnverifiedClaim,
+                'owners' => $ownersSummary,
                 'pending_count' => $isInteractive ? $unit->memberships->where('is_approved', false)->count() : 0,
                 'active_stores_count' => $activeStores->count(),
                 'active_stores' => $activeStores,

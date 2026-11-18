@@ -72,6 +72,9 @@ Route::prefix('v1')->group(function () {
         Route::middleware('warga.ppmt')->group(function () {
             Route::get('/verifications/pending', [VerificationController::class, 'pending']);
             Route::post('/verifications/approve', [VerificationController::class, 'approve']);
+            Route::get('/verifications/ownership-pending', [GovernanceController::class, 'pendingOwnershipVerifications']);
+            Route::post('/verifications/ownership/{membership}', [VerificationController::class, 'verifyOwnership']);
+
             Route::post('/units/{unit_code}/invites', [UnitInviteController::class, 'store']);
             Route::patch('/profile', [ProfileController::class, 'updateProgressiveProfile']);
             Route::patch('/memberships/{membership}', [ProfileController::class, 'updateMembershipRole']);
@@ -135,8 +138,6 @@ Route::prefix('v1')->group(function () {
 
             // Peta Kavling / Siteplan Internal (Hanya Warga PPMT Terverifikasi & Pengurus)
             Route::get('/siteplan/units', [SiteplanController::class, 'index']);
-
-            Route::post('/verifications/ownership/{membership}', [VerificationController::class, 'verifyOwnership']);
         });
     });
 });

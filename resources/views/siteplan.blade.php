@@ -302,15 +302,23 @@
                             </span>
                         </div>
 
-                        <!-- Legenda Mikro Ikon Berkas vs Bingkai -->
-                        <div class="flex flex-wrap items-center gap-3 text-[10px] text-slate-500 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200/80">
-                            <span class="inline-flex items-center gap-1 font-semibold text-amber-800">
-                                <span class="w-4 h-4 rounded bg-amber-400 text-slate-950 inline-flex items-center justify-center shadow-2xs">
+                        <!-- Legenda Mikro Ikon Berkas (NIB SHM) vs Bingkai Hunian -->
+                        <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[10px] text-slate-600 bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-200/80">
+                            <span class="inline-flex items-center gap-1 font-bold text-emerald-900">
+                                <span class="w-4 h-4 rounded bg-emerald-600 text-white inline-flex items-center justify-center shadow-2xs">
                                     <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
                                 </span>
-                                Status Pemilik
+                                Pemilik Sah (Terverifikasi Bukti NIB SHM)
+                            </span>
+                            <span class="inline-flex items-center gap-1 font-bold text-amber-900">
+                                <span class="w-4 h-4 rounded bg-amber-100 border border-dashed border-amber-700 text-amber-800 inline-flex items-center justify-center">
+                                    <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-dasharray="3 2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                </span>
+                                Klaim Sepihak Tanpa Bukti NIB SHM
                             </span>
                             <span class="inline-flex items-center gap-1 font-semibold text-emerald-800">
                                 <span class="w-3.5 h-3.5 rounded border-2 border-emerald-600 bg-emerald-50 inline-block"></span>
@@ -337,18 +345,28 @@
                                         <template x-for="m in unitRolesBreakdown.externalOwners" :key="m.membership_id">
                                             <div :class="m.is_approved ? 'bg-amber-50/60 border-amber-300' : 'bg-amber-100/80 border-amber-400'"
                                                  class="relative p-3 rounded-xl border text-xs space-y-1.5 shadow-2xs">
-                                                <!-- Ikon Berkas Kepemilikan di Sudut Kartu -->
-                                                <span title="Berkas Kepemilikan Kavling"
-                                                      class="absolute -top-2 -right-2 w-6 h-6 rounded-lg bg-amber-400 border border-amber-500 text-slate-950 flex items-center justify-center shadow-xs">
-                                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.3">
+                                                <!-- Ikon Berkas Kepemilikan (Solid jika Terverifikasi NIB SHM, Garis Putus-putus jika Klaim Sepihak) -->
+                                                <span :title="m.is_verified_shm ? 'Klaim Terverifikasi dengan Bukti NIB SHM' : 'Klaim Sepihak Tanpa Bukti NIB SHM (Belum Terverifikasi)'"
+                                                      :class="m.is_verified_shm
+                                                        ? 'bg-emerald-600 border-emerald-700 text-white'
+                                                        : 'bg-amber-100 border-dashed border-amber-700 text-amber-900'"
+                                                      class="absolute -top-2 -right-2 w-6 h-6 rounded-lg border flex items-center justify-center shadow-xs">
+                                                    <svg x-show="m.is_verified_shm" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                    </svg>
+                                                    <svg x-show="!m.is_verified_shm" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.1" stroke-dasharray="3 2">
                                                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                     </svg>
                                                 </span>
 
                                                 <div class="flex items-start justify-between gap-2 pr-5">
-                                                    <div>
+                                                    <div class="space-y-0.5">
                                                         <div class="font-bold text-slate-900" x-text="m.name"></div>
                                                         <div class="text-[11px] text-amber-900 font-medium" x-text="m.sub_role_label"></div>
+                                                        <div :class="m.is_verified_shm ? 'text-emerald-700 font-bold' : 'text-amber-800 font-semibold'"
+                                                             class="text-[10px]"
+                                                             x-text="m.is_verified_shm ? '✓ Terverifikasi Bukti NIB SHM' : '⚠ Klaim Sepihak Tanpa Bukti NIB SHM'">
+                                                        </div>
                                                     </div>
                                                     <span :class="m.is_approved ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-200 text-amber-950'"
                                                           class="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0"
@@ -412,17 +430,28 @@
 
                                                 <!-- Ikon Berkas HANYA muncul jika penghuni ini juga berstatus Pemilik -->
                                                 <span x-show="m.hasOwnerDocument"
-                                                      title="Pemilik Sekaligus Penghuni Kavling"
-                                                      class="absolute -top-2 -right-2 w-6 h-6 rounded-lg bg-amber-400 border border-amber-500 text-slate-950 flex items-center justify-center shadow-xs">
-                                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.3">
+                                                      :title="m.is_verified_shm ? 'Pemilik Terverifikasi dengan Bukti NIB SHM' : 'Klaim Pemilik Sepihak Tanpa Bukti NIB SHM (Belum Terverifikasi)'"
+                                                      :class="m.is_verified_shm
+                                                        ? 'bg-emerald-600 border-emerald-700 text-white'
+                                                        : 'bg-amber-100 border-dashed border-amber-700 text-amber-900'"
+                                                      class="absolute -top-2 -right-2 w-6 h-6 rounded-lg border flex items-center justify-center shadow-xs">
+                                                    <svg x-show="m.is_verified_shm" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                    </svg>
+                                                    <svg x-show="!m.is_verified_shm" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.1" stroke-dasharray="3 2">
                                                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                     </svg>
                                                 </span>
 
                                                 <div class="flex items-start justify-between gap-2" :class="m.hasOwnerDocument ? 'pr-5' : ''">
-                                                    <div>
+                                                    <div class="space-y-0.5">
                                                         <div class="font-bold text-slate-900" x-text="m.name"></div>
                                                         <div class="text-[11px] text-slate-500" x-text="m.sub_role_label"></div>
+                                                        <div x-show="m.hasOwnerDocument"
+                                                             :class="m.is_verified_shm ? 'text-emerald-700 font-bold' : 'text-amber-800 font-semibold'"
+                                                             class="text-[10px]"
+                                                             x-text="m.is_verified_shm ? '✓ Terverifikasi Bukti NIB SHM' : '⚠ Klaim Sepihak Tanpa Bukti NIB SHM'">
+                                                        </div>
                                                     </div>
                                                     <span :class="m.is_approved ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-200 text-amber-950'"
                                                           class="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0"
@@ -627,47 +656,33 @@ function ppmtSiteplan() {
             const insideOccupants = [];
             const privateMembers = [];
 
-            const explicitResidentUserIds = new Set(
-                unit.members
-                    .filter(m => m.entity_type === 'resident')
-                    .map(m => m.user_id)
-            );
-
-            const hasExternalTenantOrResident = unit.members.some(m =>
-                m.entity_type === 'resident' && ['tenant', 'primary_resident'].includes(m.sub_role)
-            );
-
             for (const m of unit.members) {
-                // 1. Warga yang menyembunyikan status kepemilikan/huniannya (entity_type === 'member')
-                if (m.entity_type === 'member') {
+                // 1. Warga yang menyembunyikan status kepemilikan/huniannya
+                if (m.entity_type === 'member' && !m.is_owner && m.sub_role === null) {
                     privateMembers.push(m);
                     continue;
                 }
 
-                // 2. Entitas Pemilik (entity_type === 'owner')
-                if (m.entity_type === 'owner') {
-                    const alsoListedAsResident = explicitResidentUserIds.has(m.user_id);
+                const isOwner = typeof m.is_owner === 'boolean' ? m.is_owner : m.entity_type === 'owner';
+                const isOccupant = typeof m.is_occupant === 'boolean' ? m.is_occupant : true;
 
-                    // Pemilik dianggap TIDAK menghuni (di luar bingkai) jika:
-                    // - Status unit disewakan ('rented') atau masih 'unclaimed', DAN tidak punya record resident eksplisit
-                    // - ATAU ada penyewa/penghuni utama lain di dalam dan pemilik tidak tercatat sebagai penghuni
-                    const isExternal = !alsoListedAsResident && (
-                        ['rented', 'unclaimed'].includes(unit.occupancy_status) || hasExternalTenantOrResident
-                    );
-
-                    if (isExternal) {
-                        externalOwners.push({ ...m, hasOwnerDocument: true });
-                    } else {
-                        insideOccupants.push({ ...m, hasOwnerDocument: true });
-                    }
+                // 2. Pemilik yang TIDAK menghuni kavling (Zona 1: di luar bingkai)
+                if (isOwner && !isOccupant) {
+                    externalOwners.push({
+                        ...m,
+                        hasOwnerDocument: true,
+                        is_verified_shm: Boolean(m.is_verified_shm)
+                    });
                     continue;
                 }
 
-                // 3. Entitas Penghuni Non-Pemilik (entity_type === 'resident')
-                // Jika user yang sama sudah masuk sebagai pemilik di dalam bingkai, hindari duplikasi kartu
-                const alreadyInInsideAsOwner = insideOccupants.some(o => o.user_id === m.user_id);
-                if (!alreadyInInsideAsOwner) {
-                    insideOccupants.push({ ...m, hasOwnerDocument: false });
+                // 3. Menghuni di dalam bingkai kavling (Zona 2: baik pemilik sekaligus penghuni, maupun penghuni non-pemilik)
+                if (isOccupant) {
+                    insideOccupants.push({
+                        ...m,
+                        hasOwnerDocument: isOwner,
+                        is_verified_shm: Boolean(m.is_verified_shm)
+                    });
                 }
             }
 

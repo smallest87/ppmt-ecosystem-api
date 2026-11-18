@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use App\Models\MeetingMinute;
+use App\Models\UnitMembership;
 use App\Models\User;
 use App\Models\UserGovernanceRole;
 use App\Models\Unit;
@@ -17,6 +18,56 @@ use Illuminate\Validation\Rule;
 
 class GovernanceController extends Controller
 {
+    public function pendingOwnershipVerifications(Request $request): JsonResponse
+    {
+        $actor = $request->user();
+
+        if (! $actor->hasAdminAccess()) {
+            return response()->json(['data' => []]);
+        }
+
+        $items = UnitMembership::query()
+            ->where('is_owner', true)
+            ->where('ownership_verification_status', '!=', 'verified_shm')
+            ->with([
+                'unit:id,code,block,zone',
+                'user:id,name',
+                'user.profile:id,user_id,display_name,phone,username',
+            ])
+            ->latest('updated_at')
+            ->get()
+            ->filter(function (UnitMembership $m) use ($actor) {
+                if (empty($m->nib_shm_encrypted)) {
+                    return false;
+                }
+
+                return $m->unit && $actor->canVouchUnit($m->unit);
+            })
+            ->map(function (UnitMembership $m) {
+                $fullName = $m->user?->name ?? 'Warga';
+                $displayName = $m->user?->profile?->display_name;
+
+                return [
+                    'membership_id' => $m->id,
+                    'user_id' => $m->user_id,
+                    'name' => $displayName && $displayName !== $fullName
+                        ? "{$fullName} ({$displayName})"
+                        : $fullName,
+                    'contact' => $m->user?->profile?->phone ?: ($m->user?->profile?->username ? '@' . $m->user->profile->username : '-'),
+                    'unit_code' => $m->unit->code,
+                    'zone' => $m->unit->zone,
+                    'owner_role_label' => ($m->owner_role === 'co_owner') ? 'Pemilik Bersama' : 'Pemilik Utama',
+                    'nib_shm_plain' => $m->nib_shm_encrypted,
+                    'submitted_at' => $m->updated_at?->diffForHumans(),
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'data' => $items,
+        ]);
+    }
+
     public function occupancyRegistry(Request $request): JsonResponse
     {
         $actor = $request->user();
@@ -59,10 +110,24 @@ class GovernanceController extends Controller
                 ->pluck('user_id');
         })->unique()->count();
 
-        $formattedUnits = $units->map(function (Unit $unit) use ($subRoleLabels) {
-            $members = $unit->memberships->map(function ($m) use ($subRoleLabels) {
+        $formattedUnits = $units->map(function (Unit $unit) use ($subRoleLabels, $actor) {
+            $canVerifyUnit = $actor->canVouchUnit($unit);
+
+            $members = $unit->memberships->map(function ($m) use ($subRoleLabels, $canVerifyUnit) {
                 $fullName = $m->user?->name ?? 'Warga';
                 $displayName = $m->user?->profile?->display_name;
+                $isOwner = (bool) ($m->is_owner ?? ($m->entity_type === 'owner'));
+                $isOccupant = (bool) ($m->is_occupant ?? true);
+
+                $roleParts = [];
+                if ($isOwner) {
+                    $roleParts[] = $subRoleLabels[$m->owner_role ?: 'primary_owner'] ?? 'Pemilik';
+                }
+                if ($isOccupant) {
+                    $roleParts[] = $subRoleLabels[$m->resident_role ?: 'primary_resident'] ?? 'Penghuni';
+                } else {
+                    $roleParts[] = 'Tidak Menghuni';
+                }
 
                 return [
                     'membership_id' => $m->id,
@@ -71,9 +136,15 @@ class GovernanceController extends Controller
                         ? "{$fullName} ({$displayName})"
                         : $fullName,
                     'contact' => $m->user?->profile?->phone ?: ($m->user?->profile?->username ? '@' . $m->user->profile->username : '-'),
+                    'is_owner' => $isOwner,
+                    'is_occupant' => $isOccupant,
+                    'ownership_verification_status' => $m->ownership_verification_status ?: ($isOwner ? 'unverified_claim' : 'none'),
+                    'has_nib_shm' => ! empty($m->nib_shm_encrypted),
+                    'nib_shm_plain' => $canVerifyUnit ? $m->nib_shm_encrypted : null,
+                    'can_verify_ownership' => $canVerifyUnit,
                     'entity_type' => $m->entity_type,
                     'sub_role' => $m->sub_role,
-                    'sub_role_label' => $subRoleLabels[$m->sub_role] ?? $m->sub_role,
+                    'sub_role_label' => implode(' • ', $roleParts),
                     'is_approved' => (bool) $m->is_approved,
                     'is_primary_contact' => (bool) $m->is_primary_contact,
                     'valid_until' => $m->valid_until?->format('d M Y'),
@@ -276,11 +347,13 @@ class GovernanceController extends Controller
                 'unique:resident_profiles,username',
             ],
             'password' => ['required', 'string', 'min:8'],
-            'entity_type' => ['required', Rule::in(['owner', 'resident'])],
-            'sub_role' => ['required', Rule::in([
-                'primary_owner', 'co_owner',
+            'is_owner' => ['required', 'boolean'],
+            'owner_role' => ['nullable', Rule::in(['primary_owner', 'co_owner'])],
+            'is_occupant' => ['required', 'boolean'],
+            'resident_role' => ['nullable', Rule::in([
                 'primary_resident', 'family_member', 'co_resident', 'tenant', 'caretaker',
             ])],
+            'nib_shm' => ['nullable', 'string', 'max:60'],
         ], [
             'phone.required_without' => 'Isi minimal Nomor WhatsApp atau Username untuk warga tersebut.',
             'username.required_without' => 'Isi minimal Username atau Nomor WhatsApp untuk warga tersebut.',
@@ -290,6 +363,12 @@ class GovernanceController extends Controller
             'username.unique' => 'Username ini sudah digunakan warga lain.',
         ]);
 
+        if (! $validated['is_owner'] && ! $validated['is_occupant']) {
+            return response()->json([
+                'message' => 'Centang minimal satu peran: Pemilik Kavling, Penghuni Kavling, atau keduanya.',
+            ], 422);
+        }
+
         $unit = Unit::where('code', $validated['unit_code'])->firstOrFail();
 
         if ($unit->unit_type === 'fasum') {
@@ -298,6 +377,12 @@ class GovernanceController extends Controller
 
         $newUser = DB::transaction(function () use ($validated, $unit, $actor) {
             $syntheticIdentifier = $validated['phone'] ?: $validated['username'];
+            $isOwner = (bool) $validated['is_owner'];
+            $isOccupant = (bool) $validated['is_occupant'];
+            $ownerRole = $isOwner ? ($validated['owner_role'] ?? 'primary_owner') : null;
+            $residentRole = $isOccupant ? ($validated['resident_role'] ?? 'primary_resident') : null;
+            $nibShm = $isOwner && ! empty($validated['nib_shm']) ? strtoupper(trim($validated['nib_shm'])) : null;
+            $ownershipStatus = ! $isOwner ? 'none' : ($nibShm ? 'verified_shm' : 'unverified_claim');
 
             $user = User::create([
                 'name' => $validated['name'],
@@ -310,6 +395,7 @@ class GovernanceController extends Controller
                 'username' => $validated['username'],
                 'global_role' => 'warga_ppmt',
                 'is_verified' => true,
+                'is_ownership_doc_verified' => $ownershipStatus === 'verified_shm',
                 'privacy_settings' => [
                     'show_phone' => false,
                     'show_ownership' => false,
@@ -319,9 +405,17 @@ class GovernanceController extends Controller
 
             $user->unitMemberships()->create([
                 'unit_id' => $unit->id,
-                'entity_type' => $validated['entity_type'],
-                'sub_role' => $validated['sub_role'],
-                'is_primary_contact' => in_array($validated['sub_role'], ['primary_owner', 'primary_resident']),
+                'is_owner' => $isOwner,
+                'owner_role' => $ownerRole,
+                'is_occupant' => $isOccupant,
+                'resident_role' => $residentRole,
+                'ownership_verification_status' => $ownershipStatus,
+                'nib_shm_encrypted' => $nibShm,
+                'ownership_verified_at' => $ownershipStatus === 'verified_shm' ? now() : null,
+                'ownership_verified_by_user_id' => $ownershipStatus === 'verified_shm' ? $actor->id : null,
+                'entity_type' => $isOwner ? 'owner' : 'resident',
+                'sub_role' => $isOwner ? $ownerRole : $residentRole,
+                'is_primary_contact' => $ownerRole === 'primary_owner' || $residentRole === 'primary_resident',
                 'is_approved' => true,
             ]);
 
@@ -332,9 +426,9 @@ class GovernanceController extends Controller
                 'method' => 'in_person_vouch',
             ]);
 
-            if ($unit->occupancy_status === 'unclaimed' || $unit->occupancy_status === 'pending') {
+            if ($isOccupant && ($unit->occupancy_status === 'unclaimed' || $unit->occupancy_status === 'pending')) {
                 $unit->update([
-                    'occupancy_status' => $validated['sub_role'] === 'tenant' ? 'rented' : 'occupied',
+                    'occupancy_status' => $residentRole === 'tenant' ? 'rented' : 'occupied',
                 ]);
             }
 
