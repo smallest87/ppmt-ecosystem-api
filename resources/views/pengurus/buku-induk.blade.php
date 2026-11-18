@@ -5,14 +5,14 @@
 @section('subpage_back_url', '/pengurus')
 
 @section('content')
-<div x-data="ppmtRegistryGovernancePanel()" x-init="init()" class="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-6">
+<div x-data="ppmtRegistryGovernancePanel()" x-init="init()" class="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-5">
 
     <!-- Loading State -->
-    <div x-show="loading" class="bg-white rounded-2xl p-12 text-center text-slate-500 border border-slate-200">
-        Memuat buku induk hunian kavling &amp; struktur tata kelola...
+    <div x-show="loading" class="bg-white rounded-2xl p-12 text-center text-sm text-slate-500 border border-slate-200">
+        Memuat buku induk kavling...
     </div>
 
-    <div x-show="!loading && user" x-cloak class="space-y-6">
+    <div x-show="!loading && user" x-cloak class="space-y-5">
 
         <!-- Notifikasi Global -->
         <div x-show="toastMessage"
@@ -20,37 +20,49 @@
              :class="toastType === 'error' ? 'bg-rose-50 text-rose-800 border-rose-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'"
              class="p-4 rounded-xl border text-sm font-medium flex justify-between items-center shadow-sm">
             <span x-text="toastMessage"></span>
-            <button type="button" @click="toastMessage = ''" class="text-xs opacity-70 hover:opacity-100 cursor-pointer">✕</button>
+            <button type="button" @click="toastMessage = ''" class="text-sm opacity-70 hover:opacity-100 cursor-pointer">✕</button>
+        </div>
+
+        <!-- Navigasi Tab (Muncul jika Gubernur / Pengurus Pusat) -->
+        <div x-show="user?.is_global_governor" class="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
+            <button type="button"
+                    @click="activeTab = 'registry'"
+                    :class="activeTab === 'registry' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'"
+                    class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer">
+                Buku Induk Kavling (<span x-text="registryUnits.length"></span>)
+            </button>
+            <button type="button"
+                    @click="activeTab = 'governance'"
+                    :class="activeTab === 'governance' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'"
+                    class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer">
+                Pendaftaran Tetangga &amp; Jabatan
+            </button>
         </div>
 
         <!-- ================================================================= -->
-        <!-- BAGIAN 1: BUKU INDUK & STATUS HUNIAN KAVLING (Seluruh Pengurus)   -->
+        <!-- TAB 1: BUKU INDUK KAVLING (PADAT, ADAPTIF & PAGINATION)           -->
         <!-- ================================================================= -->
-        <section class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200 space-y-4">
-            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-                <div>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <h2 class="text-base sm:text-lg font-bold text-slate-900">Buku Induk &amp; Status Hunian Kavling</h2>
-                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"
-                              x-text="filteredRegistryUnits.length + ' Kavling'"></span>
-                        <a href="/peta-kavling"
-                           class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 transition">
-                            Lihat Peta 91 Kavling ↗
-                        </a>
-                    </div>
-                    <p class="text-xs text-slate-500 mt-0.5"
-                       x-text="registryScopeIsCentral ? 'Menampilkan seluruh kavling hunian PPMT untuk pendataan & administrasi pengurus pusat.' : 'Menampilkan kavling hunian di dalam wilayah cakupan koordinasi Anda.'">
-                    </p>
+        <section x-show="activeTab === 'registry'" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+
+            <!-- Bilah Header & Filter Kompak -->
+            <div class="p-4 sm:px-5 border-b border-slate-200 bg-slate-50/70 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div class="flex flex-wrap items-center gap-2">
+                    <h2 class="text-base sm:text-lg font-bold text-slate-900">Buku Induk Kavling</h2>
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"
+                          x-text="filteredRegistryUnits.length + ' unit'"></span>
+                    <a href="/peta-kavling"
+                       class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 transition">
+                        Peta ↗
+                    </a>
                 </div>
 
-                <!-- Baris Filter & Pencarian -->
                 <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
                     <input type="text"
                            x-model="registrySearch"
-                           placeholder="Cari kavling / nama..."
-                           class="col-span-2 sm:w-44 rounded-xl border-slate-300 text-xs focus:border-emerald-600 focus:ring-emerald-600">
+                           placeholder="Cari kavling / nama / kontak..."
+                           class="col-span-2 sm:w-52 rounded-xl border-slate-300 text-xs sm:text-sm py-2 focus:border-emerald-600 focus:ring-emerald-600">
 
-                    <select x-model="registryFilterBlock" class="rounded-xl border-slate-300 text-xs">
+                    <select x-model="registryFilterBlock" class="rounded-xl border-slate-300 text-xs sm:text-sm py-2">
                         <option value="">Semua Blok</option>
                         <option value="R">Blok R</option>
                         <option value="A">Blok A</option>
@@ -59,7 +71,7 @@
                         <option value="D">Blok D</option>
                     </select>
 
-                    <select x-model="registryFilterZone" class="rounded-xl border-slate-300 text-xs">
+                    <select x-model="registryFilterZone" class="rounded-xl border-slate-300 text-xs sm:text-sm py-2">
                         <option value="">Semua Zona</option>
                         <option value="ZONA-1">ZONA-1</option>
                         <option value="ZONA-2">ZONA-2</option>
@@ -67,199 +79,325 @@
                         <option value="ZONA-4">ZONA-4</option>
                     </select>
 
-                    <select x-model="registryFilterStatus" class="col-span-2 sm:col-span-1 rounded-xl border-slate-300 text-xs">
+                    <select x-model="registryFilterStatus" class="col-span-2 sm:col-span-1 rounded-xl border-slate-300 text-xs sm:text-sm py-2">
                         <option value="">Semua Status</option>
-                        <option value="occupied">Berpenghuni</option>
+                        <option value="occupied">Terdata</option>
                         <option value="rented">Disewakan</option>
-                        <option value="pending">Menunggu Verifikasi</option>
-                        <option value="unclaimed">Belum Terklaim</option>
+                        <option value="pending">Pending</option>
+                        <option value="unclaimed">Belum Terdata</option>
                     </select>
                 </div>
             </div>
 
             <div x-show="filteredRegistryUnits.length === 0"
-                 class="p-8 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-center text-xs text-slate-500">
-                Tidak ada kavling yang cocok dengan kriteria pencarian atau filter saat ini.
+                 class="p-10 text-center text-sm text-slate-500">
+                Tidak ada kavling yang sesuai dengan filter.
             </div>
 
-            <div x-show="filteredRegistryUnits.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                <template x-for="u in filteredRegistryUnits" :key="u.id">
-                    <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2.5 flex flex-col justify-between">
-                        <div class="space-y-2">
-                            <div class="flex items-center justify-between gap-2">
-                                <div class="flex items-center gap-2">
-                                    <a :href="'/peta-kavling?unit=' + encodeURIComponent(u.code)"
-                                       title="Lihat posisi kavling di Peta"
-                                       class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-emerald-800 text-white text-xs font-extrabold transition"
-                                       x-text="u.code"></a>
-                                    <span class="text-[11px] font-semibold text-slate-500" x-text="u.zone"></span>
-                                </div>
+            <!-- TAMPILAN DESKTOP: TABEL PADAT (md ke atas) -->
+            <div x-show="filteredRegistryUnits.length > 0" class="hidden md:block overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold uppercase tracking-wider text-slate-500">
+                            <th class="py-3 px-4 w-32">Kavling</th>
+                            <th class="py-3 px-3 w-36">Status</th>
+                            <th class="py-3 px-4">Warga &amp; Kepemilikan SHM</th>
+                            <th class="py-3 px-4 w-24 text-right">Detail</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        <template x-for="u in paginatedRegistryUnits" :key="'dt-' + u.id">
+                            <tr class="hover:bg-slate-50/80 align-top">
+                                <!-- Kolom 1: Kavling & Zona -->
+                                <td class="py-3 px-4 whitespace-nowrap">
+                                    <div class="flex items-center gap-2">
+                                        <a :href="'/peta-kavling?unit=' + encodeURIComponent(u.code)"
+                                           class="px-2.5 py-0.5 rounded bg-slate-900 hover:bg-emerald-800 text-white font-mono font-extrabold text-xs transition"
+                                           x-text="u.code"></a>
+                                        <span class="text-xs text-slate-400 font-medium" x-text="u.zone.replace('ZONA-', 'Z')"></span>
+                                    </div>
+                                </td>
+
+                                <!-- Kolom 2: Status Pendataan -->
+                                <td class="py-3 px-3 whitespace-nowrap">
+                                    <span :class="{
+                                            'bg-emerald-50 text-emerald-700 border-emerald-200': u.occupancy_status === 'occupied',
+                                            'bg-sky-50 text-sky-700 border-sky-200': u.occupancy_status === 'rented',
+                                            'bg-amber-50 text-amber-800 border-amber-300': u.occupancy_status === 'pending',
+                                            'bg-slate-100 text-slate-600 border-slate-300': u.occupancy_status === 'unclaimed'
+                                          }"
+                                          class="px-2.5 py-0.5 rounded-full text-xs font-bold border"
+                                          x-text="formatUnitStatusShort(u.occupancy_status)">
+                                    </span>
+                                </td>
+
+                                <!-- Kolom 3: Daftar Warga Ringkas -->
+                                <td class="py-3 px-4">
+                                    <div x-show="u.members.length === 0" class="text-slate-400">—</div>
+
+                                    <div x-show="u.members.length > 0" class="space-y-2">
+                                        <template x-for="m in u.members" :key="'dtm-' + m.membership_id">
+                                            <div class="space-y-1">
+                                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                                    <div class="flex flex-wrap items-center gap-2">
+                                                        <span class="font-bold text-slate-900" x-text="m.name"></span>
+                                                        <span class="text-xs text-slate-500" x-text="'• ' + m.sub_role_label"></span>
+                                                        <span x-show="!m.is_approved"
+                                                              class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-xs font-bold">
+                                                            Pending
+                                                        </span>
+                                                        <span class="font-mono text-xs text-slate-500" x-text="m.contact"></span>
+                                                    </div>
+
+                                                    <!-- Indikator & Aksi Ringkas SHM -->
+                                                    <div x-show="m.is_owner" class="flex items-center gap-1.5">
+                                                        <span x-show="m.ownership_verification_status === 'verified_shm'"
+                                                              class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold"
+                                                              x-text="'SHM ✓ (' + m.endorsement_count + ')'">
+                                                        </span>
+                                                        <span x-show="m.ownership_verification_status !== 'verified_shm'"
+                                                              class="px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 text-xs font-semibold">
+                                                            SHM ?
+                                                        </span>
+
+                                                        <button x-show="m.can_verify_ownership && !m.is_endorsed_by_me"
+                                                                type="button"
+                                                                @click="verifyUnitOwnership(u.code, m, 'approve_shm')"
+                                                                class="px-2.5 py-0.5 rounded bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition cursor-pointer">
+                                                            Sahkan
+                                                        </button>
+                                                        <button x-show="m.can_verify_ownership && m.is_endorsed_by_me"
+                                                                type="button"
+                                                                @click="verifyUnitOwnership(u.code, m, 'revoke_shm')"
+                                                                class="px-2.5 py-0.5 rounded border border-slate-200 hover:bg-rose-50 text-rose-600 text-xs font-semibold transition cursor-pointer">
+                                                            Cabut
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Detail Terlipat (Muncul saat tombol Detail diklik) -->
+                                                <div x-show="expandedUnitIds.includes(u.id)"
+                                                     class="pl-3 border-l-2 border-slate-200 text-xs text-slate-600 space-y-1 py-1">
+                                                    <div x-show="m.valid_until" class="text-sky-700 font-medium"
+                                                         x-text="'Masa sewa s/d ' + m.valid_until"></div>
+                                                    <div x-show="m.has_nib_shm" class="font-mono">
+                                                        NIB/SHM: <strong class="text-slate-800" x-text="m.can_see_raw_nib ? m.nib_shm_plain : m.nib_shm_masked"></strong>
+                                                    </div>
+                                                    <div x-show="m.endorsed_by_sentence" class="text-emerald-700"
+                                                         x-text="m.endorsed_by_sentence"></div>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </td>
+
+                                <!-- Kolom 4: Tombol Expand Detail -->
+                                <td class="py-3 px-4 text-right whitespace-nowrap">
+                                    <button x-show="hasExpandableDetail(u)"
+                                            type="button"
+                                            @click="toggleExpandUnit(u.id)"
+                                            class="px-2.5 py-1 rounded border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs font-semibold cursor-pointer"
+                                            x-text="expandedUnitIds.includes(u.id) ? 'Tutup ▴' : 'Detail ▾'">
+                                    </button>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- TAMPILAN MOBILE: DAFTAR PADAT (< md) -->
+            <div x-show="filteredRegistryUnits.length > 0" class="md:hidden divide-y divide-slate-100">
+                <template x-for="u in paginatedRegistryUnits" :key="'mb-' + u.id">
+                    <div class="p-4 space-y-2.5 text-sm">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <a :href="'/peta-kavling?unit=' + encodeURIComponent(u.code)"
+                                   class="px-2.5 py-0.5 rounded bg-slate-900 text-white font-mono font-extrabold text-xs"
+                                   x-text="u.code"></a>
                                 <span :class="{
-                                        'bg-emerald-100 text-emerald-800 border-emerald-200': u.occupancy_status === 'occupied',
-                                        'bg-sky-100 text-sky-800 border-sky-200': u.occupancy_status === 'rented',
-                                        'bg-amber-100 text-amber-800 border-amber-300': u.occupancy_status === 'pending',
-                                        'bg-slate-200 text-slate-600 border-slate-300': u.occupancy_status === 'unclaimed'
+                                        'bg-emerald-50 text-emerald-700 border-emerald-200': u.occupancy_status === 'occupied',
+                                        'bg-sky-50 text-sky-700 border-sky-200': u.occupancy_status === 'rented',
+                                        'bg-amber-50 text-amber-800 border-amber-300': u.occupancy_status === 'pending',
+                                        'bg-slate-100 text-slate-600 border-slate-300': u.occupancy_status === 'unclaimed'
                                       }"
-                                      class="px-2 py-0.5 rounded-full text-[10px] font-bold border"
-                                      x-text="formatUnitStatus(u.occupancy_status)">
+                                      class="px-2.5 py-0.5 rounded-full text-xs font-bold border"
+                                      x-text="formatUnitStatusShort(u.occupancy_status)">
                                 </span>
                             </div>
 
-                            <div x-show="u.members.length === 0" class="text-[11px] text-slate-400 italic py-1">
-                                Belum ada warga terdaftar pada kavling ini.
-                            </div>
+                            <button x-show="hasExpandableDetail(u)"
+                                    type="button"
+                                    @click="toggleExpandUnit(u.id)"
+                                    class="text-xs font-semibold text-slate-600 hover:text-slate-900 cursor-pointer"
+                                    x-text="expandedUnitIds.includes(u.id) ? 'Tutup ▴' : 'Detail ▾'">
+                            </button>
+                        </div>
 
-                            <div x-show="u.members.length > 0" class="space-y-1.5">
-                                <template x-for="m in u.members" :key="m.membership_id">
-                                    <div class="p-2.5 rounded-lg bg-white border border-slate-200/90 text-xs">
-                                        <div class="flex items-start justify-between gap-1.5">
-                                            <div class="font-bold text-slate-900 leading-snug" x-text="m.name"></div>
-                                            <span :class="m.is_approved ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-amber-700 bg-amber-50 border-amber-200'"
-                                                  class="px-1.5 py-0.5 rounded text-[9px] font-bold border shrink-0"
-                                                  x-text="m.is_approved ? 'Aktif' : 'Pending'">
-                                            </span>
-                                        </div>
-                                        <div class="text-[11px] text-slate-500 mt-0.5 flex flex-wrap items-center justify-between gap-1">
-                                            <span x-text="m.sub_role_label"></span>
-                                            <span class="font-mono text-[10px] text-slate-600" x-text="m.contact"></span>
-                                        </div>
-                                        <div x-show="m.valid_until" class="text-[10px] text-sky-700 font-semibold mt-0.5"
-                                             x-text="'Masa sewa s/d: ' + m.valid_until">
+                        <div x-show="u.members.length > 0" class="space-y-2 pl-1">
+                            <template x-for="m in u.members" :key="'mbm-' + m.membership_id">
+                                <div class="space-y-1.5">
+                                    <div class="flex items-start justify-between gap-2">
+                                        <div class="min-w-0 leading-snug">
+                                            <span class="font-bold text-slate-900" x-text="m.name"></span>
+                                            <span class="text-xs text-slate-500" x-text="' (' + m.sub_role_label + ')'"></span>
                                         </div>
 
-                                        <!-- Status Verifikasi Kepemilikan NIB SHM Kolektif & Masking Penuh -->
-                                        <div x-show="m.is_owner" class="mt-1.5 pt-1.5 border-t border-slate-100 space-y-1.5">
-                                            <div class="flex flex-wrap items-center justify-between gap-1">
-                                                <span x-show="m.ownership_verification_status === 'verified_shm'"
-                                                      class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px] font-bold">
-                                                    &#10003; NIB SHM Sah (<span x-text="m.endorsement_count"></span> Pengesah)
-                                                </span>
-                                                <span x-show="m.ownership_verification_status !== 'verified_shm'"
-                                                      class="px-2 py-0.5 rounded bg-amber-100 text-amber-950 border border-dashed border-amber-400 text-[10px] font-bold">
-                                                    &#9888; Klaim Tanpa Bukti NIB SHM
-                                                </span>
-
-                                                <button x-show="m.can_verify_ownership && !m.is_endorsed_by_me"
-                                                        type="button"
-                                                        @click="verifyUnitOwnership(u.code, m, 'approve_shm')"
-                                                        class="px-2 py-0.5 rounded bg-emerald-700 hover:bg-emerald-800 text-white text-[10px] font-bold transition cursor-pointer"
-                                                        x-text="m.endorsement_count > 0 ? '+ Sahkan Juga' : 'Sahkan SHM'">
-                                                </button>
-
-                                                <button x-show="m.can_verify_ownership && m.is_endorsed_by_me"
-                                                        type="button"
-                                                        @click="verifyUnitOwnership(u.code, m, 'revoke_shm')"
-                                                        class="px-2 py-0.5 rounded border border-slate-200 hover:bg-rose-50 text-rose-600 text-[10px] font-semibold transition cursor-pointer">
-                                                    Cabut Pengesahan Saya
-                                                </button>
-                                            </div>
-
-                                            <!-- Rincian Siapa Saja yang Mengesahkan -->
-                                            <div x-show="m.endorsed_by_sentence"
-                                                 class="text-[10px] text-emerald-800 font-medium leading-snug bg-emerald-50/80 px-2 py-1 rounded border border-emerald-200/80"
-                                                 x-text="m.endorsed_by_sentence">
-                                            </div>
-
-                                            <!-- Status Input NIB SHM (Tertutup Penuh bagi Pengurus Sosial/Admin) -->
-                                            <div x-show="m.has_nib_shm" class="text-[10px] font-mono text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
-                                                NIB/SHM: <strong x-text="m.can_see_raw_nib ? m.nib_shm_plain : m.nib_shm_masked"></strong>
-                                            </div>
+                                        <div x-show="m.is_owner" class="flex items-center gap-1.5 shrink-0">
+                                            <span x-show="m.ownership_verification_status === 'verified_shm'"
+                                                  class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold"
+                                                  x-text="'SHM ✓' + m.endorsement_count"></span>
+                                            <button x-show="m.can_verify_ownership && !m.is_endorsed_by_me"
+                                                    type="button"
+                                                    @click="verifyUnitOwnership(u.code, m, 'approve_shm')"
+                                                    class="px-2.5 py-0.5 rounded bg-emerald-700 text-white text-xs font-bold cursor-pointer">
+                                                Sahkan
+                                            </button>
+                                            <button x-show="m.can_verify_ownership && m.is_endorsed_by_me"
+                                                    type="button"
+                                                    @click="verifyUnitOwnership(u.code, m, 'revoke_shm')"
+                                                    class="px-2.5 py-0.5 rounded border border-slate-200 text-rose-600 text-xs font-semibold cursor-pointer">
+                                                Cabut
+                                            </button>
                                         </div>
                                     </div>
-                                </template>
-                            </div>
+
+                                    <div x-show="expandedUnitIds.includes(u.id)"
+                                         class="pl-3 border-l-2 border-slate-200 text-xs text-slate-600 space-y-1">
+                                        <div class="font-mono" x-text="m.contact"></div>
+                                        <div x-show="m.valid_until" class="text-sky-700" x-text="'Sewa s/d ' + m.valid_until"></div>
+                                        <div x-show="m.has_nib_shm" class="font-mono">
+                                            NIB/SHM: <strong x-text="m.can_see_raw_nib ? m.nib_shm_plain : m.nib_shm_masked"></strong>
+                                        </div>
+                                        <div x-show="m.endorsed_by_sentence" class="text-emerald-700" x-text="m.endorsed_by_sentence"></div>
+                                    </div>
+                                </div>
+                            </template>
                         </div>
                     </div>
                 </template>
             </div>
+
+            <!-- Bilah Pagination Kompak (Desktop & Mobile) -->
+            <div x-show="filteredRegistryUnits.length > 0"
+                 class="px-4 py-3.5 bg-slate-50/70 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm">
+                <div class="flex items-center justify-between sm:justify-start gap-3 text-slate-600">
+                    <span>
+                        Menampilkan <strong class="text-slate-900" x-text="paginationRangeText"></strong>
+                        dari <strong class="text-slate-900" x-text="filteredRegistryUnits.length"></strong> unit
+                    </span>
+
+                    <select x-model.number="perPage"
+                            @change="currentPage = 1"
+                            aria-label="Jumlah baris per halaman"
+                            class="rounded-lg border-slate-300 text-xs sm:text-sm py-1.5 pr-8 bg-white">
+                        <option :value="15">15 / hal</option>
+                        <option :value="30">30 / hal</option>
+                        <option :value="50">50 / hal</option>
+                        <option :value="999">Semua</option>
+                    </select>
+                </div>
+
+                <div x-show="totalPages > 1" class="flex items-center justify-end gap-2">
+                    <button type="button"
+                            @click="goToPage(currentPage - 1)"
+                            :disabled="currentPage <= 1"
+                            class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-semibold hover:bg-slate-100 disabled:opacity-40 disabled:pointer-events-none transition cursor-pointer">
+                        &lsaquo; Sebelumnya
+                    </button>
+
+                    <span class="px-2.5 py-1 font-mono text-xs font-bold text-slate-700"
+                          x-text="currentPage + ' / ' + totalPages"></span>
+
+                    <button type="button"
+                            @click="goToPage(currentPage + 1)"
+                            :disabled="currentPage >= totalPages"
+                            class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-semibold hover:bg-slate-100 disabled:opacity-40 disabled:pointer-events-none transition cursor-pointer">
+                        Berikutnya &rsaquo;
+                    </button>
+                </div>
+            </div>
         </section>
 
         <!-- ================================================================= -->
-        <!-- BAGIAN 2: PENDAFTARAN TETANGGA & PENYEMATAN JABATAN (Gubernur)    -->
+        <!-- TAB 2: PENDAFTARAN TETANGGA & PENYEMATAN JABATAN (Gubernur)       -->
         <!-- ================================================================= -->
-        <div x-show="user?.is_global_governor"
+        <div x-show="user?.is_global_governor && activeTab === 'governance'"
              class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-            <!-- Kolom Kiri (5 Kolom): Pendaftaran Langsung Tetangga Terkenal (Assisted Onboarding) -->
+            <!-- Kolom Kiri (5 Kolom): Pendaftaran Langsung Tetangga Terkenal -->
             <section id="assisted-register"
                      class="lg:col-span-5 bg-emerald-50/60 rounded-2xl p-5 sm:p-6 shadow-sm border border-emerald-200 space-y-4">
                 <div class="border-b border-emerald-200/70 pb-3">
-                    <h2 class="text-base font-bold text-emerald-950">Daftarkan Tetangga Terkenal</h2>
-                    <p class="text-xs text-emerald-800">Daftarkan tetangga yang sudah Anda kenal secara langsung ke kavlingnya (otomatis aktif dengan status dasar <strong>Warga PPMT</strong>).</p>
+                    <h2 class="text-base sm:text-lg font-bold text-emerald-950">Daftarkan Tetangga Terkenal</h2>
+                    <p class="text-xs sm:text-sm text-emerald-800 mt-0.5">Otomatis aktif sebagai <strong>Warga PPMT</strong> tanpa menunggu antrean verifikasi.</p>
                 </div>
 
-                <form @submit.prevent="submitAssistedRegister()" class="space-y-3">
-                    <div class="space-y-2.5 p-3 rounded-xl bg-white/90 border border-emerald-200">
+                <form @submit.prevent="submitAssistedRegister()" class="space-y-3.5">
+                    <div class="space-y-3 p-3.5 rounded-xl bg-white/90 border border-emerald-200">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">
-                                Nomor WhatsApp Tetangga <span class="text-slate-400 font-normal">(Opsional jika isi Username)</span>
-                            </label>
+                            <label class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1">Nomor WhatsApp</label>
                             <input type="tel" x-model="assistForm.phone" placeholder="0812xxxxxxxx"
-                                   class="w-full rounded-xl border-slate-300 text-xs">
+                                   class="w-full rounded-xl border-slate-300 text-sm">
                         </div>
 
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">
-                                Username <span class="text-slate-400 font-normal">(Opsional jika isi No. WA)</span>
-                            </label>
+                            <label class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1">Username <span class="text-slate-400 font-normal text-xs">(opsional jika isi WA)</span></label>
                             <input type="text"
                                    x-model="assistForm.username"
                                    @input="assistForm.username = (assistForm.username || '').toLowerCase().replace(/[^a-z0-9._]/g, '')"
-                                   placeholder="Contoh: paksugeng.b12a"
-                                   class="w-full rounded-xl border-slate-300 text-xs font-mono lowercase">
+                                   placeholder="paksugeng.b12a"
+                                   class="w-full rounded-xl border-slate-300 text-sm font-mono lowercase">
                         </div>
-                        <p class="text-[11px] text-emerald-800">Isi minimal salah satu untuk dipakai masuk ke aplikasi.</p>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Kata Sandi Sementara (Min. 8 Karakter) *</label>
-                        <input type="text" x-model="assistForm.password" required minlength="8" placeholder="Contoh: ppmt12345"
-                               class="w-full rounded-xl border-slate-300 text-xs font-mono">
+                        <label class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1">Kata Sandi Sementara (Min. 8 Karakter) *</label>
+                        <input type="text" x-model="assistForm.password" required minlength="8" placeholder="ppmt12345"
+                               class="w-full rounded-xl border-slate-300 text-sm font-mono">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap Tetangga *</label>
-                        <input type="text" x-model="assistForm.name" required placeholder="Contoh: Ahmad Fauzi"
-                               class="w-full rounded-xl border-slate-300 text-xs">
+                        <label class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1">Nama Lengkap *</label>
+                        <input type="text" x-model="assistForm.name" required placeholder="Ahmad Fauzi"
+                               class="w-full rounded-xl border-slate-300 text-sm">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Kavling Tetangga *</label>
-                        <select x-model="assistForm.unit_code" required class="w-full rounded-xl border-slate-300 text-xs">
-                            <option value="">-- Pilih Kavling PPMT --</option>
+                        <label class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1">Kavling *</label>
+                        <select x-model="assistForm.unit_code" required class="w-full rounded-xl border-slate-300 text-sm">
+                            <option value="">-- Pilih Kavling --</option>
                             <template x-for="u in allUnits" :key="u.id">
                                 <option :value="u.code"
-                                        x-text="u.code + ' (' + u.zone + ') • ' + formatUnitStatus(u.occupancy_status)">
+                                        x-text="u.code + ' (' + u.zone + ') • ' + formatUnitStatusShort(u.occupancy_status)">
                                 </option>
                             </template>
                         </select>
                     </div>
 
-                    <div class="space-y-2.5 p-3 rounded-xl bg-white/95 border border-emerald-200 text-xs">
-                        <div class="font-bold text-slate-800">Peran Tetangga di Kavling (Pilih satu atau keduanya):</div>
-
-                        <label class="flex items-start gap-2 cursor-pointer">
-                            <input type="checkbox" x-model="assistForm.is_owner" class="mt-0.5 rounded text-amber-600 focus:ring-amber-500">
-                            <div class="flex-1 space-y-1.5">
+                    <div class="space-y-3 p-3.5 rounded-xl bg-white/95 border border-emerald-200 text-sm">
+                        <label class="flex items-start gap-2.5 cursor-pointer">
+                            <input type="checkbox" x-model="assistForm.is_owner" class="mt-1 rounded text-amber-600 focus:ring-amber-500">
+                            <div class="flex-1 space-y-2">
                                 <span class="font-semibold text-slate-900">Pemilik Kavling</span>
-                                <div x-show="assistForm.is_owner" class="space-y-1.5">
-                                    <select x-model="assistForm.owner_role" class="w-full rounded-lg border-slate-300 text-xs">
+                                <div x-show="assistForm.is_owner" class="space-y-2">
+                                    <select x-model="assistForm.owner_role" class="w-full rounded-lg border-slate-300 text-sm">
                                         <option value="primary_owner">Pemilik Utama</option>
                                         <option value="co_owner">Pemilik Bersama</option>
                                     </select>
                                     <input type="text" x-model="assistForm.nib_shm"
-                                           placeholder="Nomor NIB SHM (opsional, otomatis terenkripsi)"
-                                           class="w-full rounded-lg border-slate-300 text-xs font-mono uppercase">
+                                           placeholder="Nomor NIB SHM (opsional)"
+                                           class="w-full rounded-lg border-slate-300 text-sm font-mono uppercase">
                                 </div>
                             </div>
                         </label>
 
-                        <label class="flex items-start gap-2 cursor-pointer pt-1 border-t border-slate-100">
-                            <input type="checkbox" x-model="assistForm.is_occupant" class="mt-0.5 rounded text-emerald-600 focus:ring-emerald-600">
-                            <div class="flex-1 space-y-1.5">
+                        <label class="flex items-start gap-2.5 cursor-pointer pt-2 border-t border-slate-100">
+                            <input type="checkbox" x-model="assistForm.is_occupant" class="mt-1 rounded text-emerald-600 focus:ring-emerald-600">
+                            <div class="flex-1 space-y-2">
                                 <span class="font-semibold text-slate-900">Menghuni / Tinggal di Kavling</span>
                                 <div x-show="assistForm.is_occupant">
-                                    <select x-model="assistForm.resident_role" class="w-full rounded-lg border-slate-300 text-xs">
+                                    <select x-model="assistForm.resident_role" class="w-full rounded-lg border-slate-300 text-sm">
                                         <option value="primary_resident">Penghuni Utama</option>
                                         <option value="family_member">Anggota Keluarga</option>
                                         <option value="co_resident">Penghuni Bersama</option>
@@ -272,29 +410,26 @@
                     </div>
 
                     <button type="submit"
-                            class="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition cursor-pointer">
+                            class="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-bold transition cursor-pointer">
                         Daftarkan &amp; Aktifkan Warga
                     </button>
                 </form>
             </section>
 
             <!-- Kolom Kanan (7 Kolom): Penyematan Jabatan & Hak Akses -->
-            <section class="lg:col-span-7 bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200 space-y-5">
+            <section class="lg:col-span-7 bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200 space-y-4">
                 <div class="border-b border-slate-100 pb-3">
-                    <h2 class="text-lg font-bold text-slate-900">Penyematan Jabatan &amp; Hak Akses Warga</h2>
-                    <p class="text-xs text-slate-500">
-                        Wewenang penyematan jabatan mengikuti pemisahan peran tata kelola: <strong>Admin Sistem</strong> menetapkan infrastruktur &amp; pelantikan Ketua Paguyuban, sedangkan <strong>Ketua Paguyuban</strong> menyusun pengurus dan koordinator wilayah.
-                    </p>
+                    <h2 class="text-base sm:text-lg font-bold text-slate-900">Struktur Jabatan &amp; Hak Akses</h2>
                 </div>
 
                 <form x-show="availableRoleOptions.length > 0"
                       @submit.prevent="assignGovernance()"
-                      class="bg-indigo-50/60 p-4 rounded-xl border border-indigo-200 space-y-3">
+                      class="bg-indigo-50/60 p-4 rounded-xl border border-indigo-200 space-y-3.5">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Warga Terverifikasi *</label>
-                            <select x-model="govForm.target_user_id" required class="w-full rounded-xl border-slate-300 text-xs">
-                                <option value="">-- Pilih Warga PPMT --</option>
+                            <label class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1">Warga Terverifikasi *</label>
+                            <select x-model="govForm.target_user_id" required class="w-full rounded-xl border-slate-300 text-sm">
+                                <option value="">-- Pilih Warga --</option>
                                 <template x-for="r in verifiedResidents" :key="r.id">
                                     <option :value="r.id" x-text="(r.display_name || r.name) + ' (' + r.units.map(u => u.unit_code).join(', ') + ')'"></option>
                                 </template>
@@ -302,8 +437,8 @@
                         </div>
 
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Jabatan Akses yang Disematkan *</label>
-                            <select x-model="govForm.role_code" @change="updateGovScopeDefault()" class="w-full rounded-xl border-slate-300 text-xs">
+                            <label class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1">Jabatan *</label>
+                            <select x-model="govForm.role_code" @change="updateGovScopeDefault()" class="w-full rounded-xl border-slate-300 text-sm">
                                 <template x-for="opt in availableRoleOptions" :key="opt.code">
                                     <option :value="opt.code" x-text="opt.label"></option>
                                 </template>
@@ -312,8 +447,7 @@
                     </div>
 
                     <div x-show="govForm.role_code === 'koordinator_zona'">
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Cakupan Zona *</label>
-                        <select x-model="govForm.scope_value" class="w-full rounded-xl border-slate-300 text-xs">
+                        <select x-model="govForm.scope_value" class="w-full rounded-xl border-slate-300 text-sm">
                             <option value="ZONA-1">ZONA-1 (R1-R2, A-1..16)</option>
                             <option value="ZONA-2">ZONA-2 (B-1..24)</option>
                             <option value="ZONA-3">ZONA-3 (A-17..25, C-1..14)</option>
@@ -322,8 +456,7 @@
                     </div>
 
                     <div x-show="govForm.role_code === 'koordinator_blok'">
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Cakupan Blok *</label>
-                        <select x-model="govForm.scope_value" class="w-full rounded-xl border-slate-300 text-xs">
+                        <select x-model="govForm.scope_value" class="w-full rounded-xl border-slate-300 text-sm">
                             <option value="R">Blok R (Ruko)</option>
                             <option value="A">Blok A</option>
                             <option value="B">Blok B</option>
@@ -333,24 +466,24 @@
                     </div>
 
                     <button type="submit"
-                            class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-bold transition cursor-pointer">
-                        + Sematkan Jabatan Akses
+                            class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white text-sm font-bold transition cursor-pointer">
+                        + Sematkan Jabatan
                     </button>
                 </form>
 
                 <!-- Daftar Jabatan Aktif -->
-                <div class="space-y-2.5">
-                    <div class="text-xs font-bold uppercase tracking-wider text-slate-700">Daftar Warga Pemegang Jabatan Aktif</div>
+                <div class="divide-y divide-slate-100 border border-slate-200 rounded-xl">
                     <template x-for="item in governanceList" :key="item.id">
-                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex items-center justify-between gap-2 text-xs">
+                        <div class="p-3.5 flex items-center justify-between gap-2 text-sm">
                             <div>
-                                <div class="font-bold text-slate-900" x-text="item.user_name + ' (Kavling ' + item.unit_codes + ')'"></div>
-                                <div class="text-indigo-700 font-semibold mt-0.5" x-text="item.display_label + ' • Disematkan oleh ' + item.assigned_by"></div>
+                                <span class="font-bold text-slate-900" x-text="item.user_name"></span>
+                                <span class="text-slate-500" x-text="' (' + item.unit_codes + ')'"></span>
+                                <div class="text-indigo-700 font-semibold text-xs mt-0.5" x-text="item.display_label"></div>
                             </div>
                             <button x-show="item.can_revoke"
                                     type="button"
                                     @click="revokeGovernance(item.id)"
-                                    class="px-3 py-1.5 rounded-lg text-xs text-rose-600 hover:bg-rose-100 font-semibold transition cursor-pointer">
+                                    class="px-3 py-1 rounded-lg text-xs text-rose-600 hover:bg-rose-50 font-semibold transition cursor-pointer">
                                 Cabut
                             </button>
                         </div>
@@ -379,6 +512,10 @@ function ppmtRegistryGovernancePanel() {
         token: localStorage.getItem('ppmt_token'),
         user: null,
         loading: true,
+        activeTab: 'registry',
+        expandedUnitIds: [],
+        currentPage: 1,
+        perPage: 15,
         toastMessage: '',
         toastType: 'success',
         verifiedResidents: [],
@@ -434,11 +571,54 @@ function ppmtRegistryGovernancePanel() {
             });
         },
 
+        get totalPages() {
+            const total = this.filteredRegistryUnits.length;
+            if (total === 0) return 1;
+            return Math.ceil(total / this.perPage);
+        },
+
+        get paginatedRegistryUnits() {
+            const start = (this.currentPage - 1) * this.perPage;
+            return this.filteredRegistryUnits.slice(start, start + this.perPage);
+        },
+
+        get paginationRangeText() {
+            const total = this.filteredRegistryUnits.length;
+            if (total === 0) return '0';
+            const start = (this.currentPage - 1) * this.perPage + 1;
+            const end = Math.min(this.currentPage * this.perPage, total);
+            return `${start}–${end}`;
+        },
+
+        goToPage(page) {
+            if (page < 1 || page > this.totalPages) return;
+            this.currentPage = page;
+        },
+
+        toggleExpandUnit(unitId) {
+            const idx = this.expandedUnitIds.indexOf(unitId);
+            if (idx >= 0) {
+                this.expandedUnitIds.splice(idx, 1);
+            } else {
+                this.expandedUnitIds.push(unitId);
+            }
+        },
+
+        hasExpandableDetail(u) {
+            return (u.members || []).some(m => m.valid_until || m.has_nib_shm || m.endorsed_by_sentence || m.contact);
+        },
+
         async init() {
             if (!this.token) {
                 window.location.href = '/';
                 return;
             }
+
+            this.$watch('registrySearch', () => { this.currentPage = 1; });
+            this.$watch('registryFilterBlock', () => { this.currentPage = 1; });
+            this.$watch('registryFilterZone', () => { this.currentPage = 1; });
+            this.$watch('registryFilterStatus', () => { this.currentPage = 1; });
+
             await this.loadMe();
             if (!this.user?.has_admin_access) {
                 window.location.href = '/dashboard';
@@ -449,20 +629,15 @@ function ppmtRegistryGovernancePanel() {
                 this.updateGovScopeDefault();
             }
 
-            // Tangkap prefill otomatis jika Admin Sistem datang dari tombol "+ Daftarkan Warga"
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('prefill_phone') || urlParams.has('prefill_name') || urlParams.has('prefill_unit')) {
+                this.activeTab = 'governance';
                 this.assistForm.phone = urlParams.get('prefill_phone') || '';
                 this.assistForm.name = urlParams.get('prefill_name') || '';
                 this.assistForm.unit_code = urlParams.get('prefill_unit') || '';
                 this.toastType = 'success';
-                this.toastMessage = urlParams.has('prefill_unit') && !urlParams.has('prefill_phone')
-                    ? `Kavling ${this.assistForm.unit_code} telah dipilih pada formulir "Daftarkan Tetangga Terkenal".`
-                    : 'Data kontak dari Grup WhatsApp telah diisikan ke formulir "Daftarkan Tetangga Terkenal".';
+                this.toastMessage = 'Data kontak dari Grup WhatsApp telah diisikan ke formulir pendaftaran.';
                 window.history.replaceState({}, '', '/pengurus/buku-induk#assisted-register');
-                this.$nextTick(() => {
-                    document.getElementById('assisted-register')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                });
             }
 
             const tasks = [this.loadOccupancyRegistry()];
@@ -480,11 +655,11 @@ function ppmtRegistryGovernancePanel() {
             };
         },
 
-        formatUnitStatus(status) {
+        formatUnitStatusShort(status) {
             const labels = {
-                'unclaimed': 'Belum Terklaim',
-                'pending': 'Menunggu Verifikasi',
-                'occupied': 'Berpenghuni',
+                'unclaimed': 'Belum Terdata',
+                'pending': 'Pending',
+                'occupied': 'Terdata',
                 'rented': 'Disewakan'
             };
             return labels[status] || status;
@@ -655,7 +830,7 @@ function ppmtRegistryGovernancePanel() {
                     }
                 }
             } else {
-                if (!confirm(`Cabut pengesahan Anda atas klaim kepemilikan ${member.name} pada Kavling ${unitCode}?\n(Pengesahan dari pejabat lain, jika ada, akan tetap dipertahankan)`)) {
+                if (!confirm(`Cabut pengesahan Anda atas klaim kepemilikan ${member.name} pada Kavling ${unitCode}?`)) {
                     return;
                 }
             }
