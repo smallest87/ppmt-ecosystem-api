@@ -28,6 +28,20 @@ class SiteplanController extends Controller
             ? []
             : $viewer->accessibleUnitsQuery()->pluck('id')->all();
 
+        // Deteksi apakah pengguna adalah koordinator wilayah terbatas (mis. Koordinator Blok A / Koordinator Zona)
+        $isScopedCoordinator = ! $isCentralAdmin && count($accessibleUnitIds) > 0;
+
+        $activeScopes = [];
+        if ($isScopedCoordinator && method_exists($viewer, 'governanceRoles')) {
+            $activeScopes = $viewer->governanceRoles()
+                ->whereIn('role_code', ['koordinator_blok', 'koordinator_zona'])
+                ->get()
+                ->map(fn ($r) => $r->scope_type === 'block' ? 'Blok ' . $r->scope_value : $r->scope_value)
+                ->unique()
+                ->values()
+                ->all();
+        }
+
         $myUnitIds = $viewer->unitMemberships()
             ->where('is_approved', true)
             ->pluck('unit_id')
@@ -78,6 +92,7 @@ class SiteplanController extends Controller
         $formattedUnits = $units->map(function (Unit $unit) use (
             $viewer,
             $isCentralAdmin,
+            $isScopedCoordinator,
             $accessibleUnitIds,
             $myUnitIds,
             $canViewTreasury,
@@ -88,52 +103,60 @@ class SiteplanController extends Controller
             $hasGovernanceScopeOnUnit = $isCentralAdmin || in_array($unit->id, $accessibleUnitIds, true);
             $canApproveUnit = $viewer->canVouchUnit($unit);
 
-            $visibleMembers = $unit->memberships
-                ->filter(function ($m) use ($hasGovernanceScopeOnUnit, $canApproveUnit, $isMyUnit) {
-                    // Warga biasa hanya melihat penghuni yang sudah disetujui
-                    if ($m->is_approved) {
-                        return true;
-                    }
+            // Aturan Interaktivitas:
+            // Jika login sebagai Koordinator Wilayah (mis. Koordinator Blok A), hanya unit dalam cakupannya (+ unit sendiri / fasum) yang interaktif.
+            $isInteractive = $isScopedCoordinator
+                ? ($hasGovernanceScopeOnUnit || $isMyUnit || $unit->unit_type === 'fasum')
+                : true;
 
-                    // Pengurus wilayah / penjamin / pemilik utama kavling bisa melihat antrean pending
-                    return $hasGovernanceScopeOnUnit || $canApproveUnit || $isMyUnit;
-                })
-                ->map(function ($m) use ($viewer, $hasGovernanceScopeOnUnit, $isMyUnit, $subRoleLabels) {
-                    $user = $m->user;
-                    $profile = $user?->profile;
-                    $privacy = $profile?->privacy_settings ?? [];
+            $visibleMembers = $isInteractive
+                ? $unit->memberships
+                    ->filter(function ($m) use ($hasGovernanceScopeOnUnit, $canApproveUnit, $isMyUnit) {
+                        if ($m->is_approved) {
+                            return true;
+                        }
 
-                    $bypassPrivacy = $hasGovernanceScopeOnUnit
-                        || $isMyUnit
-                        || ($user && (int) $user->id === (int) $viewer->id);
+                        return $hasGovernanceScopeOnUnit || $canApproveUnit || $isMyUnit;
+                    })
+                    ->map(function ($m) use ($viewer, $hasGovernanceScopeOnUnit, $isMyUnit, $subRoleLabels) {
+                        $user = $m->user;
+                        $profile = $user?->profile;
+                        $privacy = $profile?->privacy_settings ?? [];
 
-                    $canSeeFullName = $bypassPrivacy || ($privacy['show_full_name'] ?? false);
-                    $canSeePhone = $bypassPrivacy || ($privacy['show_phone'] ?? false);
-                    $canSeeOwnership = $bypassPrivacy || ($privacy['show_ownership'] ?? false);
+                        $bypassPrivacy = $hasGovernanceScopeOnUnit
+                            || $isMyUnit
+                            || ($user && (int) $user->id === (int) $viewer->id);
 
-                    $fullName = $user?->name ?? 'Warga';
-                    $publicName = $profile?->display_name ?: explode(' ', trim($fullName))[0];
+                        $canSeeFullName = $bypassPrivacy || ($privacy['show_full_name'] ?? false);
+                        $canSeePhone = $bypassPrivacy || ($privacy['show_phone'] ?? false);
+                        $canSeeOwnership = $bypassPrivacy || ($privacy['show_ownership'] ?? false);
 
-                    return [
-                        'membership_id' => $m->id,
-                        'user_id' => $m->user_id,
-                        'name' => $canSeeFullName ? $fullName : $publicName,
-                        'phone' => $canSeePhone ? $profile?->phone : null,
-                        'entity_type' => $canSeeOwnership ? $m->entity_type : 'member',
-                        'sub_role' => $canSeeOwnership ? $m->sub_role : null,
-                        'sub_role_label' => $canSeeOwnership ? ($subRoleLabels[$m->sub_role] ?? $m->sub_role) : 'Warga Terverifikasi',
-                        'is_approved' => (bool) $m->is_approved,
-                        'is_primary_contact' => (bool) $m->is_primary_contact,
-                    ];
-                })
-                ->values();
+                        $fullName = $user?->name ?? 'Warga';
+                        $publicName = $profile?->display_name ?: explode(' ', trim($fullName))[0];
 
-            $activeStores = $unit->umkmStores->map(fn ($store) => [
-                'id' => $store->id,
-                'store_name' => $store->store_name,
-                'category' => $store->category,
-                'status' => $store->status,
-            ])->values();
+                        return [
+                            'membership_id' => $m->id,
+                            'user_id' => $m->user_id,
+                            'name' => $canSeeFullName ? $fullName : $publicName,
+                            'phone' => $canSeePhone ? $profile?->phone : null,
+                            'entity_type' => $canSeeOwnership ? $m->entity_type : 'member',
+                            'sub_role' => $canSeeOwnership ? $m->sub_role : null,
+                            'sub_role_label' => $canSeeOwnership ? ($subRoleLabels[$m->sub_role] ?? $m->sub_role) : 'Warga Terverifikasi',
+                            'is_approved' => (bool) $m->is_approved,
+                            'is_primary_contact' => (bool) $m->is_primary_contact,
+                        ];
+                    })
+                    ->values()
+                : collect();
+
+            $activeStores = $isInteractive
+                ? $unit->umkmStores->map(fn ($store) => [
+                    'id' => $store->id,
+                    'store_name' => $store->store_name,
+                    'category' => $store->category,
+                    'status' => $store->status,
+                ])->values()
+                : collect();
 
             $payload = [
                 'id' => $unit->id,
@@ -142,11 +165,12 @@ class SiteplanController extends Controller
                 'number' => $unit->number,
                 'unit_type' => $unit->unit_type,
                 'zone' => $unit->zone,
-                'occupancy_status' => $unit->occupancy_status,
+                'occupancy_status' => $isInteractive ? $unit->occupancy_status : 'restricted',
                 'map_coordinates' => $unit->map_coordinates,
                 'is_my_unit' => $isMyUnit,
-                'can_manage_unit' => $hasGovernanceScopeOnUnit || $canApproveUnit,
-                'pending_count' => $unit->memberships->where('is_approved', false)->count(),
+                'is_interactive' => $isInteractive,
+                'can_manage_unit' => $isInteractive && ($hasGovernanceScopeOnUnit || $canApproveUnit),
+                'pending_count' => $isInteractive ? $unit->memberships->where('is_approved', false)->count() : 0,
                 'active_stores_count' => $activeStores->count(),
                 'active_stores' => $activeStores,
                 'members' => $visibleMembers,
@@ -165,6 +189,8 @@ class SiteplanController extends Controller
             'viewer_context' => [
                 'is_central_admin' => $isCentralAdmin,
                 'is_global_governor' => $viewer->isGlobalGovernor(),
+                'is_scoped_coordinator' => $isScopedCoordinator,
+                'active_scopes' => $activeScopes,
                 'can_view_treasury' => $canViewTreasury,
                 'current_month' => $currentMonth,
                 'accessible_unit_ids' => $accessibleUnitIds,

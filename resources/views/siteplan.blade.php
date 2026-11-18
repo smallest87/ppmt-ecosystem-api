@@ -95,6 +95,20 @@
             </div>
         </section>
 
+        <!-- Banner Batas Cakupan Koordinator Wilayah -->
+        <div x-show="viewerContext?.is_scoped_coordinator"
+             x-cloak
+             class="bg-indigo-50 border border-indigo-200 rounded-2xl px-4 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-indigo-950">
+            <div class="flex items-center gap-2.5">
+                <span class="px-2.5 py-1 rounded-lg bg-indigo-700 text-white font-extrabold shrink-0">
+                    Mode Wilayah Tugas
+                </span>
+                <span>
+                    Anda masuk sebagai koordinator wilayah (<strong x-text="(viewerContext?.active_scopes || []).join(', ')"></strong>). Hanya kotak kavling di dalam wilayah cakupan Anda (serta kavling pribadi &amp; fasum) yang aktif dan dapat diinspeksi.
+                </span>
+            </div>
+        </div>
+
         <!-- Bar Filter & Pencarian -->
         <section class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
@@ -184,12 +198,18 @@
                              class="grid gap-2">
                             <template x-for="unit in groupUnits" :key="unit.id">
                                 <button type="button"
+                                        :disabled="!unit.is_interactive"
                                         @click="selectUnit(unit)"
+                                        :title="unit.is_interactive ? ('Klik untuk detail Kavling ' + unit.code) : ('Kavling ' + unit.code + ' berada di luar wilayah tugas Anda')"
                                         :class="[
                                             getUnitTileClass(unit),
-                                            selectedUnit?.id === unit.id ? 'ring-2 ring-indigo-600 ring-offset-1 scale-[1.03]' : 'hover:brightness-95'
+                                            !unit.is_interactive
+                                                ? 'opacity-40 cursor-not-allowed grayscale'
+                                                : (selectedUnit?.id === unit.id
+                                                    ? 'ring-2 ring-indigo-600 ring-offset-1 scale-[1.03] cursor-pointer'
+                                                    : 'hover:brightness-95 cursor-pointer')
                                         ]"
-                                        class="relative px-2 py-2.5 rounded-xl border text-xs text-center flex flex-col items-center justify-center transition cursor-pointer select-none">
+                                        class="relative px-2 py-2.5 rounded-xl border text-xs text-center flex flex-col items-center justify-center transition select-none">
 
                                     <!-- Badge Rumah Sendiri -->
                                     <span x-show="unit.is_my_unit"
@@ -245,7 +265,7 @@
                     </button>
                 </div>
 
-                <div class="p-5 space-y-5 max-h-[75vh] overflow-y-auto">
+                <div class="p-5 space-y-5 max-h-[78vh] overflow-y-auto">
 
                     <!-- Status Hunian & Iuran -->
                     <div class="flex flex-wrap items-center gap-2">
@@ -272,61 +292,203 @@
                         </template>
                     </div>
 
-                    <!-- Daftar Penghuni / Pemilik -->
-                    <div x-show="selectedUnit?.unit_type !== 'fasum'" class="space-y-2.5">
+                    <!-- Visualisasi Spasial Pemilik vs Penghuni -->
+                    <div x-show="selectedUnit?.unit_type !== 'fasum'" class="space-y-3">
                         <div class="flex items-center justify-between">
-                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Data Penghuni &amp; Pemilik</h3>
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Peta Relasi Kepemilikan &amp; Hunian</h3>
                             <span x-show="selectedUnit?.can_manage_unit"
                                   class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">
-                                Akses Pengurus Wilayah
+                                Pengurus Wilayah
+                            </span>
+                        </div>
+
+                        <!-- Legenda Mikro Ikon Berkas vs Bingkai -->
+                        <div class="flex flex-wrap items-center gap-3 text-[10px] text-slate-500 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200/80">
+                            <span class="inline-flex items-center gap-1 font-semibold text-amber-800">
+                                <span class="w-4 h-4 rounded bg-amber-400 text-slate-950 inline-flex items-center justify-center shadow-2xs">
+                                    <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                </span>
+                                Status Pemilik
+                            </span>
+                            <span class="inline-flex items-center gap-1 font-semibold text-emerald-800">
+                                <span class="w-3.5 h-3.5 rounded border-2 border-emerald-600 bg-emerald-50 inline-block"></span>
+                                Di Dalam Bingkai = Menghuni
                             </span>
                         </div>
 
                         <div x-show="(selectedUnit?.members?.length || 0) === 0"
-                             class="p-4 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-xs text-slate-500">
+                             class="p-4 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-xs text-slate-500 text-center">
                             Belum ada warga yang terdata pada kavling ini.
                         </div>
 
-                        <div class="space-y-2">
-                            <template x-for="m in (selectedUnit?.members || [])" :key="m.membership_id">
-                                <div :class="m.is_approved ? 'bg-slate-50 border-slate-200' : 'bg-amber-50/80 border-amber-300'"
-                                     class="p-3 rounded-xl border space-y-1.5 text-xs">
-                                    <div class="flex items-start justify-between gap-2">
-                                        <div>
-                                            <div class="font-bold text-slate-900" x-text="m.name"></div>
-                                            <div class="text-[11px] text-slate-500" x-text="m.sub_role_label"></div>
-                                        </div>
-                                        <span :class="m.is_approved ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-200 text-amber-950'"
-                                              class="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0"
-                                              x-text="m.is_approved ? 'Terverifikasi' : 'Menunggu'">
-                                        </span>
+                        <template x-if="(selectedUnit?.members?.length || 0) > 0">
+                            <div class="space-y-3">
+
+                                <!-- ZONA 1 (LUAR ATAS): Pemilik Tidak Menghuni Kavling -->
+                                <div x-show="unitRolesBreakdown.externalOwners.length > 0" class="space-y-1.5">
+                                    <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-amber-800 px-1">
+                                        <span>Pemilik (Di Luar Kavling)</span>
+                                        <span>Tidak Menghuni</span>
                                     </div>
 
-                                    <div class="flex items-center justify-between gap-2 pt-1">
-                                        <template x-if="m.phone">
-                                            <a :href="'https://wa.me/' + m.phone.replace(/^0/, '62').replace(/[^0-9]/g, '')"
-                                               target="_blank"
-                                               class="text-[11px] font-semibold text-emerald-700 hover:underline">
-                                                WA: <span x-text="m.phone"></span> ↗
-                                            </a>
-                                        </template>
-                                        <template x-if="!m.phone">
-                                            <span class="text-[11px] text-slate-400 italic">Kontak privat</span>
-                                        </template>
+                                    <div class="space-y-2">
+                                        <template x-for="m in unitRolesBreakdown.externalOwners" :key="m.membership_id">
+                                            <div :class="m.is_approved ? 'bg-amber-50/60 border-amber-300' : 'bg-amber-100/80 border-amber-400'"
+                                                 class="relative p-3 rounded-xl border text-xs space-y-1.5 shadow-2xs">
+                                                <!-- Ikon Berkas Kepemilikan di Sudut Kartu -->
+                                                <span title="Berkas Kepemilikan Kavling"
+                                                      class="absolute -top-2 -right-2 w-6 h-6 rounded-lg bg-amber-400 border border-amber-500 text-slate-950 flex items-center justify-center shadow-xs">
+                                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.3">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                    </svg>
+                                                </span>
 
-                                        <!-- Tombol Sahkan Cepat untuk Pengurus Wilayah / Penjamin -->
-                                        <button x-show="!m.is_approved && selectedUnit?.can_manage_unit"
-                                                type="button"
-                                                :disabled="approvingMembershipId === m.membership_id"
-                                                @click="approveMemberOnUnit(selectedUnit, m)"
-                                                class="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold transition cursor-pointer">
-                                            <span x-show="approvingMembershipId !== m.membership_id">✓ Sahkan Warga</span>
-                                            <span x-show="approvingMembershipId === m.membership_id">Mengesahkan...</span>
-                                        </button>
+                                                <div class="flex items-start justify-between gap-2 pr-5">
+                                                    <div>
+                                                        <div class="font-bold text-slate-900" x-text="m.name"></div>
+                                                        <div class="text-[11px] text-amber-900 font-medium" x-text="m.sub_role_label"></div>
+                                                    </div>
+                                                    <span :class="m.is_approved ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-200 text-amber-950'"
+                                                          class="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0"
+                                                          x-text="m.is_approved ? 'Terverifikasi' : 'Menunggu'">
+                                                    </span>
+                                                </div>
+
+                                                <div class="flex items-center justify-between gap-2 pt-0.5">
+                                                    <template x-if="m.phone">
+                                                        <a :href="'https://wa.me/' + m.phone.replace(/^0/, '62').replace(/[^0-9]/g, '')"
+                                                           target="_blank"
+                                                           class="text-[11px] font-semibold text-emerald-700 hover:underline">
+                                                            WA: <span x-text="m.phone"></span> ↗
+                                                        </a>
+                                                    </template>
+                                                    <template x-if="!m.phone">
+                                                        <span class="text-[11px] text-slate-400 italic">Kontak privat</span>
+                                                    </template>
+
+                                                    <button x-show="!m.is_approved && selectedUnit?.can_manage_unit"
+                                                            type="button"
+                                                            :disabled="approvingMembershipId === m.membership_id"
+                                                            @click="approveMemberOnUnit(selectedUnit, m)"
+                                                            class="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold transition cursor-pointer">
+                                                        <span x-show="approvingMembershipId !== m.membership_id">✓ Sahkan</span>
+                                                        <span x-show="approvingMembershipId === m.membership_id">...</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+
+                                    <!-- Garis Penghubung Hak Milik ke Bingkai Kavling -->
+                                    <div class="flex justify-center">
+                                        <div class="h-3 border-l-2 border-dashed border-amber-400"></div>
                                     </div>
                                 </div>
-                            </template>
-                        </div>
+
+                                <!-- ZONA 2 (TENGAH): Bingkai Fisik Kavling (Semua yang Menghuni) -->
+                                <div :class="unitRolesBreakdown.insideOccupants.length > 0 ? 'border-emerald-600 bg-emerald-50/35' : 'border-dashed border-slate-300 bg-slate-50/70'"
+                                     class="rounded-2xl border-2 p-3.5 space-y-2.5">
+                                    <div class="flex items-center justify-between border-b border-slate-200/80 pb-1.5">
+                                        <span class="text-[11px] font-extrabold text-slate-800 flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full"
+                                                  :class="unitRolesBreakdown.insideOccupants.length > 0 ? 'bg-emerald-600' : 'bg-slate-400'"></span>
+                                            <span>Bingkai Kavling <span x-text="selectedUnit?.code"></span></span>
+                                        </span>
+                                        <span class="text-[10px] font-semibold text-slate-500"
+                                              x-text="unitRolesBreakdown.insideOccupants.length > 0 ? (unitRolesBreakdown.insideOccupants.length + ' penghuni di dalam') : 'Kosong'"></span>
+                                    </div>
+
+                                    <div x-show="unitRolesBreakdown.insideOccupants.length === 0"
+                                         class="py-3 text-center text-[11px] text-slate-500 italic">
+                                        Belum ada penghuni yang tinggal di dalam kavling ini.
+                                    </div>
+
+                                    <div class="space-y-2.5">
+                                        <template x-for="m in unitRolesBreakdown.insideOccupants" :key="m.membership_id">
+                                            <div :class="m.is_approved ? 'bg-white border-slate-200' : 'bg-amber-50 border-amber-300'"
+                                                 class="relative p-3 rounded-xl border text-xs space-y-1.5 shadow-2xs">
+
+                                                <!-- Ikon Berkas HANYA muncul jika penghuni ini juga berstatus Pemilik -->
+                                                <span x-show="m.hasOwnerDocument"
+                                                      title="Pemilik Sekaligus Penghuni Kavling"
+                                                      class="absolute -top-2 -right-2 w-6 h-6 rounded-lg bg-amber-400 border border-amber-500 text-slate-950 flex items-center justify-center shadow-xs">
+                                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.3">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                    </svg>
+                                                </span>
+
+                                                <div class="flex items-start justify-between gap-2" :class="m.hasOwnerDocument ? 'pr-5' : ''">
+                                                    <div>
+                                                        <div class="font-bold text-slate-900" x-text="m.name"></div>
+                                                        <div class="text-[11px] text-slate-500" x-text="m.sub_role_label"></div>
+                                                    </div>
+                                                    <span :class="m.is_approved ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-200 text-amber-950'"
+                                                          class="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0"
+                                                          x-text="m.is_approved ? 'Terverifikasi' : 'Menunggu'">
+                                                    </span>
+                                                </div>
+
+                                                <div class="flex items-center justify-between gap-2 pt-0.5">
+                                                    <template x-if="m.phone">
+                                                        <a :href="'https://wa.me/' + m.phone.replace(/^0/, '62').replace(/[^0-9]/g, '')"
+                                                           target="_blank"
+                                                           class="text-[11px] font-semibold text-emerald-700 hover:underline">
+                                                            WA: <span x-text="m.phone"></span> ↗
+                                                        </a>
+                                                    </template>
+                                                    <template x-if="!m.phone">
+                                                        <span class="text-[11px] text-slate-400 italic">Kontak privat</span>
+                                                    </template>
+
+                                                    <button x-show="!m.is_approved && selectedUnit?.can_manage_unit"
+                                                            type="button"
+                                                            :disabled="approvingMembershipId === m.membership_id"
+                                                            @click="approveMemberOnUnit(selectedUnit, m)"
+                                                            class="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold transition cursor-pointer">
+                                                        <span x-show="approvingMembershipId !== m.membership_id">✓ Sahkan Warga</span>
+                                                        <span x-show="approvingMembershipId === m.membership_id">Mengesahkan...</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+
+                                <!-- ZONA 3 (LUAR BAWAH): Warga Terverifikasi dengan Privasi Peran Tertutup -->
+                                <div x-show="unitRolesBreakdown.privateMembers.length > 0"
+                                     class="pt-2 border-t border-dashed border-slate-200 space-y-2">
+                                    <div class="space-y-0.5 px-1">
+                                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                            Warga Terverifikasi (Status Peran Diprivasi)
+                                        </div>
+                                        <p class="text-[10px] text-slate-400 leading-relaxed">
+                                            Warga di bawah ini terhubung resmi dengan kavling <span x-text="selectedUnit?.code"></span>, namun menyembunyikan detail status kepemilikan maupun huniannya dari publik.
+                                        </p>
+                                    </div>
+
+                                    <div class="space-y-1.5">
+                                        <template x-for="m in unitRolesBreakdown.privateMembers" :key="m.membership_id">
+                                            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs flex items-center justify-between gap-2">
+                                                <div>
+                                                    <div class="font-bold text-slate-800" x-text="m.name"></div>
+                                                    <div class="text-[10px] text-slate-500" x-text="m.sub_role_label"></div>
+                                                </div>
+                                                <template x-if="m.phone">
+                                                    <a :href="'https://wa.me/' + m.phone.replace(/^0/, '62').replace(/[^0-9]/g, '')"
+                                                       target="_blank"
+                                                       class="text-[11px] font-semibold text-emerald-700 hover:underline shrink-0">
+                                                        WA ↗
+                                                    </a>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </template>
                     </div>
 
                     <!-- Lapak Pasar Tetangga di Kavling Ini -->
@@ -434,16 +596,17 @@ function ppmtSiteplan() {
             this.viewerContext = json.viewer_context || null;
 
             if (preselectCode) {
-                const found = this.units.find(u => u.code.toUpperCase() === preselectCode);
+                const found = this.units.find(u => u.code.toUpperCase() === preselectCode && u.is_interactive);
                 if (found) {
                     this.selectedUnit = found;
                 }
             } else if (this.selectedUnit) {
-                this.selectedUnit = this.units.find(u => u.id === this.selectedUnit.id) || null;
+                this.selectedUnit = this.units.find(u => u.id === this.selectedUnit.id && u.is_interactive) || null;
             }
         },
 
         selectUnit(unit) {
+            if (!unit || !unit.is_interactive) return;
             this.selectedUnit = this.selectedUnit?.id === unit.id ? null : unit;
             const url = new URL(window.location);
             if (this.selectedUnit) {
@@ -452,6 +615,63 @@ function ppmtSiteplan() {
                 url.searchParams.delete('unit');
             }
             window.history.replaceState({}, '', url);
+        },
+
+        get unitRolesBreakdown() {
+            const unit = this.selectedUnit;
+            if (!unit || !Array.isArray(unit.members)) {
+                return { externalOwners: [], insideOccupants: [], privateMembers: [] };
+            }
+
+            const externalOwners = [];
+            const insideOccupants = [];
+            const privateMembers = [];
+
+            const explicitResidentUserIds = new Set(
+                unit.members
+                    .filter(m => m.entity_type === 'resident')
+                    .map(m => m.user_id)
+            );
+
+            const hasExternalTenantOrResident = unit.members.some(m =>
+                m.entity_type === 'resident' && ['tenant', 'primary_resident'].includes(m.sub_role)
+            );
+
+            for (const m of unit.members) {
+                // 1. Warga yang menyembunyikan status kepemilikan/huniannya (entity_type === 'member')
+                if (m.entity_type === 'member') {
+                    privateMembers.push(m);
+                    continue;
+                }
+
+                // 2. Entitas Pemilik (entity_type === 'owner')
+                if (m.entity_type === 'owner') {
+                    const alsoListedAsResident = explicitResidentUserIds.has(m.user_id);
+
+                    // Pemilik dianggap TIDAK menghuni (di luar bingkai) jika:
+                    // - Status unit disewakan ('rented') atau masih 'unclaimed', DAN tidak punya record resident eksplisit
+                    // - ATAU ada penyewa/penghuni utama lain di dalam dan pemilik tidak tercatat sebagai penghuni
+                    const isExternal = !alsoListedAsResident && (
+                        ['rented', 'unclaimed'].includes(unit.occupancy_status) || hasExternalTenantOrResident
+                    );
+
+                    if (isExternal) {
+                        externalOwners.push({ ...m, hasOwnerDocument: true });
+                    } else {
+                        insideOccupants.push({ ...m, hasOwnerDocument: true });
+                    }
+                    continue;
+                }
+
+                // 3. Entitas Penghuni Non-Pemilik (entity_type === 'resident')
+                // Jika user yang sama sudah masuk sebagai pemilik di dalam bingkai, hindari duplikasi kartu
+                const alreadyInInsideAsOwner = insideOccupants.some(o => o.user_id === m.user_id);
+                if (!alreadyInInsideAsOwner) {
+                    insideOccupants.push({ ...m, hasOwnerDocument: false });
+                }
+            }
+
+            return { externalOwners, insideOccupants, privateMembers };
         },
 
         get filteredUnits() {
@@ -486,6 +706,10 @@ function ppmtSiteplan() {
         },
 
         getUnitTileClass(unit) {
+            if (!unit.is_interactive) {
+                return 'bg-slate-100 text-slate-400 border-slate-200';
+            }
+
             if (this.mapLayer === 'umkm') {
                 if ((unit.active_stores_count || 0) > 0) {
                     return 'bg-amber-100 text-amber-950 border-amber-400 shadow-xs';
