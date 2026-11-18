@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 Route::view('/', 'welcome')->name('home');
 Route::view('/register', 'register')->name('register');
 Route::view('/dashboard', 'dashboard')->name('dashboard');
+Route::view('/agenda', 'agenda.index')->name('agenda.index');
 
 // Pengaturan Modular (Hub + Sub-halaman Terfokus)
 Route::prefix('pengaturan')->name('pengaturan.')->group(function () {
@@ -25,9 +26,6 @@ Route::redirect('/admin', '/pengurus');
 
 Route::view('/komunitas', 'komunitas')->name('komunitas');
 Route::view('/peta-kavling', 'siteplan')->name('siteplan');
-Route::view('/pengurus', 'admin')->name('pengurus');
-Route::view('/pengurus/pemadupadanan-kontak', 'admin-wa-contacts')->name('pengurus.wa-contacts');
-Route::redirect('/admin', '/pengurus');
 
 // Permalink Berita Warga: /berita/2026/11/17/judul-berita-slug
 Route::get('/berita/{year}/{month}/{day}/{slug}', function ($year, $month, $day, $slug) {

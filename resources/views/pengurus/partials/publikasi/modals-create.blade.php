@@ -132,6 +132,59 @@
                 </div>
             </div>
 
+            <!-- Visibilitas / Sasaran Penerima Agenda -->
+            <div class="space-y-2.5 p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                <label class="block text-xs sm:text-sm font-semibold text-slate-700">Sasaran / Visibilitas Agenda *</label>
+                <select x-model="agendaForm.visibility"
+                        class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
+                    <option value="public">Seluruh Warga PPMT</option>
+                    <option value="block">Blok Tertentu Saja</option>
+                    <option value="invite_only">Undangan Warga Tertentu</option>
+                </select>
+
+                <!-- Pilihan Blok -->
+                <div x-show="agendaForm.visibility === 'block'" x-cloak class="pt-1 space-y-1.5">
+                    <div class="text-xs font-medium text-slate-600">Pilih Blok Kavling:</div>
+                    <div class="flex flex-wrap gap-2">
+                        <template x-for="blk in ['R', 'A', 'B', 'C', 'D']" :key="blk">
+                            <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-bold text-slate-700 cursor-pointer select-none">
+                                <input type="checkbox"
+                                       :value="blk"
+                                       x-model="agendaForm.target_blocks"
+                                       class="rounded text-emerald-700 focus:ring-emerald-600">
+                                <span x-text="'Blok ' + blk"></span>
+                            </label>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Pilihan Warga Diundang -->
+                <div x-show="agendaForm.visibility === 'invite_only'" x-cloak class="pt-1 space-y-2">
+                    <input type="text"
+                           x-model="agendaInviteSearch"
+                           placeholder="Cari nama warga atau nomor kavling..."
+                           class="w-full rounded-xl border-slate-300 text-xs focus:border-emerald-600 focus:ring-emerald-600">
+                    <div class="max-h-36 overflow-y-auto rounded-xl bg-white border border-slate-200 divide-y divide-slate-100">
+                        <template x-for="res in filteredResidentOptions(agendaInviteSearch)" :key="res.id">
+                            <label class="px-3 py-2 flex items-center justify-between gap-2 text-xs hover:bg-slate-50 cursor-pointer">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <input type="checkbox"
+                                           :value="String(res.id)"
+                                           x-model="agendaForm.invited_user_ids"
+                                           class="rounded text-emerald-700 focus:ring-emerald-600">
+                                    <span class="font-semibold text-slate-800 truncate" x-text="res.name"></span>
+                                </div>
+                                <span x-show="res.unit_codes"
+                                      x-text="res.unit_codes"
+                                      class="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-[10px] font-bold text-slate-700 shrink-0"></span>
+                            </label>
+                        </template>
+                    </div>
+                    <div class="text-[11px] text-slate-500"
+                         x-text="agendaForm.invited_user_ids.length + ' warga dipilih'"></div>
+                </div>
+            </div>
+
             <div>
                 <label class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1">Catatan Tambahan (Opsional)</label>
                 <textarea x-model="agendaForm.notes"

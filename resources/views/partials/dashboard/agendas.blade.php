@@ -1,12 +1,20 @@
 <!-- Kartu 2: Agenda Warga (Live API) -->
 <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
     <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
-        <h2 class="text-base font-bold text-slate-900">Agenda Warga</h2>
-        <a x-show="canPublishNews"
-           href="/pengurus"
-           class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition shrink-0">
-            + Kelola
+        <a href="/agenda" class="text-base font-bold text-slate-900 hover:text-emerald-800 transition">
+            Agenda Warga
         </a>
+        <div class="flex items-center gap-2 shrink-0">
+            <a href="/agenda"
+               class="text-xs font-bold text-emerald-700 hover:text-emerald-900 transition">
+                Semua &rarr;
+            </a>
+            <a x-show="canPublishNews"
+               href="/pengurus"
+               class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition">
+                + Kelola
+            </a>
+        </div>
     </div>
 
     <div x-show="agendas.length === 0" class="px-6 py-8 text-center text-xs text-slate-500">
@@ -14,7 +22,7 @@
     </div>
 
     <div class="divide-y divide-slate-100" x-show="agendas.length > 0">
-        <template x-for="ag in agendas" :key="ag.id">
+        <template x-for="ag in agendas.slice(0, 4)" :key="ag.id">
             <div class="px-6 py-4 flex items-center gap-4">
                 <!-- Kotak Hari, Tanggal & Bulan Relatif Besar -->
                 <div class="w-16 h-20 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col items-center justify-center shrink-0 text-emerald-950 shadow-2xs">
@@ -50,5 +58,12 @@
                 </div>
             </div>
         </template>
+    </div>
+
+    <div x-show="agendas.length > 0" class="px-6 py-3 bg-slate-50/70 border-t border-slate-100 flex items-center justify-between text-xs">
+        <span class="text-slate-500" x-text="'Menampilkan ' + Math.min(4, agendas.length) + ' dari ' + agendas.length + ' agenda terkini'"></span>
+        <a href="/agenda" class="font-bold text-emerald-700 hover:text-emerald-900 transition">
+            Lihat Semua Agenda &rarr;
+        </a>
     </div>
 </section>

@@ -15,6 +15,9 @@ function ppmtEditorialPanel() {
         newsArticles: [],
         agendas: [],
         meetingMinutes: [],
+        residentOptions: [],
+        agendaInviteSearch: '',
+        editAgendaInviteSearch: '',
         showCreateAnnouncement: false,
         showCreateAgenda: false,
         showCreateMinute: false,
@@ -52,7 +55,10 @@ function ppmtEditorialPanel() {
             event_date: todayStr,
             time_label: '',
             location: '',
-            notes: ''
+            notes: '',
+            visibility: 'public',
+            target_blocks: [],
+            invited_user_ids: []
         },
         editAgendaForm: {
             id: null,
@@ -61,7 +67,10 @@ function ppmtEditorialPanel() {
             event_date: todayStr,
             time_label: '',
             location: '',
-            notes: ''
+            notes: '',
+            visibility: 'public',
+            target_blocks: [],
+            invited_user_ids: []
         },
         minuteForm: {
             title: '',
@@ -116,13 +125,17 @@ function ppmtEditorialPanel() {
 
         openCreateAgendaModal() {
             this.openMenuKey = null;
+            this.agendaInviteSearch = '';
             this.agendaForm = {
                 title: '',
                 category: 'kegiatan',
                 event_date: todayStr,
                 time_label: '',
                 location: '',
-                notes: ''
+                notes: '',
+                visibility: 'public',
+                target_blocks: [],
+                invited_user_ids: []
             };
             this.showCreateAgenda = true;
         },
@@ -161,7 +174,8 @@ function ppmtEditorialPanel() {
                 this.loadAnnouncements(),
                 this.loadNewsArticles(),
                 this.loadAgendas(),
-                this.loadMeetingMinutes()
+                this.loadMeetingMinutes(),
+                this.loadResidentOptions()
             ]);
         },
 
@@ -181,6 +195,29 @@ function ppmtEditorialPanel() {
                 'text': 'Daftar Teks'
             };
             return labels[layout] || layout;
+        },
+
+        filteredResidentOptions(query) {
+            const q = (query || '').trim().toLowerCase();
+            if (!q) return this.residentOptions;
+            return this.residentOptions.filter(r =>
+                (r.name || '').toLowerCase().includes(q) ||
+                (r.unit_codes || '').toLowerCase().includes(q)
+            );
+        },
+
+        async loadResidentOptions() {
+            const res = await fetch('/api/v1/residents/directory', { headers: this.headers() });
+            if (res.ok) {
+                const json = await res.json();
+                this.residentOptions = (json.data || []).map(r => ({
+                    id: r.id,
+                    name: r.display_name || r.name,
+                    unit_codes: Array.isArray(r.units)
+                        ? r.units.map(u => u.code || u).join(', ')
+                        : (r.unit_codes || '')
+                }));
+            }
         },
 
         async loadMe() {
@@ -383,10 +420,17 @@ function ppmtEditorialPanel() {
         async createAgenda() {
             this.savingAgenda = true;
             try {
+                const payload = {
+                    ...this.agendaForm,
+                    target_blocks: this.agendaForm.visibility === 'block' ? this.agendaForm.target_blocks : [],
+                    invited_user_ids: this.agendaForm.visibility === 'invite_only'
+                        ? this.agendaForm.invited_user_ids.map(id => Number(id))
+                        : []
+                };
                 const res = await fetch('/api/v1/agendas', {
                     method: 'POST',
                     headers: this.headers(),
-                    body: JSON.stringify(this.agendaForm)
+                    body: JSON.stringify(payload)
                 });
                 const json = await res.json();
                 if (res.ok) {
@@ -399,12 +443,16 @@ function ppmtEditorialPanel() {
                         event_date: todayStr,
                         time_label: '',
                         location: '',
-                        notes: ''
+                        notes: '',
+                        visibility: 'public',
+                        target_blocks: [],
+                        invited_user_ids: []
                     };
                     await this.loadAgendas();
                 } else {
+                    const firstError = json.errors ? Object.values(json.errors)[0]?.[0] : null;
                     this.toastType = 'error';
-                    this.toastMessage = json.message || 'Gagal menyimpan agenda.';
+                    this.toastMessage = firstError || json.message || 'Gagal menyimpan agenda.';
                 }
             } finally {
                 this.savingAgenda = false;
@@ -412,6 +460,7 @@ function ppmtEditorialPanel() {
         },
 
         openEditAgenda(ag) {
+            this.editAgendaInviteSearch = '';
             this.editAgendaForm = {
                 id: ag.id,
                 title: ag.title,
@@ -419,7 +468,12 @@ function ppmtEditorialPanel() {
                 event_date: ag.event_date,
                 time_label: ag.time,
                 location: ag.location,
-                notes: ag.notes || ''
+                notes: ag.notes || '',
+                visibility: ag.visibility || 'public',
+                target_blocks: Array.isArray(ag.target_blocks) ? [...ag.target_blocks] : [],
+                invited_user_ids: Array.isArray(ag.invited_user_ids)
+                    ? ag.invited_user_ids.map(id => String(id))
+                    : []
             };
             this.editingAgenda = ag;
         },
@@ -436,7 +490,14 @@ function ppmtEditorialPanel() {
                         event_date: this.editAgendaForm.event_date,
                         time_label: this.editAgendaForm.time_label,
                         location: this.editAgendaForm.location,
-                        notes: this.editAgendaForm.notes || null
+                        notes: this.editAgendaForm.notes || null,
+                        visibility: this.editAgendaForm.visibility,
+                        target_blocks: this.editAgendaForm.visibility === 'block'
+                            ? this.editAgendaForm.target_blocks
+                            : [],
+                        invited_user_ids: this.editAgendaForm.visibility === 'invite_only'
+                            ? this.editAgendaForm.invited_user_ids.map(id => Number(id))
+                            : []
                     })
                 });
                 const json = await res.json();
@@ -446,8 +507,9 @@ function ppmtEditorialPanel() {
                     this.toastMessage = json.message;
                     await this.loadAgendas();
                 } else {
+                    const firstError = json.errors ? Object.values(json.errors)[0]?.[0] : null;
                     this.toastType = 'error';
-                    this.toastMessage = json.message || 'Gagal memperbarui agenda.';
+                    this.toastMessage = firstError || json.message || 'Gagal memperbarui agenda.';
                 }
             } finally {
                 this.savingAgenda = false;

@@ -16,7 +16,13 @@ class AgendaController extends Controller
         $includePast = $request->boolean('all') && $user->canManageAnnouncements();
 
         $query = EnvironmentAgenda::query()
-            ->with(['author:id,name', 'author.profile:id,user_id,display_name']);
+            ->visibleTo($user, $includePast)
+            ->with([
+                'author:id,name',
+                'author.profile:id,user_id,display_name',
+                'invitedUsers:id,name',
+                'invitedUsers.profile:id,user_id,display_name',
+            ]);
 
         if ($includePast) {
             $query->orderByDesc('event_date')->latest();
@@ -53,6 +59,14 @@ class AgendaController extends Controller
                 'time' => $agenda->time_label,
                 'location' => $agenda->location,
                 'notes' => $agenda->notes,
+                'visibility' => $agenda->visibility ?? 'public',
+                'visibility_label' => $agenda->visibility_label,
+                'target_blocks' => $agenda->target_blocks ?? [],
+                'invited_user_ids' => $agenda->invitedUsers->pluck('id')->values()->all(),
+                'invited_users' => $agenda->invitedUsers->map(fn ($u) => [
+                    'id' => $u->id,
+                    'name' => $u->profile?->display_name ?: $u->name,
+                ])->values()->all(),
                 'is_upcoming' => $agenda->event_date?->gte(now()->startOfDay()) ?? false,
                 'author' => $agenda->author?->profile?->display_name ?: ($agenda->author?->name ?? 'Sekretariat PPMT'),
             ];
@@ -78,7 +92,17 @@ class AgendaController extends Controller
             'time_label' => ['required', 'string', 'max:80'],
             'location' => ['required', 'string', 'max:140'],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'visibility' => ['sometimes', Rule::in(['public', 'block', 'invite_only'])],
+            'target_blocks' => ['required_if:visibility,block', 'array'],
+            'target_blocks.*' => ['string', Rule::in(['R', 'A', 'B', 'C', 'D', 'FASUM'])],
+            'invited_user_ids' => ['required_if:visibility,invite_only', 'array'],
+            'invited_user_ids.*' => ['integer', 'exists:users,id'],
+        ], [
+            'target_blocks.required_if' => 'Pilih minimal satu blok untuk agenda khusus blok.',
+            'invited_user_ids.required_if' => 'Pilih minimal satu warga untuk agenda undangan khusus.',
         ]);
+
+        $visibility = $validated['visibility'] ?? 'public';
 
         $agenda = EnvironmentAgenda::create([
             'title' => trim($validated['title']),
@@ -87,11 +111,19 @@ class AgendaController extends Controller
             'time_label' => trim($validated['time_label']),
             'location' => trim($validated['location']),
             'notes' => isset($validated['notes']) ? trim($validated['notes']) : null,
+            'visibility' => $visibility,
+            'target_blocks' => $visibility === 'block'
+                ? array_values(array_unique($validated['target_blocks'] ?? []))
+                : null,
             'created_by_user_id' => $user->id,
         ]);
 
+        if ($visibility === 'invite_only') {
+            $agenda->invitedUsers()->sync(array_values(array_unique($validated['invited_user_ids'] ?? [])));
+        }
+
         return response()->json([
-            'message' => 'Agenda & jadwal lingkungan berhasil diterbitkan ke Beranda Warga.',
+            'message' => 'Agenda & jadwal lingkungan berhasil diterbitkan.',
             'data' => $agenda,
         ], 201);
     }
@@ -113,9 +145,31 @@ class AgendaController extends Controller
             'time_label' => ['sometimes', 'required', 'string', 'max:80'],
             'location' => ['sometimes', 'required', 'string', 'max:140'],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'visibility' => ['sometimes', Rule::in(['public', 'block', 'invite_only'])],
+            'target_blocks' => ['required_if:visibility,block', 'array'],
+            'target_blocks.*' => ['string', Rule::in(['R', 'A', 'B', 'C', 'D', 'FASUM'])],
+            'invited_user_ids' => ['required_if:visibility,invite_only', 'array'],
+            'invited_user_ids.*' => ['integer', 'exists:users,id'],
+        ], [
+            'target_blocks.required_if' => 'Pilih minimal satu blok untuk agenda khusus blok.',
+            'invited_user_ids.required_if' => 'Pilih minimal satu warga untuk agenda undangan khusus.',
         ]);
 
+        $visibility = $validated['visibility'] ?? $agenda->visibility ?? 'public';
+
+        if (array_key_exists('visibility', $validated)) {
+            $validated['target_blocks'] = $visibility === 'block'
+                ? array_values(array_unique($validated['target_blocks'] ?? []))
+                : null;
+        }
+
         $agenda->update($validated);
+
+        if ($visibility === 'invite_only' && array_key_exists('invited_user_ids', $validated)) {
+            $agenda->invitedUsers()->sync(array_values(array_unique($validated['invited_user_ids'] ?? [])));
+        } elseif ($visibility !== 'invite_only') {
+            $agenda->invitedUsers()->detach();
+        }
 
         return response()->json([
             'message' => 'Agenda lingkungan berhasil diperbarui.',
