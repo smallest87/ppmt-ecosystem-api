@@ -1115,10 +1115,14 @@
                  class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200 space-y-4">
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-100 pb-4">
                 <div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                         <h2 class="text-base sm:text-lg font-bold text-slate-900">Buku Induk &amp; Status Hunian Kavling</h2>
                         <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"
                               x-text="filteredRegistryUnits.length + ' Kavling'"></span>
+                        <a href="/peta-kavling"
+                           class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 transition">
+                            Lihat Peta 91 Kavling ↗
+                        </a>
                     </div>
                     <p class="text-xs text-slate-500 mt-0.5"
                        x-text="registryScopeIsCentral ? 'Menampilkan seluruh kavling hunian PPMT untuk pendataan & administrasi pengurus pusat.' : 'Menampilkan kavling hunian di dalam wilayah cakupan koordinasi Anda.'">
@@ -1170,8 +1174,10 @@
                         <div class="space-y-2">
                             <div class="flex items-center justify-between gap-2">
                                 <div class="flex items-center gap-2">
-                                    <span class="px-2.5 py-1 rounded-lg bg-slate-900 text-white text-xs font-extrabold"
-                                          x-text="u.code"></span>
+                                    <a :href="'/peta-kavling?unit=' + encodeURIComponent(u.code)"
+                                       title="Lihat posisi kavling di Peta"
+                                       class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-emerald-800 text-white text-xs font-extrabold transition"
+                                       x-text="u.code"></a>
                                     <span class="text-[11px] font-semibold text-slate-500" x-text="u.zone"></span>
                                 </div>
                                 <span :class="{
@@ -1694,7 +1700,9 @@ function ppmtAdminPanel() {
                 this.assistForm.name = urlParams.get('prefill_name') || '';
                 this.assistForm.unit_code = urlParams.get('prefill_unit') || '';
                 this.toastType = 'success';
-                this.toastMessage = 'Data kontak dari Grup WhatsApp telah diisikan ke formulir "Daftarkan Tetangga Terkenal".';
+                this.toastMessage = urlParams.has('prefill_unit') && !urlParams.has('prefill_phone')
+                    ? `Kavling ${this.assistForm.unit_code} telah dipilih pada formulir "Daftarkan Tetangga Terkenal".`
+                    : 'Data kontak dari Grup WhatsApp telah diisikan ke formulir "Daftarkan Tetangga Terkenal".';
                 window.history.replaceState({}, '', '/pengurus#assisted-register');
                 this.$nextTick(() => {
                     document.getElementById('assisted-register')?.scrollIntoView({ behavior: 'smooth', block: 'center' });

@@ -41,11 +41,10 @@
                     class="px-3 py-2 rounded-lg transition cursor-pointer">
                 Notulensi &amp; Tatib
             </button>
-            <button type="button" @click="setTab('siteplan')"
-                    :class="tab === 'siteplan' ? 'bg-emerald-700 text-white shadow' : 'text-slate-600 hover:text-slate-900'"
-                    class="px-3 py-2 rounded-lg transition cursor-pointer">
-                Peta 91 Kavling
-            </button>
+            <a href="/peta-kavling"
+               class="px-3 py-2 rounded-lg transition text-slate-600 hover:text-slate-900 text-center">
+                Peta 91 Kavling ↗
+            </a>
         </div>
     </div>
 
@@ -106,7 +105,9 @@
 
                             <p class="text-xs text-slate-600 leading-relaxed" x-text="store.description || 'Lapak usaha warga internal PPMT.'"></p>
                             <div class="text-[11px] text-slate-500">
-                                Kavling <strong class="text-slate-700" x-text="store.unit?.code"></strong> &bull; <span x-text="store.owner?.name"></span>
+                                <a :href="'/peta-kavling?unit=' + encodeURIComponent(store.unit?.code || '')"
+                                   class="font-bold text-emerald-700 hover:underline"
+                                   x-text="'Kavling ' + store.unit?.code"></a> &bull; <span x-text="store.owner?.name"></span>
                             </div>
                         </div>
 
@@ -596,9 +597,11 @@
 
                     <div class="flex flex-wrap gap-1.5">
                         <template x-for="u in resident.units" :key="u.unit_code">
-                            <span class="px-2 py-0.5 rounded bg-white border border-slate-200 text-[11px] font-semibold text-slate-700"
-                                  x-text="u.unit_code + ' (' + u.zone + ')' + (u.sub_role ? ' • ' + u.sub_role : '')">
-                            </span>
+                            <a :href="'/peta-kavling?unit=' + encodeURIComponent(u.unit_code)"
+                               title="Lihat lokasi kavling di Peta"
+                               class="px-2 py-0.5 rounded bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-[11px] font-semibold text-slate-700 hover:text-emerald-800 transition"
+                               x-text="u.unit_code + ' (' + u.zone + ')' + (u.sub_role ? ' • ' + u.sub_role : '')">
+                            </a>
                         </template>
                     </div>
 

@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\V1\AgendaController;
 use App\Http\Controllers\Api\V1\AspirationController;
 use App\Http\Controllers\Api\V1\NewsController;
 use App\Http\Controllers\Api\V1\WhatsappContactReconciliationController;
+use App\Http\Controllers\Api\V1\SiteplanController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -131,6 +132,9 @@ Route::prefix('v1')->group(function () {
             Route::post('/admin/wa-contacts/import', [WhatsappContactReconciliationController::class, 'importCsv']);
             Route::post('/admin/wa-contacts/reconcile', [WhatsappContactReconciliationController::class, 'reconcileAll']);
             Route::patch('/admin/wa-contacts/{contact}', [WhatsappContactReconciliationController::class, 'update']);
+
+            // Peta Kavling / Siteplan Internal (Hanya Warga PPMT Terverifikasi & Pengurus)
+            Route::get('/siteplan/units', [SiteplanController::class, 'index']);
         });
     });
 });

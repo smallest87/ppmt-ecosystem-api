@@ -11,6 +11,7 @@ class PublicUnitController extends Controller
     public function index(): JsonResponse
     {
         $units = Unit::query()
+            ->where('unit_type', '!=', 'fasum')
             ->orderByRaw("
                 CASE block
                     WHEN 'R' THEN 1
@@ -18,8 +19,7 @@ class PublicUnitController extends Controller
                     WHEN 'B' THEN 3
                     WHEN 'C' THEN 4
                     WHEN 'D' THEN 5
-                    WHEN 'FASUM' THEN 6
-                    ELSE 7
+                    ELSE 6
                 END
             ")
             ->orderBy('sort_order')
@@ -27,15 +27,9 @@ class PublicUnitController extends Controller
                 'id',
                 'code',
                 'block',
-                'number',
-                'unit_type',
-                'zone',
-                'occupancy_status',
-                'map_coordinates',
             ]);
 
         return response()->json([
-            'total' => $units->count(),
             'data' => $units,
         ]);
     }

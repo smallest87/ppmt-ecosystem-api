@@ -445,6 +445,33 @@
                     </div>
                 </section>
 
+                <!-- Panel 2A: Peta 91 Kavling & Direktori Lingkungan -->
+                <section class="bg-gradient-to-br from-emerald-950 to-teal-900 text-white rounded-2xl p-5 shadow-sm border border-emerald-800 space-y-3">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="space-y-1">
+                            <span class="inline-block px-2 py-0.5 rounded-md bg-emerald-800/90 text-emerald-200 text-[10px] font-bold uppercase tracking-wider">
+                                Pemetaan Internal Warga
+                            </span>
+                            <h2 class="text-base font-extrabold leading-snug">Peta 91 Kavling PPMT</h2>
+                            <p class="text-xs text-emerald-100/85 leading-relaxed">
+                                Cek tata letak blok &amp; zona, status hunian, serta lapak Pasar Tetangga yang sedang buka.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 pt-1">
+                        <a href="/peta-kavling"
+                           class="py-2 px-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-extrabold text-center transition shadow-xs">
+                            Buka Peta Kavling
+                        </a>
+                        <a x-show="approvedUnits.length > 0"
+                           :href="'/peta-kavling?unit=' + encodeURIComponent(approvedUnits[0]?.unit?.code || '')"
+                           class="py-2 px-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs font-bold text-center transition">
+                            Sorot <span x-text="approvedUnits[0]?.unit?.code"></span> &rarr;
+                        </a>
+                    </div>
+                </section>
+
                 <!-- Panel 2B: Sorotan Aspirasi & Petisi Kolektif Warga -->
                 <section x-show="aspirations.length > 0"
                          x-cloak

@@ -7,6 +7,7 @@ Route::view('/register', 'register')->name('register');
 Route::view('/dashboard', 'dashboard')->name('dashboard');
 Route::view('/pengaturan', 'pengaturan')->name('pengaturan');
 Route::view('/komunitas', 'komunitas')->name('komunitas');
+Route::view('/peta-kavling', 'siteplan')->name('siteplan');
 Route::view('/pengurus', 'admin')->name('pengurus');
 Route::view('/pengurus/pemadupadanan-kontak', 'admin-wa-contacts')->name('pengurus.wa-contacts');
 Route::redirect('/admin', '/pengurus');

@@ -29,4 +29,9 @@ class Unit extends Model
     {
         return $this->hasMany(UnitMembership::class);
     }
+
+    public function umkmStores(): HasMany
+    {
+        return $this->hasMany(UmkmStore::class);
+    }
 }
