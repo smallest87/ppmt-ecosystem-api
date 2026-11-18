@@ -555,20 +555,33 @@ function ppmtRegistryGovernancePanel() {
 
         get filteredRegistryUnits() {
             const q = (this.registrySearch || '').trim().toLowerCase();
-            return this.registryUnits.filter(u => {
-                if (this.registryFilterBlock && u.block !== this.registryFilterBlock) return false;
-                if (this.registryFilterZone && u.zone !== this.registryFilterZone) return false;
-                if (this.registryFilterStatus && u.occupancy_status !== this.registryFilterStatus) return false;
-                if (q) {
-                    const matchCode = (u.code || '').toLowerCase().includes(q);
-                    const matchMember = (u.members || []).some(m =>
-                        (m.name || '').toLowerCase().includes(q) ||
-                        (m.contact || '').toLowerCase().includes(q)
-                    );
-                    if (!matchCode && !matchMember) return false;
-                }
-                return true;
-            });
+            const blockOrder = { 'R': 1, 'A': 2, 'B': 3, 'C': 4, 'D': 5 };
+
+            return this.registryUnits
+                .filter(u => {
+                    if (this.registryFilterBlock && u.block !== this.registryFilterBlock) return false;
+                    if (this.registryFilterZone && u.zone !== this.registryFilterZone) return false;
+                    if (this.registryFilterStatus && u.occupancy_status !== this.registryFilterStatus) return false;
+                    if (q) {
+                        const matchCode = (u.code || '').toLowerCase().includes(q);
+                        const matchMember = (u.members || []).some(m =>
+                            (m.name || '').toLowerCase().includes(q) ||
+                            (m.contact || '').toLowerCase().includes(q)
+                        );
+                        if (!matchCode && !matchMember) return false;
+                    }
+                    return true;
+                })
+                .sort((a, b) => {
+                    const orderA = blockOrder[a.block] ?? 99;
+                    const orderB = blockOrder[b.block] ?? 99;
+                    if (orderA !== orderB) return orderA - orderB;
+
+                    return (a.code || '').localeCompare(b.code || '', 'id', {
+                        numeric: true,
+                        sensitivity: 'base'
+                    });
+                });
         },
 
         get totalPages() {

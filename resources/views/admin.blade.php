@@ -48,13 +48,13 @@
         <!-- Stats Strip: Ringkasan Kondisi Hunian & Administrasi -->
         <section x-show="registryStats !== null" class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm">
-                <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Kavling Terisi</div>
+                <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Kavling Terdata</div>
                 <div class="mt-1.5 flex items-baseline gap-1.5">
                     <span class="text-2xl font-extrabold text-emerald-700" x-text="registryStats?.filled_units ?? 0"></span>
                     <span class="text-xs font-semibold text-slate-400" x-text="'/ ' + (registryStats?.total_units ?? 0) + ' unit'"></span>
                 </div>
                 <div class="text-[11px] text-slate-500 mt-1"
-                     x-text="(registryStats?.occupied_units ?? 0) + ' Dihuni • ' + (registryStats?.rented_units ?? 0) + ' Disewa'">
+                     x-text="(registryStats?.occupied_units ?? 0) + ' Terdata • ' + (registryStats?.rented_units ?? 0) + ' Disewakan'">
                 </div>
             </div>
 
@@ -65,7 +65,7 @@
                     <span class="text-xs font-semibold text-slate-400">akun aktif</span>
                 </div>
                 <div class="text-[11px] text-slate-500 mt-1"
-                     x-text="(registryStats?.unclaimed_units ?? 0) + ' kavling belum terklaim'">
+                     x-text="(registryStats?.unclaimed_units ?? 0) + ' kavling belum terdata'">
                 </div>
             </div>
 
@@ -94,99 +94,94 @@
             </div>
         </section>
 
-        <!-- Menu Ruang Kerja Pengurus (Modular Hub) -->
+        <!-- Menu Ruang Kerja Pengurus (Modular Hub - Ringkas) -->
         <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden divide-y divide-slate-100">
 
-            <!-- 1. Keuangan & Iuran Sampah (Khusus Bendahara & Ketua) -->
+            <!-- 1. Keuangan & Iuran Sampah -->
             <a x-show="user?.can_view_treasury"
                x-cloak
                href="/pengurus/keuangan"
-               class="p-5 sm:p-6 flex items-center justify-between gap-4 hover:bg-slate-50/90 transition group">
-                <div class="flex items-start gap-4 min-w-0">
-                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center shrink-0 mt-0.5">
+               class="px-4 py-3.5 sm:px-6 sm:py-4 flex items-center justify-between gap-4 hover:bg-slate-50/90 transition group">
+                <div class="flex items-center gap-3.5 sm:gap-4 min-w-0">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center shrink-0">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"/>
                         </svg>
                     </div>
-                    <div class="space-y-1 min-w-0">
-                        <div class="text-sm sm:text-base font-bold text-slate-900 group-hover:text-emerald-800 transition">
+                    <div class="flex flex-wrap items-center gap-2 min-w-0">
+                        <span class="text-sm sm:text-base font-bold text-slate-900 group-hover:text-emerald-800 transition">
                             Kas Paguyuban &amp; Iuran Sampah
-                        </div>
-                        <p class="text-xs text-slate-500 leading-relaxed">
-                            Kartu pelunasan iuran sampah bulanan (Rp 20.000 / rumah jatuh tempo tanggal 1), pencatatan pemasukan/pengeluaran buku kas umum, dan audit saldo.
-                        </p>
+                        </span>
+                        <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                            Bendahara &amp; Ketua
+                        </span>
                     </div>
                 </div>
                 <span class="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition text-xl font-medium shrink-0">&rsaquo;</span>
             </a>
 
-            <!-- 2. Publikasi, Agenda & Notulensi (Khusus Sekretaris & Ketua) -->
+            <!-- 2. Publikasi, Agenda & Notulensi -->
             <a x-show="canManageEditorial"
                x-cloak
                href="/pengurus/publikasi"
-               class="p-5 sm:p-6 flex items-center justify-between gap-4 hover:bg-slate-50/90 transition group">
-                <div class="flex items-start gap-4 min-w-0">
-                    <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center shrink-0 mt-0.5">
+               class="px-4 py-3.5 sm:px-6 sm:py-4 flex items-center justify-between gap-4 hover:bg-slate-50/90 transition group">
+                <div class="flex items-center gap-3.5 sm:gap-4 min-w-0">
+                    <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center shrink-0">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z"/>
                         </svg>
                     </div>
-                    <div class="space-y-1 min-w-0">
-                        <div class="text-sm sm:text-base font-bold text-slate-900 group-hover:text-emerald-800 transition">
+                    <div class="flex flex-wrap items-center gap-2 min-w-0">
+                        <span class="text-sm sm:text-base font-bold text-slate-900 group-hover:text-amber-800 transition">
                             Publikasi, Agenda &amp; Arsip Notulensi
-                        </div>
-                        <p class="text-xs text-slate-500 leading-relaxed">
-                            Kelola Papan Pengumuman Paguyuban, tata letak Kabar &amp; Berita Warga, Jadwal Kerja Bakti / Agenda Lingkungan, serta Arsip Notulensi Rapat &amp; Tata Tertib.
-                        </p>
+                        </span>
+                        <span class="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold">
+                            Sekretaris &amp; Ketua
+                        </span>
                     </div>
                 </div>
-                <span class="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition text-xl font-medium shrink-0">&rsaquo;</span>
+                <span class="text-slate-400 group-hover:text-amber-700 group-hover:translate-x-0.5 transition text-xl font-medium shrink-0">&rsaquo;</span>
             </a>
 
-            <!-- 3. Buku Induk Kavling & Tata Kelola Jabatan (Seluruh Pengurus) -->
+            <!-- 3. Buku Induk Kavling & Tata Kelola Jabatan -->
             <a href="/pengurus/buku-induk"
-               class="p-5 sm:p-6 flex items-center justify-between gap-4 hover:bg-slate-50/90 transition group">
-                <div class="flex items-start gap-4 min-w-0">
-                    <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 border border-sky-200 flex items-center justify-center shrink-0 mt-0.5">
+               class="px-4 py-3.5 sm:px-6 sm:py-4 flex items-center justify-between gap-4 hover:bg-slate-50/90 transition group">
+                <div class="flex items-center gap-3.5 sm:gap-4 min-w-0">
+                    <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 border border-sky-200 flex items-center justify-center shrink-0">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/>
                         </svg>
                     </div>
-                    <div class="space-y-1 min-w-0">
-                        <div class="text-sm sm:text-base font-bold text-slate-900 group-hover:text-emerald-800 transition">
+                    <div class="flex flex-wrap items-center gap-2 min-w-0">
+                        <span class="text-sm sm:text-base font-bold text-slate-900 group-hover:text-sky-800 transition">
                             Buku Induk Kavling, Pendaftaran Tetangga &amp; Jabatan
-                        </div>
-                        <p class="text-xs text-slate-500 leading-relaxed">
-                            Direktori status hunian kavling per blok/zona, pengesahan kolektif NIB SHM, pendaftaran langsung tetangga baru, serta penyematan jabatan pengurus.
-                        </p>
+                        </span>
+                        <span class="px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200 text-[10px] font-bold">
+                            Semua Pengurus
+                        </span>
                     </div>
                 </div>
-                <span class="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition text-xl font-medium shrink-0">&rsaquo;</span>
+                <span class="text-slate-400 group-hover:text-sky-700 group-hover:translate-x-0.5 transition text-xl font-medium shrink-0">&rsaquo;</span>
             </a>
 
-            <!-- 4. Pemadupadanan Kontak Grup WA (Khusus Admin Sistem) -->
+            <!-- 4. Pemadupadanan Kontak Grup WA -->
             <a x-show="user?.is_operator_aplikasi"
                x-cloak
                href="/pengurus/pemadupadanan-kontak"
-               class="p-5 sm:p-6 flex items-center justify-between gap-4 hover:bg-slate-50/90 transition group">
-                <div class="flex items-start gap-4 min-w-0">
-                    <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center justify-center shrink-0 mt-0.5">
+               class="px-4 py-3.5 sm:px-6 sm:py-4 flex items-center justify-between gap-4 hover:bg-slate-50/90 transition group">
+                <div class="flex items-center gap-3.5 sm:gap-4 min-w-0">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center justify-center shrink-0">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"/>
                         </svg>
                     </div>
-                    <div class="space-y-1 min-w-0">
-                        <div class="flex flex-wrap items-center gap-2">
-                            <span class="text-sm sm:text-base font-bold text-slate-900 group-hover:text-indigo-800 transition">
-                                Pemadupadanan Kontak Grup WhatsApp
-                            </span>
-                            <span class="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold">
-                                Admin Sistem
-                            </span>
-                        </div>
-                        <p class="text-xs text-slate-500 leading-relaxed">
-                            Impor CSV Google Contacts (Grup Warga PPMT &amp; Grup Pesona Mandiri), pelabelan otomatis/manual, dan pemadupadanan nomor warga.
-                        </p>
+                    <div class="flex flex-wrap items-center gap-2 min-w-0">
+                        <span class="text-sm sm:text-base font-bold text-slate-900 group-hover:text-indigo-800 transition">
+                            Pemadupadanan Kontak Grup WhatsApp
+                        </span>
+                        <span class="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold">
+                            Admin Sistem
+                        </span>
                     </div>
                 </div>
                 <span class="text-slate-400 group-hover:text-indigo-700 group-hover:translate-x-0.5 transition text-xl font-medium shrink-0">&rsaquo;</span>
