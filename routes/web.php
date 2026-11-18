@@ -8,6 +8,7 @@ Route::view('/dashboard', 'dashboard')->name('dashboard');
 Route::view('/pengaturan', 'pengaturan')->name('pengaturan');
 Route::view('/komunitas', 'komunitas')->name('komunitas');
 Route::view('/pengurus', 'admin')->name('pengurus');
+Route::view('/pengurus/pemadupadanan-kontak', 'admin-wa-contacts')->name('pengurus.wa-contacts');
 Route::redirect('/admin', '/pengurus');
 
 // Permalink Berita Warga: /berita/2026/11/17/judul-berita-slug
