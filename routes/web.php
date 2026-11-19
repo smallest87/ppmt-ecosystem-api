@@ -12,6 +12,7 @@ Route::prefix('pengaturan')->name('pengaturan.')->group(function () {
     Route::view('/', 'pengaturan.index')->name('index');
     Route::view('/akun', 'pengaturan.akun')->name('akun');
     Route::view('/hunian', 'pengaturan.hunian')->name('hunian');
+    Route::view('/lapak', 'pengaturan.lapak')->name('lapak');
 });
 
 // Panel Pengurus Modular (Hub + Sub-halaman Terfokus)

@@ -79,8 +79,12 @@ Route::prefix('v1')->group(function () {
             Route::patch('/profile', [ProfileController::class, 'updateProgressiveProfile']);
             Route::patch('/memberships/{membership}', [ProfileController::class, 'updateMembershipRole']);
             Route::get('/residents/directory', [ProfileController::class, 'directory']);
+
+            // Pasar Tetangga & Lapak Usaha Warga
+            Route::get('/umkm/my-store', [UmkmStoreController::class, 'myStore']);
             Route::get('/umkm/stores', [UmkmStoreController::class, 'index']);
             Route::post('/umkm/stores', [UmkmStoreController::class, 'store']);
+            Route::patch('/umkm/stores/{store}', [UmkmStoreController::class, 'update']);
             Route::patch('/umkm/stores/{store}/status', [UmkmStoreController::class, 'updateStatus']);
 
             // Papan Pengumuman Paguyuban
