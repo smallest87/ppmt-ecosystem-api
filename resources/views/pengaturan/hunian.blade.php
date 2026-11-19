@@ -8,7 +8,7 @@
 <div x-data="ppmtHousingSettings()" x-init="init()" @keydown.escape.window="closeModal()" class="max-w-3xl mx-auto px-4 py-6 sm:py-8 space-y-6">
 
     <p class="text-xs sm:text-sm text-slate-500">
-        Kelola peran kepemilikan sertifikat (NIB SHM), status hunian fisik di kavling, serta kendaraan warga yang terdaftar di lingkungan.
+        Kelola peran kepemilikan sertifikat (NIB SHM), visibilitas kepemilikan, status hunian fisik di kavling, serta kendaraan warga yang terdaftar di lingkungan.
     </p>
 
     <!-- Loading State -->
@@ -32,7 +32,7 @@
         <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-100">
                 <h2 class="text-base font-bold text-slate-900">1. Status Kepemilikan &amp; Hunian di Kavling</h2>
-                <p class="text-xs text-slate-500 mt-0.5">Klik pada kavling di bawah ini untuk mengatur status pemilik (beserta bukti NIB SHM) dan/atau status penghuni.</p>
+                <p class="text-xs text-slate-500 mt-0.5">Klik pada kavling di bawah ini untuk mengatur status pemilik (beserta bukti NIB SHM &amp; privasi kepemilikan) dan/atau status penghuni.</p>
             </div>
 
             <div class="divide-y divide-slate-100">
@@ -51,6 +51,13 @@
                                 <span :class="m.is_approved ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200'"
                                       class="px-2 py-0.5 rounded-full text-[10px] font-bold border"
                                       x-text="m.is_approved ? '✓ Warga Disahkan' : '⏳ Menunggu Pengesahan'">
+                                </span>
+                                <span x-show="isMemberOwner(m)"
+                                      :class="user?.privacy_settings?.show_ownership
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                        : 'bg-slate-100 text-slate-600 border-slate-200'"
+                                      class="px-2 py-0.5 rounded-full text-[10px] font-bold border"
+                                      x-text="user?.privacy_settings?.show_ownership ? 'Kepemilikan: Publik' : 'Kepemilikan: Privat'">
                                 </span>
                             </div>
 
@@ -182,7 +189,7 @@
                             <span class="text-slate-300 text-[11px]">Dapat dicentang salah satu atau keduanya</span>
                         </div>
 
-                        <!-- DIMENSI A: STATUS KEPEMILIKAN + NIB SHM -->
+                        <!-- DIMENSI A: STATUS KEPEMILIKAN + PRIVASI + NIB SHM -->
                         <div :class="membershipForm.is_owner ? 'border-amber-400 bg-amber-50/40' : 'border-slate-200 bg-white'"
                              class="rounded-2xl border-2 p-4 space-y-3 transition">
                             <label class="flex items-start gap-3 cursor-pointer select-none">
@@ -198,6 +205,27 @@
                             </label>
 
                             <div x-show="membershipForm.is_owner" x-transition class="space-y-3 pt-2 border-t border-amber-200/80">
+                                <!-- Kontrol Privasi Status Kepemilikan -->
+                                <div @click="membershipForm.show_ownership = !membershipForm.show_ownership"
+                                     class="p-3 rounded-xl border border-amber-200/90 bg-white flex items-center justify-between gap-3 cursor-pointer select-none">
+                                    <div class="space-y-0.5">
+                                        <div class="text-xs font-bold text-slate-800"
+                                             x-text="membershipForm.show_ownership ? 'Tampil ke Tetangga' : 'Privat (Disembunyikan)'"></div>
+                                        <div class="text-[11px] text-slate-500 leading-relaxed"
+                                             x-text="membershipForm.show_ownership
+                                                ? 'Status pemilik kavling & tanda verifikasi SHM tampil di direktori warga.'
+                                                : 'Status pemilik & SHM disembunyikan dari warga umum (status penghuni tetap tampil).'"></div>
+                                    </div>
+                                    <button type="button"
+                                            role="switch"
+                                            :aria-checked="membershipForm.show_ownership"
+                                            :class="membershipForm.show_ownership ? '!bg-emerald-600' : '!bg-slate-300'"
+                                            class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full bg-slate-300 border border-slate-300/80 transition-colors duration-200 focus:outline-none cursor-pointer">
+                                        <span :class="membershipForm.show_ownership ? 'translate-x-5' : 'translate-x-0.5'"
+                                              class="inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200"></span>
+                                    </button>
+                                </div>
+
                                 <div>
                                     <label class="block text-xs font-semibold text-slate-700 mb-1">Peran Kepemilikan</label>
                                     <select x-model="membershipForm.owner_role" class="w-full rounded-xl border-slate-300 text-xs">
@@ -311,6 +339,7 @@ function ppmtHousingSettings() {
             unit_code: '',
             zone: '',
             is_owner: false,
+            show_ownership: false,
             owner_role: 'primary_owner',
             is_occupant: true,
             resident_role: 'primary_resident',
@@ -393,6 +422,7 @@ function ppmtHousingSettings() {
                 unit_code: m.unit?.code || '',
                 zone: m.unit?.zone || '',
                 is_owner: isOwner,
+                show_ownership: Boolean(this.user?.privacy_settings?.show_ownership),
                 owner_role: m.owner_role || (m.entity_type === 'owner' ? m.sub_role : 'primary_owner'),
                 is_occupant: isOccupant,
                 resident_role: m.resident_role || (m.entity_type === 'resident' ? m.sub_role : 'primary_resident'),
@@ -438,6 +468,25 @@ function ppmtHousingSettings() {
                         this.modalError = json.message || 'Gagal memperbarui status kavling.';
                         return;
                     }
+
+                    // Sinkronkan privasi status kepemilikan jika berubah
+                    const prevShowOwnership = Boolean(this.user?.privacy_settings?.show_ownership);
+                    if (m.is_owner && Boolean(m.show_ownership) !== prevShowOwnership) {
+                        await fetch('/api/v1/profile', {
+                            method: 'PATCH',
+                            headers: this.headers(),
+                            body: JSON.stringify({
+                                name: this.user.name,
+                                display_name: this.user.display_name,
+                                phone: this.user.phone || null,
+                                username: this.user.username || null,
+                                privacy_settings: {
+                                    show_ownership: Boolean(m.show_ownership)
+                                }
+                            })
+                        });
+                    }
+
                     this.closeModal();
                     this.toastType = 'success';
                     this.toastMessage = json.message || 'Status kepemilikan & hunian kavling berhasil diperbarui.';

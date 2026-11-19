@@ -127,20 +127,20 @@
                                     </template>
                                     <div class="min-w-0 flex-1 space-y-1.5">
                                         <div class="flex items-center gap-1.5 min-w-0">
-                                            <span class="text-sm font-bold text-slate-900 leading-snug truncate"
+                                            <span class="text-xl font-bold text-slate-900 leading-snug truncate"
                                                   x-text="profile.name || 'Warga PPMT'"></span>
                                             <span x-show="profile.unit_codes"
                                                   x-text="profile.unit_codes"
-                                                  class="px-2 py-0.5 rounded-md text-[11px] font-bold font-mono bg-slate-200/80 text-slate-800 border border-slate-300/80 shrink-0">
+                                                  class="px-2 py-0.5 rounded-md text-[14px] font-bold font-mono bg-slate-200/80 text-slate-800 border border-slate-300/80 shrink-0">
                                             </span>
                                         </div>
                                         <div class="flex flex-wrap items-center gap-1.5">
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200"
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200"
                                                   x-text="'Lv. ' + profile.level + (profile.level_label ? ' • ' + profile.level_label : '')">
                                             </span>
                                             <span x-show="profile.governance_label"
                                                   x-text="'★ ' + profile.governance_label"
-                                                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300/80">
+                                                  class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300/80">
                                             </span>
                                         </div>
                                     </div>
@@ -227,20 +227,20 @@
                     </template>
                     <div class="min-w-0 flex-1 space-y-1.5">
                         <div class="flex items-center gap-1.5 min-w-0">
-                            <span class="text-sm font-bold text-slate-900 leading-snug truncate"
+                            <span class="text-xl font-bold text-slate-900 leading-snug truncate"
                                   x-text="profile.name || 'Warga PPMT'"></span>
                             <span x-show="profile.unit_codes"
                                   x-text="profile.unit_codes"
-                                  class="px-2 py-0.5 rounded-md text-[11px] font-bold font-mono bg-slate-200/80 text-slate-800 border border-slate-300/80 shrink-0">
+                                  class="px-2 py-0.5 rounded-md text-[14px] font-bold font-mono bg-slate-200/80 text-slate-800 border border-slate-300/80 shrink-0">
                             </span>
                         </div>
                         <div class="flex flex-wrap items-center gap-1.5">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200"
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200"
                                   x-text="'Lv. ' + profile.level + (profile.level_label ? ' • ' + profile.level_label : '')">
                             </span>
                             <span x-show="profile.governance_label"
                                   x-text="'★ ' + profile.governance_label"
-                                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300/80">
+                                  class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300/80">
                             </span>
                         </div>
                     </div>

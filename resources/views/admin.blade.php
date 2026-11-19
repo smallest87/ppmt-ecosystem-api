@@ -26,7 +26,7 @@
         <!-- Header Panel Pengurus -->
         <section class="bg-indigo-950 text-white rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div class="space-y-1.5">
-                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-800/80 text-indigo-200 text-xs font-semibold">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-indigo-800/80 text-indigo-200 text-xs font-semibold">
                     <span>&#9733; Ruang Kerja Tata Kelola &amp; Administrasi PPMT</span>
                 </div>
                 <h1 class="text-xl sm:text-2xl font-extrabold"
@@ -38,7 +38,7 @@
 
             <div class="flex flex-wrap gap-2">
                 <template x-for="gov in (user?.governance_roles || [])" :key="gov.id">
-                    <span class="px-3 py-1 rounded-xl bg-amber-400 text-slate-950 text-xs font-bold shadow-sm"
+                    <span class="px-1.5 py-0.5 rounded-md bg-amber-400 text-slate-950 text-xs shadow-sm"
                           x-text="gov.display_label">
                     </span>
                 </template>

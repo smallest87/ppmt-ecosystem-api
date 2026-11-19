@@ -8,7 +8,7 @@
 <div x-data="ppmtAccountSettings()" x-init="init()" @keydown.escape.window="closeModal()" class="max-w-3xl mx-auto px-4 py-6 sm:py-8 space-y-6">
 
     <p class="text-xs sm:text-sm text-slate-500">
-        Kelola identitas tampilan publik, kredensial masuk akun, visibilitas data di direktori warga, serta dokumen kependudukan terenkripsi.
+        Kelola identitas tampilan publik, kredensial masuk akun, visibilitas data ke tetangga, serta dokumen kependudukan terenkripsi.
     </p>
 
     <!-- Loading State -->
@@ -32,16 +32,21 @@
         <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-100">
                 <h2 class="text-base font-bold text-slate-900">1. Identitas &amp; Keamanan Akun</h2>
-                <p class="text-xs text-slate-500 mt-0.5">Klik pada salah satu baris di bawah ini untuk memperbarui data Anda.</p>
+                <p class="text-xs text-slate-500 mt-0.5">Klik pada salah satu baris di bawah ini untuk memperbarui data beserta pengaturan privasinya.</p>
             </div>
 
             <div class="divide-y divide-slate-100">
                 <button type="button" @click="openModal('display_name')"
                         class="w-full px-6 py-4 flex items-center justify-between gap-4 text-left hover:bg-slate-50/90 transition cursor-pointer group">
                     <div class="space-y-0.5">
-                        <div class="text-xs font-medium text-slate-500">Nama Panggilan Lingkungan (Tampilan Publik)</div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-medium text-slate-500">Nama Panggilan Lingkungan</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                Selalu Publik
+                            </span>
+                        </div>
                         <div class="text-sm font-semibold text-slate-900"
-                             x-text="user?.display_name || 'Belum diatur (menggunakan nama lengkap)'"></div>
+                             x-text="user?.display_name || 'Belum diatur (menggunakan nama depan)'"></div>
                     </div>
                     <span class="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition text-lg font-medium shrink-0">&rsaquo;</span>
                 </button>
@@ -49,7 +54,15 @@
                 <button type="button" @click="openModal('name')"
                         class="w-full px-6 py-4 flex items-center justify-between gap-4 text-left hover:bg-slate-50/90 transition cursor-pointer group">
                     <div class="space-y-0.5">
-                        <div class="text-xs font-medium text-slate-500">Nama Lengkap Resmi (Privat)</div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="text-xs font-medium text-slate-500">Nama Lengkap Resmi</span>
+                            <span :class="user?.privacy_settings?.show_full_name
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : 'bg-slate-100 text-slate-600 border-slate-200'"
+                                  class="px-2 py-0.5 rounded-full text-[10px] font-bold border"
+                                  x-text="user?.privacy_settings?.show_full_name ? 'Tampil ke Tetangga' : 'Privat'">
+                            </span>
+                        </div>
                         <div class="text-sm font-semibold text-slate-900" x-text="user?.name"></div>
                     </div>
                     <span class="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition text-lg font-medium shrink-0">&rsaquo;</span>
@@ -69,7 +82,15 @@
                 <button type="button" @click="openModal('phone')"
                         class="w-full px-6 py-4 flex items-center justify-between gap-4 text-left hover:bg-slate-50/90 transition cursor-pointer group">
                     <div class="space-y-0.5">
-                        <div class="text-xs font-medium text-slate-500">Nomor WhatsApp Aktif (ID Masuk Akun)</div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="text-xs font-medium text-slate-500">Nomor WhatsApp Aktif (ID Masuk Akun)</span>
+                            <span :class="user?.privacy_settings?.show_phone
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : 'bg-slate-100 text-slate-600 border-slate-200'"
+                                  class="px-2 py-0.5 rounded-full text-[10px] font-bold border"
+                                  x-text="user?.privacy_settings?.show_phone ? 'Tampil ke Tetangga' : 'Privat'">
+                            </span>
+                        </div>
                         <div class="text-sm font-semibold font-mono"
                              :class="user?.phone ? 'text-slate-900' : 'text-slate-400 font-sans font-medium'"
                              x-text="user?.phone || 'Belum diatur (opsional jika punya Username)'"></div>
@@ -89,80 +110,11 @@
         </section>
 
         <!-- ========================================================= -->
-        <!-- KARTU 2: KONTROL PRIVASI DIREKTORI (Instant Toggle Switch) -->
-        <!-- ========================================================= -->
-        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
-                <div>
-                    <h2 class="text-base font-bold text-slate-900">2. Kontrol Privasi di Direktori Warga</h2>
-                    <p class="text-xs text-slate-500 mt-0.5">Atur visibilitas informasi Anda bagi sesama warga terverifikasi. Perubahan tersimpan otomatis.</p>
-                </div>
-                <span x-show="privacyStatusText"
-                      x-text="privacyStatusText"
-                      class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
-                </span>
-            </div>
-
-            <div class="divide-y divide-slate-100">
-                <div @click="togglePrivacy('show_full_name')"
-                     class="px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/80 transition cursor-pointer select-none">
-                    <div class="space-y-0.5">
-                        <div class="text-sm font-semibold text-slate-800">Tampilkan Nama Lengkap Resmi ke Tetangga</div>
-                        <div class="text-xs text-slate-500">Jika dimatikan, tetangga hanya melihat <strong>Nama Panggilan Lingkungan</strong> Anda.</div>
-                    </div>
-                    <button type="button"
-                            role="switch"
-                            :aria-checked="privacySettings.show_full_name"
-                            :disabled="savingPrivacy"
-                            :class="privacySettings.show_full_name ? '!bg-emerald-600' : '!bg-slate-300'"
-                            class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full bg-slate-300 border border-slate-300/80 transition-colors duration-200 focus:outline-none cursor-pointer">
-                        <span :class="privacySettings.show_full_name ? 'translate-x-5' : 'translate-x-0.5'"
-                              class="inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200"></span>
-                    </button>
-                </div>
-
-                <div @click="togglePrivacy('show_phone')"
-                     class="px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/80 transition cursor-pointer select-none">
-                    <div class="space-y-0.5">
-                        <div class="text-sm font-semibold text-slate-800">Tampilkan Nomor WhatsApp ke Tetangga</div>
-                        <div class="text-xs text-slate-500">Jika dimatikan, nomor WA Anda disamarkan dari warga umum di direktori.</div>
-                    </div>
-                    <button type="button"
-                            role="switch"
-                            :aria-checked="privacySettings.show_phone"
-                            :disabled="savingPrivacy"
-                            :class="privacySettings.show_phone ? '!bg-emerald-600' : '!bg-slate-300'"
-                            class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full bg-slate-300 border border-slate-300/80 transition-colors duration-200 focus:outline-none cursor-pointer">
-                        <span :class="privacySettings.show_phone ? 'translate-x-5' : 'translate-x-0.5'"
-                              class="inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200"></span>
-                    </button>
-                </div>
-
-                <div @click="togglePrivacy('show_ownership')"
-                     class="px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/80 transition cursor-pointer select-none">
-                    <div class="space-y-0.5">
-                        <div class="text-sm font-semibold text-slate-800">Tampilkan Status Kepemilikan Rumah ke Tetangga</div>
-                        <div class="text-xs text-slate-500">Jika dimatikan, status Anda sebagai pemilik kavling &amp; pengesahan NIB SHM disembunyikan dari warga umum (informasi penghuni tetap tampil untuk koordinasi lingkungan).</div>
-                    </div>
-                    <button type="button"
-                            role="switch"
-                            :aria-checked="privacySettings.show_ownership"
-                            :disabled="savingPrivacy"
-                            :class="privacySettings.show_ownership ? '!bg-emerald-600' : '!bg-slate-300'"
-                            class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full bg-slate-300 border border-slate-300/80 transition-colors duration-200 focus:outline-none cursor-pointer">
-                        <span :class="privacySettings.show_ownership ? 'translate-x-5' : 'translate-x-0.5'"
-                              class="inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200"></span>
-                    </button>
-                </div>
-            </div>
-        </section>
-
-        <!-- ========================================================= -->
-        <!-- KARTU 3: DOKUMEN KEPENDUDUKAN TERENKRIPSI (AES-256)       -->
+        <!-- KARTU 2: DOKUMEN KEPENDUDUKAN TERENKRIPSI (AES-256)       -->
         <!-- ========================================================= -->
         <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-100">
-                <h2 class="text-base font-bold text-slate-900">3. Dokumen Kependudukan Terenkripsi</h2>
+                <h2 class="text-base font-bold text-slate-900">2. Dokumen Kependudukan Terenkripsi</h2>
                 <p class="text-xs text-slate-500 mt-0.5">NIK dan Nomor KK dienkripsi penuh (AES-256) di server dan tidak pernah ditampilkan kembali dalam teks terbuka.</p>
             </div>
 
@@ -226,19 +178,42 @@
                         <input type="text" x-model="modalForm.display_name" placeholder="Contoh: Pak Julian / Mas Budi"
                                class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600" autofocus>
                         <p class="text-[11px] text-slate-500 leading-relaxed">
-                            Nama akrab ini akan ditampilkan kepada tetangga di Direktori Warga &amp; Pasar Tetangga menggantikan nama lengkap resmi Anda.
+                            Nama akrab ini ditampilkan kepada tetangga di Direktori Warga &amp; Pasar Tetangga saat Nama Lengkap Resmi disetel Privat.
                         </p>
                     </div>
                 </template>
 
                 <template x-if="activeModal === 'name'">
-                    <div class="space-y-2">
-                        <label class="block text-xs font-semibold text-slate-700">Nama Lengkap Resmi *</label>
-                        <input type="text" x-model="modalForm.name" required
-                               class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600" autofocus>
-                        <p class="text-[11px] text-slate-500 leading-relaxed">
-                            Gunakan nama asli sesuai identitas resmi untuk keperluan administrasi paguyuban.
-                        </p>
+                    <div class="space-y-3">
+                        <!-- Kontrol Privasi Nama Lengkap Resmi -->
+                        <div @click="modalForm.show_full_name = !modalForm.show_full_name"
+                             class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/80 flex items-center justify-between gap-3 cursor-pointer select-none">
+                            <div class="space-y-0.5">
+                                <div class="text-xs font-bold text-slate-800"
+                                     x-text="modalForm.show_full_name ? 'Tampil ke Tetangga' : 'Privat (Disembunyikan)'"></div>
+                                <div class="text-[11px] text-slate-500 leading-relaxed"
+                                     x-text="modalForm.show_full_name
+                                        ? 'Nama lengkap resmi Anda dapat dilihat sesama warga di direktori.'
+                                        : 'Tetangga hanya melihat Nama Panggilan Lingkungan Anda.'"></div>
+                            </div>
+                            <button type="button"
+                                    role="switch"
+                                    :aria-checked="modalForm.show_full_name"
+                                    :class="modalForm.show_full_name ? '!bg-emerald-600' : '!bg-slate-300'"
+                                    class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full bg-slate-300 border border-slate-300/80 transition-colors duration-200 focus:outline-none cursor-pointer">
+                                <span :class="modalForm.show_full_name ? 'translate-x-5' : 'translate-x-0.5'"
+                                      class="inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200"></span>
+                            </button>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="block text-xs font-semibold text-slate-700">Nama Lengkap Resmi *</label>
+                            <input type="text" x-model="modalForm.name" required
+                                   class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600" autofocus>
+                            <p class="text-[11px] text-slate-500 leading-relaxed">
+                                Gunakan nama asli sesuai identitas resmi untuk keperluan administrasi paguyuban.
+                            </p>
+                        </div>
                     </div>
                 </template>
 
@@ -257,13 +232,36 @@
                 </template>
 
                 <template x-if="activeModal === 'phone'">
-                    <div class="space-y-2">
-                        <label class="block text-xs font-semibold text-slate-700">Nomor WhatsApp Aktif</label>
-                        <input type="tel" x-model="modalForm.phone" placeholder="0812xxxxxxxx"
-                               class="w-full rounded-xl border-slate-300 text-sm font-mono focus:border-emerald-600 focus:ring-emerald-600" autofocus>
-                        <p class="text-[11px] text-amber-700 bg-amber-50 p-2.5 rounded-lg border border-amber-200 leading-relaxed">
-                            Perhatian: Nomor ini juga digunakan sebagai identitas masuk (login) akun Anda. Kosongkan hanya jika akun Anda sudah memiliki Username.
-                        </p>
+                    <div class="space-y-3">
+                        <!-- Kontrol Privasi Nomor WhatsApp -->
+                        <div @click="modalForm.show_phone = !modalForm.show_phone"
+                             class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/80 flex items-center justify-between gap-3 cursor-pointer select-none">
+                            <div class="space-y-0.5">
+                                <div class="text-xs font-bold text-slate-800"
+                                     x-text="modalForm.show_phone ? 'Tampil ke Tetangga' : 'Privat (Disembunyikan)'"></div>
+                                <div class="text-[11px] text-slate-500 leading-relaxed"
+                                     x-text="modalForm.show_phone
+                                        ? 'Sesama warga terverifikasi dapat melihat dan menghubungi nomor WA Anda di direktori.'
+                                        : 'Nomor WhatsApp Anda disembunyikan dari direktori warga umum.'"></div>
+                            </div>
+                            <button type="button"
+                                    role="switch"
+                                    :aria-checked="modalForm.show_phone"
+                                    :class="modalForm.show_phone ? '!bg-emerald-600' : '!bg-slate-300'"
+                                    class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full bg-slate-300 border border-slate-300/80 transition-colors duration-200 focus:outline-none cursor-pointer">
+                                <span :class="modalForm.show_phone ? 'translate-x-5' : 'translate-x-0.5'"
+                                      class="inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200"></span>
+                            </button>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="block text-xs font-semibold text-slate-700">Nomor WhatsApp Aktif</label>
+                            <input type="tel" x-model="modalForm.phone" placeholder="0812xxxxxxxx"
+                                   class="w-full rounded-xl border-slate-300 text-sm font-mono focus:border-emerald-600 focus:ring-emerald-600" autofocus>
+                            <p class="text-[11px] text-amber-700 bg-amber-50 p-2.5 rounded-lg border border-amber-200 leading-relaxed">
+                                Perhatian: Nomor ini juga digunakan sebagai identitas masuk (login) akun Anda. Kosongkan hanya jika akun Anda sudah memiliki Username.
+                            </p>
+                        </div>
                     </div>
                 </template>
 
@@ -333,9 +331,6 @@ function ppmtAccountSettings() {
         token: localStorage.getItem('ppmt_token'),
         user: null,
         loading: true,
-        savingPrivacy: false,
-        privacyStatusText: '',
-        privacyStatusTimer: null,
         toastMessage: '',
         toastType: 'success',
         activeModal: null,
@@ -344,15 +339,16 @@ function ppmtAccountSettings() {
         modalForm: {
             display_name: '',
             name: '',
+            show_full_name: false,
             username: '',
             phone: '',
+            show_phone: false,
             current_password: '',
             new_password: '',
             new_password_confirmation: '',
             nik: '',
             kk: ''
         },
-        privacySettings: { show_full_name: false, show_phone: false, show_ownership: false },
 
         async init() {
             if (!this.token) {
@@ -373,9 +369,9 @@ function ppmtAccountSettings() {
         get modalTitle() {
             const titles = {
                 'display_name': 'Ubah Nama Panggilan Lingkungan',
-                'name': 'Koreksi Nama Lengkap Resmi',
+                'name': 'Nama Lengkap Resmi & Privasi',
                 'username': 'Atur Username Login Alternatif',
-                'phone': 'Ubah Nomor WhatsApp Login',
+                'phone': 'Nomor WhatsApp & Privasi',
                 'password': 'Ubah Kata Sandi Akun',
                 'nik': 'Perbarui NIK (Terenkripsi AES-256)',
                 'kk': 'Perbarui Nomor KK (Terenkripsi AES-256)'
@@ -388,8 +384,10 @@ function ppmtAccountSettings() {
             this.modalForm = {
                 display_name: this.user?.display_name || '',
                 name: this.user?.name || '',
+                show_full_name: Boolean(this.user?.privacy_settings?.show_full_name),
                 username: this.user?.username || '',
                 phone: this.user?.phone || '',
+                show_phone: Boolean(this.user?.privacy_settings?.show_phone),
                 current_password: '',
                 new_password: '',
                 new_password_confirmation: '',
@@ -415,16 +413,29 @@ function ppmtAccountSettings() {
                     username: this.user.username || null
                 };
 
-                if (this.activeModal === 'display_name') payload.display_name = this.modalForm.display_name;
-                else if (this.activeModal === 'name') payload.name = this.modalForm.name;
-                else if (this.activeModal === 'username') payload.username = this.modalForm.username || null;
-                else if (this.activeModal === 'phone') payload.phone = this.modalForm.phone || null;
-                else if (this.activeModal === 'password') {
+                if (this.activeModal === 'display_name') {
+                    payload.display_name = this.modalForm.display_name;
+                } else if (this.activeModal === 'name') {
+                    payload.name = this.modalForm.name;
+                    payload.privacy_settings = {
+                        show_full_name: Boolean(this.modalForm.show_full_name)
+                    };
+                } else if (this.activeModal === 'username') {
+                    payload.username = this.modalForm.username || null;
+                } else if (this.activeModal === 'phone') {
+                    payload.phone = this.modalForm.phone || null;
+                    payload.privacy_settings = {
+                        show_phone: Boolean(this.modalForm.show_phone)
+                    };
+                } else if (this.activeModal === 'password') {
                     payload.current_password = this.modalForm.current_password;
                     payload.new_password = this.modalForm.new_password;
                     payload.new_password_confirmation = this.modalForm.new_password_confirmation;
-                } else if (this.activeModal === 'nik') payload.nik = this.modalForm.nik;
-                else if (this.activeModal === 'kk') payload.kk = this.modalForm.kk;
+                } else if (this.activeModal === 'nik') {
+                    payload.nik = this.modalForm.nik;
+                } else if (this.activeModal === 'kk') {
+                    payload.kk = this.modalForm.kk;
+                }
 
                 const res = await fetch('/api/v1/profile', {
                     method: 'PATCH',
@@ -447,52 +458,12 @@ function ppmtAccountSettings() {
             }
         },
 
-        async togglePrivacy(key) {
-            if (this.savingPrivacy) return;
-            const previousValue = Boolean(this.privacySettings[key]);
-            this.privacySettings[key] = !previousValue;
-            this.savingPrivacy = true;
-            this.privacyStatusText = 'Menyimpan...';
-
-            try {
-                const res = await fetch('/api/v1/profile', {
-                    method: 'PATCH',
-                    headers: this.headers(),
-                    body: JSON.stringify({
-                        name: this.user.name,
-                        display_name: this.user.display_name,
-                        phone: this.user.phone || null,
-                        username: this.user.username || null,
-                        privacy_settings: this.privacySettings
-                    })
-                });
-                if (!res.ok) throw new Error('Gagal memperbarui pengaturan privasi');
-
-                this.user.privacy_settings = { ...this.privacySettings };
-                this.privacyStatusText = '✓ Tersimpan';
-                clearTimeout(this.privacyStatusTimer);
-                this.privacyStatusTimer = setTimeout(() => { this.privacyStatusText = ''; }, 2200);
-            } catch (e) {
-                this.privacySettings[key] = previousValue;
-                this.privacyStatusText = '';
-                this.toastType = 'error';
-                this.toastMessage = 'Gagal menyimpan pengaturan privasi.';
-            } finally {
-                this.savingPrivacy = false;
-            }
-        },
-
         async loadMe() {
             try {
                 const res = await fetch('/api/v1/me', { headers: this.headers() });
                 if (!res.ok) throw new Error('Unauthorized');
                 const json = await res.json();
                 this.user = json.data;
-                this.privacySettings = {
-                    show_full_name: Boolean(this.user.privacy_settings?.show_full_name),
-                    show_phone: Boolean(this.user.privacy_settings?.show_phone),
-                    show_ownership: Boolean(this.user.privacy_settings?.show_ownership)
-                };
             } catch (e) {
                 localStorage.removeItem('ppmt_token');
                 window.location.href = '/';
