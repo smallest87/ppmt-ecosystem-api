@@ -1,28 +1,31 @@
 <?php
 
-use App\Http\Controllers\Api\V1\AuthClaimController;
-use App\Http\Controllers\Api\V1\PublicUnitController;
-use App\Http\Controllers\Api\V1\VerificationController;
-use App\Http\Controllers\Api\V1\ProfileController;
-use App\Http\Controllers\Api\V1\UnitInviteController;
-use App\Http\Controllers\Api\V1\UmkmStoreController;
-use App\Http\Controllers\Api\V1\GovernanceController;
-use App\Http\Controllers\Api\V1\AnnouncementController;
-use App\Http\Controllers\Api\V1\MeetingMinuteController;
-use App\Http\Controllers\Api\V1\TreasuryController;
+use App\Http\Controllers\Api\V1\AccountRecoveryController;
 use App\Http\Controllers\Api\V1\AgendaController;
+use App\Http\Controllers\Api\V1\AnnouncementController;
 use App\Http\Controllers\Api\V1\AspirationController;
+use App\Http\Controllers\Api\V1\AuthClaimController;
+use App\Http\Controllers\Api\V1\GovernanceController;
+use App\Http\Controllers\Api\V1\MeetingMinuteController;
 use App\Http\Controllers\Api\V1\NewsController;
-use App\Http\Controllers\Api\V1\WhatsappContactReconciliationController;
+use App\Http\Controllers\Api\V1\ProfileController;
+use App\Http\Controllers\Api\V1\PublicUnitController;
 use App\Http\Controllers\Api\V1\SiteplanController;
+use App\Http\Controllers\Api\V1\TreasuryController;
+use App\Http\Controllers\Api\V1\UmkmStoreController;
+use App\Http\Controllers\Api\V1\UnitInviteController;
+use App\Http\Controllers\Api\V1\VerificationController;
+use App\Http\Controllers\Api\V1\WhatsappContactReconciliationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
-    // 1. Endpoint Publik (Warga Umum & Form Registrasi)
+    // 1. Endpoint Publik (Warga Umum, Form Registrasi & Pemulihan Sandi)
     Route::get('/public/units', [PublicUnitController::class, 'index']);
     Route::post('/auth/register-claim', [AuthClaimController::class, 'registerClaim']);
     Route::post('/auth/login', [AuthClaimController::class, 'login']);
+    Route::post('/auth/forgot-password', [AccountRecoveryController::class, 'requestReset'])->middleware('throttle:5,1');
+    Route::post('/auth/reset-password', [AccountRecoveryController::class, 'confirmReset'])->middleware('throttle:5,1');
 
     // 2. Endpoint Terautentikasi Dasar (Termasuk akun Pending untuk cek status profil)
     Route::middleware('auth:sanctum')->group(function () {
@@ -38,6 +41,7 @@ Route::prefix('v1')->group(function () {
                     'phone' => $user->profile?->phone,
                     'global_role' => $user->profile?->global_role,
                     'is_verified' => $user->profile?->is_verified,
+                    'is_impersonated' => (bool) $request->user()->currentAccessToken()?->can('impersonated'),
                     'reputation_badge' => $user->profile?->reputation_badge,
                     'is_pure_system_admin' => $user->isPureSystemAdmin(),
                     'is_operator_aplikasi' => $user->isSystemAdmin(),
@@ -75,6 +79,9 @@ Route::prefix('v1')->group(function () {
                 ],
             ]);
         });
+
+        Route::get('/me/security-logs', [AccountRecoveryController::class, 'mySecurityLogs']);
+        Route::post('/auth/stop-impersonation', [AccountRecoveryController::class, 'stopImpersonation']);
 
         // 3. Endpoint Eksklusif Warga PPMT Terverifikasi & Aktif
         Route::middleware('warga.ppmt')->group(function () {
@@ -120,7 +127,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/treasury/ledger', [TreasuryController::class, 'storeLedger']);
             Route::delete('/treasury/ledger/{entry}', [TreasuryController::class, 'destroyLedger']);
 
-            // Tata Kelola Jabatan, Buku Induk & Assisted Register
+            // Tata Kelola Jabatan, Buku Induk, Pemulihan Sandi & Bantuan Akses Terbatas
             Route::get('/governance/occupancy-registry', [GovernanceController::class, 'occupancyRegistry']);
             Route::get('/governance/roles', [GovernanceController::class, 'index']);
             Route::post('/governance/assign', [GovernanceController::class, 'assign']);
@@ -130,6 +137,10 @@ Route::prefix('v1')->group(function () {
             Route::post('/governance/role-definitions', [GovernanceController::class, 'storeRoleDefinition']);
             Route::patch('/governance/role-definitions/{definition}', [GovernanceController::class, 'updateRoleDefinition']);
             Route::delete('/governance/role-definitions/{definition}', [GovernanceController::class, 'destroyRoleDefinition']);
+
+            Route::get('/governance/recovery-tickets', [AccountRecoveryController::class, 'pendingTickets']);
+            Route::post('/governance/recovery-tickets/{targetUser}', [AccountRecoveryController::class, 'issueTicketForUser']);
+            Route::post('/governance/impersonate/{targetUser}', [AccountRecoveryController::class, 'startImpersonation']);
 
             // Aspirasi & Petisi Kolektif Warga
             Route::get('/aspirations', [AspirationController::class, 'index']);

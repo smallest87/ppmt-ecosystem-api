@@ -18,6 +18,15 @@ class ProfileController extends Controller
     public function updateProgressiveProfile(Request $request): JsonResponse
     {
         $user = $request->user();
+
+        if ($user->currentAccessToken()?->can('impersonated')) {
+            if ($request->filled('new_password') || $request->filled('nik') || $request->filled('kk')) {
+                return response()->json([
+                    'message' => 'Demi keamanan privasi warga, kata sandi, NIK, dan Nomor KK tidak dapat diubah selama sesi bantuan teknis Admin.',
+                ], 403);
+            }
+        }
+
         $profile = $user->profile;
 
         // Normalisasi nilai kosong menjadi null sebelum validasi
@@ -156,6 +165,15 @@ class ProfileController extends Controller
     public function updateMembershipRole(Request $request, UnitMembership $membership): JsonResponse
     {
         $actor = $request->user();
+
+        if ($actor->currentAccessToken()?->can('impersonated')) {
+            if ($request->filled('nib_shm') || $request->boolean('clear_nib_shm')) {
+                return response()->json([
+                    'message' => 'Nomor NIB SHM warga tidak dapat diubah atau dihapus selama sesi bantuan teknis Admin.',
+                ], 403);
+            }
+        }
+
         $isSelf = $membership->user_id === $actor->id;
         $isGovernor = method_exists($actor, 'isGlobalGovernor') && $actor->isGlobalGovernor();
 

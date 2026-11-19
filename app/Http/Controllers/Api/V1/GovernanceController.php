@@ -243,6 +243,12 @@ class GovernanceController extends Controller
     {
         $actor = $request->user();
 
+        if ($actor->currentAccessToken()?->can('impersonated')) {
+            return response()->json([
+                'message' => 'Penetapan jabatan pengurus dilarang dilakukan menggunakan sesi pinjam akun.',
+            ], 403);
+        }
+
         if (! $actor->isGlobalGovernor()) {
             return response()->json([
                 'message' => 'Akses ditolak. Anda tidak memiliki wewenang pengurus pusat untuk menyematkan jabatan.',
@@ -305,6 +311,12 @@ class GovernanceController extends Controller
     public function revoke(Request $request, UserGovernanceRole $role): JsonResponse
     {
         $actor = $request->user();
+
+        if ($actor->currentAccessToken()?->can('impersonated')) {
+            return response()->json([
+                'message' => 'Pencabutan jabatan pengurus dilarang dilakukan menggunakan sesi pinjam akun.',
+            ], 403);
+        }
 
         if (! $actor->isGlobalGovernor()) {
             return response()->json(['message' => 'Akses ditolak.'], 403);
