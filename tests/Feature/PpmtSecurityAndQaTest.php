@@ -22,14 +22,18 @@ class PpmtSecurityAndQaTest extends TestCase
     }
 
     /**
-     * QA-UNIT-01: Integritas 91 kavling & aturan anti-angka 13 (12A/12B)
+     * QA-UNIT-01: Integritas 91 kavling (90 hunian/ruko + 1 fasum) & aturan anti-angka 13 (12A/12B)
      */
     public function test_qa_unit_01_public_units_integrity_and_anti_thirteen_rule(): void
     {
         $response = $this->getJson('/api/v1/public/units');
 
+        // 90 kavling hunian/ruko aktif pada dropdown publik (1 unit fasum disaring keluar)
         $response->assertStatus(200)
-            ->assertJsonPath('total', 91);
+            ->assertJsonCount(90, 'data');
+
+        // Total keseluruhan record di tabel units tetap 91 (termasuk 1 fasum)
+        $this->assertEquals(91, Unit::count());
 
         $codes = collect($response->json('data'))->pluck('code');
 
@@ -54,8 +58,10 @@ class PpmtSecurityAndQaTest extends TestCase
         // QA-AUTH-01: Tolak klaim unit fiktif B-13
         $this->postJson('/api/v1/auth/register-claim', [
             'name' => 'Penyusup',
+            'gender' => 'male',
             'phone' => '081200000001',
             'password' => 'password123',
+            'password_confirmation' => 'password123',
             'unit_code' => 'B-13',
             'entity_type' => 'owner',
             'sub_role' => 'primary_owner',
@@ -67,8 +73,10 @@ class PpmtSecurityAndQaTest extends TestCase
         // Warga baru mendaftar mandiri di unit C-21 (ZONA-4)
         $registerResponse = $this->postJson('/api/v1/auth/register-claim', [
             'name' => 'Warga C-21',
+            'gender' => 'male',
             'phone' => '081200000003',
             'password' => 'password123',
+            'password_confirmation' => 'password123',
             'unit_code' => 'C-21',
             'entity_type' => 'owner',
             'sub_role' => 'primary_owner',
@@ -130,8 +138,10 @@ class PpmtSecurityAndQaTest extends TestCase
         // Penyewa mendaftar menggunakan invite_token -> langsung terverifikasi
         $tenantClaim = $this->postJson('/api/v1/auth/register-claim', [
             'name' => 'Penyewa A-5',
+            'gender' => 'male',
             'phone' => '081200000012',
             'password' => 'password123',
+            'password_confirmation' => 'password123',
             'unit_code' => 'A-5',
             'entity_type' => 'resident',
             'sub_role' => 'tenant',
