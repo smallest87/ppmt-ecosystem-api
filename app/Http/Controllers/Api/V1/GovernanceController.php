@@ -535,4 +535,137 @@ class GovernanceController extends Controller
             ],
         ]);
     }
+
+    public function storeRoleDefinition(Request $request): JsonResponse
+    {
+        if (! $request->user()->isPureSystemAdmin()) {
+            return response()->json([
+                'message' => 'Akses ditolak. Hanya Admin Sistem (bukan Operator) yang berhak menciptakan definisi role baru.',
+            ], 403);
+        }
+
+        $request->merge([
+            'role_code' => strtolower(trim((string) $request->input('role_code'))),
+        ]);
+
+        $validated = $request->validate([
+            'role_code' => [
+                'required',
+                'string',
+                'max:50',
+                'regex:/^[a-z][a-z0-9_]{2,49}$/',
+                'unique:governance_role_definitions,role_code',
+            ],
+            'label' => ['required', 'string', 'max:100'],
+            'domain' => ['required', Rule::in(['system', 'organization'])],
+            'domain_label' => ['nullable', 'string', 'max:100'],
+            'scope' => ['required', Rule::in(['global', 'zone', 'block'])],
+            'appointed_by' => ['nullable', 'string', 'max:150'],
+            'permissions' => ['required', 'array', 'min:1'],
+            'permissions.*' => ['required', 'string', 'max:300'],
+            'restrictions' => ['required', 'array', 'min:1'],
+            'restrictions.*' => ['required', 'string', 'max:300'],
+        ], [
+            'role_code.regex' => 'Kode role harus diawali huruf kecil dan hanya boleh berisi huruf kecil, angka, serta garis bawah (_).',
+            'role_code.unique' => 'Kode role tersebut sudah terdaftar di sistem.',
+        ]);
+
+        $defaultDomainLabel = $validated['domain'] === 'system'
+            ? 'Teknis & Infrastruktur Sistem'
+            : 'Kabinet / Bidang Operasional';
+
+        $defaultAppointedBy = $validated['domain'] === 'system'
+            ? 'Admin Sistem'
+            : 'Ketua Paguyuban';
+
+        $def = \App\Models\GovernanceRoleDefinition::create([
+            'role_code' => $validated['role_code'],
+            'label' => trim($validated['label']),
+            'domain' => $validated['domain'],
+            'domain_label' => trim($validated['domain_label'] ?? '') ?: $defaultDomainLabel,
+            'scope' => $validated['scope'],
+            'appointed_by' => trim($validated['appointed_by'] ?? '') ?: $defaultAppointedBy,
+            'permissions' => array_values(array_filter(array_map('trim', $validated['permissions']))),
+            'restrictions' => array_values(array_filter(array_map('trim', $validated['restrictions']))),
+            'is_core' => false,
+            'is_active' => true,
+        ]);
+
+        \App\Models\GovernanceRoleDefinition::flushCache();
+
+        return response()->json([
+            'message' => "Role baru '{$def->label}' ({$def->role_code}) berhasil dibuat dan masuk ke matriks sistem.",
+            'data' => $def,
+        ], 201);
+    }
+
+    public function updateRoleDefinition(Request $request, \App\Models\GovernanceRoleDefinition $definition): JsonResponse
+    {
+        if (! $request->user()->isPureSystemAdmin()) {
+            return response()->json([
+                'message' => 'Akses ditolak. Hanya Admin Sistem yang berhak mengubah matriks role.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'label' => ['required', 'string', 'max:100'],
+            'domain_label' => ['required', 'string', 'max:100'],
+            'scope' => ['sometimes', Rule::in(['global', 'zone', 'block'])],
+            'appointed_by' => ['required', 'string', 'max:150'],
+            'permissions' => ['required', 'array', 'min:1'],
+            'permissions.*' => ['required', 'string', 'max:300'],
+            'restrictions' => ['required', 'array', 'min:1'],
+            'restrictions.*' => ['required', 'string', 'max:300'],
+        ]);
+
+        $definition->update([
+            'label' => trim($validated['label']),
+            'domain_label' => trim($validated['domain_label']),
+            // Role inti sistem tidak boleh diubah scope-nya agar logika zona/blok tidak rusak
+            'scope' => $definition->is_core ? $definition->scope : ($validated['scope'] ?? $definition->scope),
+            'appointed_by' => trim($validated['appointed_by']),
+            'permissions' => array_values(array_filter(array_map('trim', $validated['permissions']))),
+            'restrictions' => array_values(array_filter(array_map('trim', $validated['restrictions']))),
+        ]);
+
+        \App\Models\GovernanceRoleDefinition::flushCache();
+
+        return response()->json([
+            'message' => "Matriks role '{$definition->label}' berhasil diperbarui.",
+            'data' => $definition,
+        ]);
+    }
+
+    public function destroyRoleDefinition(Request $request, \App\Models\GovernanceRoleDefinition $definition): JsonResponse
+    {
+        if (! $request->user()->isPureSystemAdmin()) {
+            return response()->json([
+                'message' => 'Akses ditolak. Hanya Admin Sistem yang berhak menghapus role.',
+            ], 403);
+        }
+
+        if ($definition->is_core) {
+            return response()->json([
+                'message' => "Role '{$definition->label}' adalah role inti bawaan arsitektur sistem sehingga tidak dapat dihapus.",
+            ], 422);
+        }
+
+        $activeHoldersCount = UserGovernanceRole::where('role_code', $definition->role_code)
+            ->where('is_active', true)
+            ->count();
+
+        if ($activeHoldersCount > 0) {
+            return response()->json([
+                'message' => "Tidak dapat menghapus role '{$definition->label}' karena masih dipegang oleh {$activeHoldersCount} warga aktif. Cabut jabatan warga terkait terlebih dahulu.",
+            ], 422);
+        }
+
+        $label = $definition->label;
+        $definition->delete();
+        \App\Models\GovernanceRoleDefinition::flushCache();
+
+        return response()->json([
+            'message' => "Definisi role kustom '{$label}' telah dihapus dari sistem.",
+        ]);
+    }
 }

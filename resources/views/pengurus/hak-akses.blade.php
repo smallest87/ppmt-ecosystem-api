@@ -5,7 +5,10 @@
 @section('subpage_back_url', '/pengurus')
 
 @section('content')
-<div x-data="ppmtRoleAuditPanel()" x-init="init()" class="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-6">
+<div x-data="ppmtRoleAuditPanel()"
+     x-init="init()"
+     @keydown.escape.window="showRoleModal = false"
+     class="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-6">
 
     <!-- Loading -->
     <div x-show="loading" class="bg-white rounded-2xl p-12 text-center text-sm text-slate-500 border border-slate-200">
@@ -24,14 +27,24 @@
         </div>
 
         <!-- Banner Pemisahan Tata Kelola Teknis vs Organisasi -->
-        <section class="bg-slate-900 text-white rounded-2xl p-5 sm:p-6 shadow-sm space-y-3">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-400/30 text-rose-200 text-xs font-bold">
-                <span>Teknis Tata Kelola Sistem &bull; Separation of Duties</span>
+        <section class="bg-slate-900 text-white rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="space-y-2 max-w-3xl">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-400/30 text-rose-200 text-xs font-bold">
+                    <span>Teknis Tata Kelola Sistem &bull; Separation of Duties</span>
+                </div>
+                <h1 class="text-xl sm:text-2xl font-extrabold">Role Management &amp; Audit Hak Akses PPMT</h1>
+                <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    <strong>Admin Sistem</strong> mengelola skema role, matriks izin &amp; batasan, serta mandat teknis; <strong>Operator Aplikasi</strong> memiliki akses audit matriks (mode baca); dan <strong>Ketua Paguyuban</strong> menyusun kabinet organisasinya secara otonom.
+                </p>
             </div>
-            <h1 class="text-xl sm:text-2xl font-extrabold">Role Management &amp; Audit Hak Akses PPMT</h1>
-            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-3xl">
-                Sistem memisahkan <strong>Domain Teknis</strong> (dikelola Admin Sistem: penetapan Operator &amp; pengukuhan mandat Ketua Paguyuban) dengan <strong>Domain Organisasi</strong> (hak prerogatif Ketua Paguyuban menyusun Sekretaris, Bendahara, Seksi Bidang, &amp; Koordinator).
-            </p>
+
+            <div x-show="user?.is_pure_system_admin" class="shrink-0">
+                <button type="button"
+                        @click="openCreateRoleModal()"
+                        class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs sm:text-sm font-extrabold shadow-sm transition cursor-pointer">
+                    + Buat Role Baru
+                </button>
+            </div>
         </section>
 
         <!-- Tab Switcher -->
@@ -54,7 +67,6 @@
         <!-- TAB 1: MATRIKS ROLE, WEWENANG (TERHADAP APA) & BATASAN            -->
         <!-- ================================================================= -->
         <div x-show="tab === 'matrix'" class="space-y-4">
-            <!-- Filter Domain -->
             <div class="flex flex-wrap items-center justify-between gap-2 bg-white p-3.5 rounded-2xl border border-slate-200">
                 <div class="flex flex-wrap gap-1.5">
                     <button type="button"
@@ -76,7 +88,8 @@
                         Domain Organisasi Paguyuban
                     </button>
                 </div>
-                <span class="text-xs text-slate-500">Sumber aturan langsung dari model kebijakan otorisasi server</span>
+                <span class="text-xs text-slate-500"
+                      x-text="user?.is_pure_system_admin ? 'Mode Arsitek (Admin Sistem): Dapat menambah, mengedit, & menghapus role kustom' : 'Mode Audit (Operator): Hanya baca skema role'"></span>
             </div>
 
             <div class="space-y-4">
@@ -91,6 +104,14 @@
                                 <h2 class="text-base font-extrabold text-slate-900" x-text="role.label"></h2>
                                 <code class="px-2 py-0.5 rounded bg-slate-200/80 text-slate-700 text-[11px] font-mono"
                                       x-text="role.code"></code>
+                                <span x-show="role.is_core"
+                                      class="px-2 py-0.5 rounded bg-slate-900 text-white text-[10px] font-bold">
+                                    Inti Sistem
+                                </span>
+                                <span x-show="!role.is_core"
+                                      class="px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-200 text-[10px] font-bold">
+                                    Role Kustom
+                                </span>
                             </div>
 
                             <div class="flex flex-wrap items-center gap-2 text-xs text-slate-600">
@@ -98,15 +119,31 @@
                                       x-text="'Cakupan: ' + (role.scope === 'global' ? 'Seluruh Perumahan' : (role.scope === 'zone' ? 'Per Zona' : 'Per Blok'))"></span>
                                 <span class="px-2 py-0.5 rounded bg-indigo-50 text-indigo-800 border border-indigo-200 font-bold"
                                       x-text="countHoldersForRole(role.code) + ' personel aktif'"></span>
+
+                                <!-- Tombol Edit & Hapus (Hanya Admin Sistem Murni) -->
+                                <template x-if="user?.is_pure_system_admin && role.id">
+                                    <div class="flex items-center gap-1.5 ml-1">
+                                        <button type="button"
+                                                @click="openEditRoleModal(role)"
+                                                class="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold cursor-pointer">
+                                            Edit Matriks
+                                        </button>
+                                        <button x-show="!role.is_core"
+                                                type="button"
+                                                @click="deleteRoleDefinition(role)"
+                                                class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-bold cursor-pointer">
+                                            Hapus
+                                        </button>
+                                    </div>
+                                </template>
                             </div>
                         </div>
 
                         <!-- 2 Kolom: Terhadap Apa (Wewenang) vs Apa Batasannya -->
                         <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-5 text-xs sm:text-sm">
-                            <!-- Wewenang -->
                             <div class="space-y-2">
-                                <div class="text-xs font-extrabold uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
-                                    <span>&#10003; Wewenang &amp; Akses Modul (Terhadap Apa)</span>
+                                <div class="text-xs font-extrabold uppercase tracking-wider text-emerald-800">
+                                    &#10003; Wewenang &amp; Akses Modul (Terhadap Apa)
                                 </div>
                                 <ul class="space-y-1.5 text-slate-700">
                                     <template x-for="(perm, i) in role.permissions" :key="i">
@@ -118,10 +155,9 @@
                                 </ul>
                             </div>
 
-                            <!-- Batasan -->
                             <div class="space-y-2 md:border-l md:border-slate-100 md:pl-5">
-                                <div class="text-xs font-extrabold uppercase tracking-wider text-rose-800 flex items-center gap-1.5">
-                                    <span>&#10005; Batasan &amp; Larangan Tegas</span>
+                                <div class="text-xs font-extrabold uppercase tracking-wider text-rose-800">
+                                    &#10005; Batasan &amp; Larangan Tegas
                                 </div>
                                 <ul class="space-y-1.5 text-slate-700">
                                     <template x-for="(rest, j) in role.restrictions" :key="j">
@@ -134,7 +170,6 @@
                             </div>
                         </div>
 
-                        <!-- Footer Otoritas Pengangkat -->
                         <div class="px-5 py-2.5 bg-slate-50 border-t border-slate-100 text-[11px] text-slate-500">
                             Otoritas Pengangkat: <strong class="text-slate-700" x-text="role.appointed_by"></strong>
                         </div>
@@ -207,7 +242,7 @@
                 <div class="border-b border-rose-200/70 pb-3">
                     <h2 class="text-base font-bold text-rose-950">Penetapan Mandat Teknis &amp; Ketua</h2>
                     <p class="text-xs text-rose-900/80 mt-0.5 leading-relaxed">
-                        Khusus Admin Sistem: menetapkan <strong>Admin Sistem</strong>, <strong>Operator Aplikasi</strong>, serta mengukuhkan <strong>Ketua Paguyuban</strong> hasil musyawarah warga.
+                        Menetapkan <strong>Admin Sistem</strong>, <strong>Operator Aplikasi</strong>, serta mengukuhkan <strong>Ketua Paguyuban</strong> hasil musyawarah warga.
                     </p>
                 </div>
 
@@ -239,8 +274,124 @@
             </section>
 
         </div>
-
     </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL ROLE & PERMISSION BUILDER (KHUSUS ADMIN SISTEM MURNI)           -->
+    <!-- ===================================================================== -->
+    <div x-show="showRoleModal"
+         x-cloak
+         class="fixed inset-0 z-50 !mt-0 flex items-center justify-center p-3 sm:p-4 bg-slate-900/55 backdrop-blur-[1px] overflow-y-auto">
+        <div @click.away="showRoleModal = false"
+             class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-[calc(100vw-1.5rem)] sm:max-w-2xl max-h-[90dvh] flex flex-col overflow-hidden my-auto">
+
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3 shrink-0">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900"
+                        x-text="editingRoleId ? ('Edit Matriks Role: ' + roleForm.label) : 'Buat Nomenklatur Role & Matriks Baru'"></h3>
+                    <p class="text-xs text-slate-500">Tentukan nomenklatur jabatan, domain tata kelola, wewenang, dan batasan aksesnya.</p>
+                </div>
+                <button type="button" @click="showRoleModal = false" class="text-slate-400 hover:text-slate-700 text-sm p-1 cursor-pointer">✕</button>
+            </div>
+
+            <form @submit.prevent="submitRoleDefinition()" class="p-5 space-y-4 overflow-y-auto">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Tampilan Jabatan *</label>
+                        <input type="text" x-model="roleForm.label" required maxlength="100"
+                               placeholder="Contoh: Seksi Kebersihan & Lingkungan"
+                               class="w-full rounded-xl border-slate-300 text-sm">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Kode Sistem (Slug Unik) *</label>
+                        <input type="text"
+                               x-model="roleForm.role_code"
+                               :disabled="Boolean(editingRoleId)"
+                               @input="roleForm.role_code = (roleForm.role_code || '').toLowerCase().replace(/[^a-z0-9_]/g, '')"
+                               required
+                               maxlength="50"
+                               placeholder="contoh: seksi_kebersihan"
+                               class="w-full rounded-xl border-slate-300 text-sm font-mono disabled:bg-slate-100 disabled:text-slate-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Domain Tata Kelola *</label>
+                        <select x-model="roleForm.domain"
+                                :disabled="Boolean(editingRoleId)"
+                                class="w-full rounded-xl border-slate-300 text-sm disabled:bg-slate-100">
+                            <option value="organization">Organisasi (Kabinet Ketua)</option>
+                            <option value="system">Teknis Sistem (Admin)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Cakupan Wilayah *</label>
+                        <select x-model="roleForm.scope"
+                                :disabled="roleForm.is_core"
+                                class="w-full rounded-xl border-slate-300 text-sm disabled:bg-slate-100">
+                            <option value="global">Global (Seluruh Perumahan)</option>
+                            <option value="zone">Per Zona</option>
+                            <option value="block">Per Blok</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Otoritas Pengangkat *</label>
+                        <input type="text" x-model="roleForm.appointed_by" required maxlength="150"
+                               placeholder="Ketua Paguyuban"
+                               class="w-full rounded-xl border-slate-300 text-sm">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Sub-Label Kelompok</label>
+                    <input type="text" x-model="roleForm.domain_label" maxlength="100"
+                           placeholder="Contoh: Kabinet / Bidang Operasional"
+                           class="w-full rounded-xl border-slate-300 text-sm">
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                    <div>
+                        <label class="block text-xs font-bold text-emerald-800 mb-1">
+                            &#10003; Wewenang &amp; Akses (1 poin per baris) *
+                        </label>
+                        <textarea x-model="roleForm.permissions_text"
+                                  required
+                                  rows="5"
+                                  placeholder="Memantau jadwal pengangkutan sampah&#10;Melihat status iuran sampah per kavling"
+                                  class="w-full rounded-xl border-emerald-300 focus:border-emerald-600 focus:ring-emerald-600 text-xs sm:text-sm leading-relaxed"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-rose-800 mb-1">
+                            &#10005; Batasan &amp; Larangan (1 poin per baris) *
+                        </label>
+                        <textarea x-model="roleForm.restrictions_text"
+                                  required
+                                  rows="5"
+                                  placeholder="Dilarang mengubah jurnal kas Bendahara&#10;Tertutup dari angka mentah NIB SHM & NIK/KK"
+                                  class="w-full rounded-xl border-rose-300 focus:border-rose-600 focus:ring-rose-600 text-xs sm:text-sm leading-relaxed"></textarea>
+                    </div>
+                </div>
+
+                <div class="pt-3 flex justify-end gap-2 border-t border-slate-100">
+                    <button type="button" @click="showRoleModal = false"
+                            class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold cursor-pointer">
+                        Batal
+                    </button>
+                    <button type="submit" :disabled="saving"
+                            class="px-5 py-2 rounded-xl bg-rose-700 hover:bg-rose-800 text-white text-xs font-bold shadow-sm cursor-pointer">
+                        <span x-show="!saving" x-text="editingRoleId ? 'Simpan Perubahan Matriks' : 'Buat Role & Simpan ke Sistem'"></span>
+                        <span x-show="saving">Menyimpan...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 </div>
 @endsection
 
@@ -251,6 +402,7 @@ function ppmtRoleAuditPanel() {
         token: localStorage.getItem('ppmt_token'),
         user: null,
         loading: true,
+        saving: false,
         tab: 'matrix',
         domainFilter: 'all',
         matrix: [],
@@ -258,6 +410,19 @@ function ppmtRoleAuditPanel() {
         residents: [],
         toastMessage: '',
         toastType: 'success',
+        showRoleModal: false,
+        editingRoleId: null,
+        roleForm: {
+            role_code: '',
+            label: '',
+            domain: 'organization',
+            domain_label: 'Kabinet / Bidang Operasional',
+            scope: 'global',
+            appointed_by: 'Ketua Paguyuban',
+            permissions_text: '',
+            restrictions_text: '',
+            is_core: false
+        },
         assignForm: {
             target_user_id: '',
             role_code: 'operator_aplikasi',
@@ -325,6 +490,102 @@ function ppmtRoleAuditPanel() {
             if (res.ok) {
                 const json = await res.json();
                 this.residents = json.data || [];
+            }
+        },
+
+        openCreateRoleModal() {
+            this.editingRoleId = null;
+            this.roleForm = {
+                role_code: '',
+                label: '',
+                domain: 'organization',
+                domain_label: 'Kabinet / Bidang Operasional',
+                scope: 'global',
+                appointed_by: 'Ketua Paguyuban',
+                permissions_text: '',
+                restrictions_text: 'Tertutup penuh dari angka mentah NIB SHM dan NIK/KK terenkripsi',
+                is_core: false
+            };
+            this.showRoleModal = true;
+        },
+
+        openEditRoleModal(role) {
+            this.editingRoleId = role.id;
+            this.roleForm = {
+                role_code: role.code,
+                label: role.label,
+                domain: role.domain,
+                domain_label: role.domain_label,
+                scope: role.scope,
+                appointed_by: role.appointed_by,
+                permissions_text: (role.permissions || []).join('\n'),
+                restrictions_text: (role.restrictions || []).join('\n'),
+                is_core: Boolean(role.is_core)
+            };
+            this.showRoleModal = true;
+        },
+
+        async submitRoleDefinition() {
+            const permissions = this.roleForm.permissions_text.split('\n').map(s => s.trim()).filter(Boolean);
+            const restrictions = this.roleForm.restrictions_text.split('\n').map(s => s.trim()).filter(Boolean);
+
+            if (permissions.length === 0 || restrictions.length === 0) {
+                this.toastType = 'error';
+                this.toastMessage = 'Isi minimal 1 poin wewenang dan 1 poin batasan.';
+                return;
+            }
+
+            this.saving = true;
+            try {
+                const isEdit = Boolean(this.editingRoleId);
+                const url = isEdit
+                    ? `/api/v1/governance/role-definitions/${this.editingRoleId}`
+                    : '/api/v1/governance/role-definitions';
+                const method = isEdit ? 'PATCH' : 'POST';
+
+                const res = await fetch(url, {
+                    method,
+                    headers: this.headers(),
+                    body: JSON.stringify({
+                        role_code: this.roleForm.role_code,
+                        label: this.roleForm.label,
+                        domain: this.roleForm.domain,
+                        domain_label: this.roleForm.domain_label,
+                        scope: this.roleForm.scope,
+                        appointed_by: this.roleForm.appointed_by,
+                        permissions,
+                        restrictions
+                    })
+                });
+                const json = await res.json();
+                if (res.ok) {
+                    this.showRoleModal = false;
+                    this.toastType = 'success';
+                    this.toastMessage = json.message;
+                    await this.loadAuditData();
+                } else {
+                    this.toastType = 'error';
+                    this.toastMessage = json.message || 'Gagal menyimpan definisi role.';
+                }
+            } finally {
+                this.saving = false;
+            }
+        },
+
+        async deleteRoleDefinition(role) {
+            if (!confirm(`Hapus permanen definisi role kustom "${role.label}" (${role.code})?`)) return;
+            const res = await fetch(`/api/v1/governance/role-definitions/${role.id}`, {
+                method: 'DELETE',
+                headers: this.headers()
+            });
+            const json = await res.json();
+            if (res.ok) {
+                this.toastType = 'success';
+                this.toastMessage = json.message;
+                await this.loadAuditData();
+            } else {
+                this.toastType = 'error';
+                this.toastMessage = json.message || 'Gagal menghapus definisi role.';
             }
         },
 

@@ -39,6 +39,7 @@ Route::prefix('v1')->group(function () {
                     'global_role' => $user->profile?->global_role,
                     'is_verified' => $user->profile?->is_verified,
                     'reputation_badge' => $user->profile?->reputation_badge,
+                    'is_pure_system_admin' => $user->isPureSystemAdmin(),
                     'is_operator_aplikasi' => $user->isSystemAdmin(),
                     'is_ketua_paguyuban' => $user->isKetuaPaguyuban(),
                     'is_sekretaris_paguyuban' => $user->isSekretarisPaguyuban(),
@@ -126,6 +127,9 @@ Route::prefix('v1')->group(function () {
             Route::delete('/governance/roles/{role}', [GovernanceController::class, 'revoke']);
             Route::post('/governance/assisted-register', [GovernanceController::class, 'assistedRegister']);
             Route::get('/governance/access-matrix', [GovernanceController::class, 'accessMatrix']);
+            Route::post('/governance/role-definitions', [GovernanceController::class, 'storeRoleDefinition']);
+            Route::patch('/governance/role-definitions/{definition}', [GovernanceController::class, 'updateRoleDefinition']);
+            Route::delete('/governance/role-definitions/{definition}', [GovernanceController::class, 'destroyRoleDefinition']);
 
             // Aspirasi & Petisi Kolektif Warga
             Route::get('/aspirations', [AspirationController::class, 'index']);

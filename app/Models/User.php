@@ -245,13 +245,17 @@ class User extends Authenticatable
     public function assignableGovernanceRoles(): array
     {
         $roles = [];
+        $allDefs = GovernanceRoleDefinition::allActiveCached();
 
         if ($this->isSystemAdmin()) {
-            $roles = array_merge($roles, [
-                'admin',
-                'operator_aplikasi',
-                'ketua_paguyuban',
-            ]);
+            $roles = array_merge($roles, ['admin', 'operator_aplikasi', 'ketua_paguyuban']);
+
+            // Sertakan role kustom bertipe 'system' jika ada
+            $customSystemCodes = $allDefs
+                ->where('domain', 'system')
+                ->pluck('role_code')
+                ->all();
+            $roles = array_merge($roles, $customSystemCodes);
         }
 
         if ($this->isKetuaPaguyuban()) {
@@ -263,6 +267,14 @@ class User extends Authenticatable
                 'koordinator_blok',
                 'keamanan_lingkungan',
             ]);
+
+            // Sertakan seluruh role organisasi aktif (termasuk role kustom baru yang dibuat Admin Sistem)
+            $orgCodes = $allDefs
+                ->where('domain', 'organization')
+                ->where('role_code', '!=', 'ketua_paguyuban')
+                ->pluck('role_code')
+                ->all();
+            $roles = array_merge($roles, $orgCodes);
         }
 
         return array_values(array_unique($roles));
@@ -340,5 +352,10 @@ class User extends Authenticatable
             ->where('guarantor_user_id', $this->id)
             ->where('is_approved', false)
             ->exists();
+    }
+
+    public function isPureSystemAdmin(): bool
+    {
+        return $this->hasGovernanceRole('admin');
     }
 }
