@@ -9,6 +9,80 @@
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col overflow-x-hidden">
 
+    <!-- BANNER PERINGATAN PERSISTEN SAAT SESI PINJAM AKUN (AUDITED IMPERSONATION) AKTIF -->
+    <div x-data="{
+            isImpersonated: sessionStorage.getItem('ppmt_is_impersonated') === '1',
+            targetName: sessionStorage.getItem('ppmt_impersonated_name') || 'Warga',
+            stopping: false,
+            async verifySession() {
+                const token = localStorage.getItem('ppmt_token');
+                if (!token) {
+                    this.isImpersonated = false;
+                    sessionStorage.removeItem('ppmt_is_impersonated');
+                    return;
+                }
+                try {
+                    const res = await fetch('/api/v1/me', {
+                        headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' }
+                    });
+                    if (res.ok) {
+                        const json = await res.json();
+                        const data = json.data || {};
+                        const active = Boolean(data.is_impersonated);
+                        this.isImpersonated = active;
+                        this.targetName = data.display_name || data.name || 'Warga';
+                        sessionStorage.setItem('ppmt_is_impersonated', active ? '1' : '0');
+                        if (active) {
+                            sessionStorage.setItem('ppmt_impersonated_name', this.targetName);
+                        } else {
+                            sessionStorage.removeItem('ppmt_impersonated_name');
+                        }
+                    }
+                } catch (e) {}
+            },
+            async stopSession() {
+                this.stopping = true;
+                const token = localStorage.getItem('ppmt_token');
+                try {
+                    await fetch('/api/v1/auth/stop-impersonation', {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' }
+                    });
+                } catch (e) {}
+                const restoreToken = sessionStorage.getItem('ppmt_admin_restore_token');
+                sessionStorage.removeItem('ppmt_is_impersonated');
+                sessionStorage.removeItem('ppmt_impersonated_name');
+                sessionStorage.removeItem('ppmt_admin_restore_token');
+                sessionStorage.removeItem('ppmt_nav_profile');
+                if (restoreToken) {
+                    localStorage.setItem('ppmt_token', restoreToken);
+                    window.location.href = '/pengurus/buku-induk';
+                } else {
+                    localStorage.removeItem('ppmt_token');
+                    window.location.href = '/';
+                }
+            }
+         }"
+         x-init="verifySession()"
+         @ppmt-impersonation-state.window="isImpersonated = $event.detail.active; targetName = $event.detail.name || 'Warga'"
+         x-show="isImpersonated"
+         x-cloak
+         class="bg-rose-700 text-white px-4 py-2.5 text-xs sm:text-sm font-medium shadow-md z-50 border-b border-rose-900">
+        <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded bg-rose-950/60 text-[11px] font-extrabold uppercase tracking-wider">Sesi Bantuan Teknis</span>
+                <span>Anda sedang mengakses sementara akun <strong x-text="targetName"></strong> (tercatat di log keamanan warga).</span>
+            </div>
+            <button type="button"
+                    @click="stopSession()"
+                    :disabled="stopping"
+                    class="px-3 py-1 rounded-lg bg-white hover:bg-rose-50 text-rose-800 font-extrabold text-xs shadow-sm transition cursor-pointer">
+                <span x-show="!stopping">Akhiri Sesi Bantuan &rarr;</span>
+                <span x-show="stopping">Mengakhiri...</span>
+            </button>
+        </div>
+    </div>
+
     @hasSection('subpage_title')
         <!-- Sub-Page Header (Layar Penuh Terfokus tanpa Navbar Utama) -->
         <header class="bg-white text-slate-900 border-b border-slate-200 sticky top-0 z-40">
@@ -354,6 +428,7 @@
                         localStorage.removeItem('ppmt_token');
                         sessionStorage.removeItem('ppmt_has_admin');
                         sessionStorage.removeItem('ppmt_nav_profile');
+                        sessionStorage.removeItem('ppmt_is_impersonated');
                         this.hasToken = false;
                         return;
                     }
@@ -383,6 +458,17 @@
                             governance_label: Array.from(new Set(govLabels)).join(' • ')
                         };
 
+                        const isImp = Boolean(data.is_impersonated);
+                        sessionStorage.setItem('ppmt_is_impersonated', isImp ? '1' : '0');
+                        if (isImp) {
+                            sessionStorage.setItem('ppmt_impersonated_name', this.profile.name || 'Warga');
+                        } else {
+                            sessionStorage.removeItem('ppmt_impersonated_name');
+                        }
+                        window.dispatchEvent(new CustomEvent('ppmt-impersonation-state', {
+                            detail: { active: isImp, name: this.profile.name }
+                        }));
+
                         sessionStorage.setItem('ppmt_has_admin', this.hasAdminAccess ? '1' : '0');
                         sessionStorage.setItem('ppmt_nav_profile', JSON.stringify(this.profile));
                     }
@@ -395,6 +481,9 @@
                 localStorage.removeItem('ppmt_token');
                 sessionStorage.removeItem('ppmt_has_admin');
                 sessionStorage.removeItem('ppmt_nav_profile');
+                sessionStorage.removeItem('ppmt_is_impersonated');
+                sessionStorage.removeItem('ppmt_impersonated_name');
+                sessionStorage.removeItem('ppmt_admin_restore_token');
                 window.location.href = '/';
             }
         }

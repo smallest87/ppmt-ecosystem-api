@@ -31,6 +31,11 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', function (Request $request) {
             $user = $request->user()->load(['profile', 'unitMemberships.unit', 'governanceRoles']);
+            $token = $user->currentAccessToken();
+            $isImpersonated = $token && (
+                str_starts_with((string) $token->name, 'impersonated-by:')
+                || in_array('impersonated', $token->abilities ?? [], true)
+            );
 
             return response()->json([
                 'data' => [
@@ -41,7 +46,7 @@ Route::prefix('v1')->group(function () {
                     'phone' => $user->profile?->phone,
                     'global_role' => $user->profile?->global_role,
                     'is_verified' => $user->profile?->is_verified,
-                    'is_impersonated' => (bool) $request->user()->currentAccessToken()?->can('impersonated'),
+                    'is_impersonated' => $isImpersonated,
                     'reputation_badge' => $user->profile?->reputation_badge,
                     'is_pure_system_admin' => $user->isPureSystemAdmin(),
                     'is_operator_aplikasi' => $user->isSystemAdmin(),

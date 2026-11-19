@@ -209,7 +209,7 @@
     </section>
 
     <!-- ===================================================================== -->
-    <!-- MODAL POPUP: MASUK KE PORTAL WARGA                                    -->
+    <!-- MODAL POPUP: MASUK & PEMULIHAN SANDI WARGA                            -->
     <!-- ===================================================================== -->
     <div x-show="modalOpen"
          x-cloak
@@ -221,7 +221,7 @@
             <!-- Header Modal -->
             <div class="bg-emerald-950 text-white px-5 sm:px-6 py-4 flex items-center justify-between shrink-0">
                 <div>
-                    <h3 class="font-bold text-base">Masuk ke Portal Warga</h3>
+                    <h3 class="font-bold text-base" x-text="modalMode === 'login' ? 'Masuk ke Portal Warga' : 'Pemulihan Kata Sandi'"></h3>
                     <p class="text-[11px] text-emerald-200">Perumahan Pesona Mandiri Turen</p>
                 </div>
                 <button type="button" @click="modalOpen = false"
@@ -239,8 +239,8 @@
                      x-text="alertMessage">
                 </div>
 
-                <!-- FORM MASUK -->
-                <div class="space-y-4">
+                <!-- MODE 1: FORM MASUK -->
+                <div x-show="modalMode === 'login'" class="space-y-4">
                     <form @submit.prevent="submitLogin()" class="space-y-4">
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor WhatsApp atau Username</label>
@@ -256,7 +256,14 @@
                         </div>
 
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Kata Sandi</label>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-xs font-semibold text-slate-700">Kata Sandi</label>
+                                <button type="button"
+                                        @click="switchToForgot()"
+                                        class="text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer">
+                                    Lupa kata sandi?
+                                </button>
+                            </div>
                             <input type="password" x-model="loginForm.password" required placeholder="••••••••"
                                    class="w-full rounded-xl border-slate-300 text-sm focus:border-emerald-600 focus:ring-emerald-600">
                         </div>
@@ -277,6 +284,108 @@
                     </div>
                 </div>
 
+                <!-- MODE 2: LUPA KATA SANDI (2 TAHAP OTP PENGURUS / PEMILIK UTAMA) -->
+                <div x-show="modalMode === 'forgot'" class="space-y-4">
+                    <div class="flex rounded-xl bg-slate-100 p-1 text-xs font-bold">
+                        <button type="button"
+                                @click="recoveryStep = 1; alertMessage = ''"
+                                :class="recoveryStep === 1 ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'"
+                                class="flex-1 py-1.5 rounded-lg transition cursor-pointer">
+                            1. Minta Kode OTP
+                        </button>
+                        <button type="button"
+                                @click="recoveryStep = 2; alertMessage = ''"
+                                :class="recoveryStep === 2 ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'"
+                                class="flex-1 py-1.5 rounded-lg transition cursor-pointer">
+                            2. Sudah Punya Kode
+                        </button>
+                    </div>
+
+                    <!-- Langkah 1: Ajukan Tiket Pemulihan -->
+                    <form x-show="recoveryStep === 1" @submit.prevent="submitForgotPassword()" class="space-y-3.5">
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Masukkan Nomor WhatsApp/Username dan Kode Kavling Anda. Sistem akan menerbitkan <strong>6-digit Kode Pemulihan</strong> (berlaku 15 menit) yang dapat Anda minta kepada <strong>Koordinator Blok/Zona</strong>, <strong>Admin Sistem</strong>, atau <strong>Pemilik Utama Kavling</strong> Anda.
+                        </p>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor WhatsApp atau Username *</label>
+                            <input type="text"
+                                   x-model="recoveryForm.login_id"
+                                   @input="recoveryForm.login_id = (recoveryForm.login_id || '').toLowerCase().replace(/[^a-z0-9._+]/g, '')"
+                                   required
+                                   placeholder="0812xxxxxxxx atau username"
+                                   class="w-full rounded-xl border-slate-300 text-sm lowercase">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Kode Kavling *</label>
+                            <input type="text"
+                                   x-model="recoveryForm.unit_code"
+                                   @input="recoveryForm.unit_code = (recoveryForm.unit_code || '').toUpperCase().replace(/[^A-Z0-9-]/g, '')"
+                                   required
+                                   placeholder="Contoh: C-21"
+                                   class="w-full rounded-xl border-slate-300 text-sm font-mono uppercase">
+                        </div>
+
+                        <button type="submit" :disabled="submitting"
+                                class="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-sm shadow transition disabled:opacity-50 cursor-pointer">
+                            <span x-show="!submitting">Kirim Permintaan Pemulihan</span>
+                            <span x-show="submitting">Memproses...</span>
+                        </button>
+                    </form>
+
+                    <!-- Langkah 2: Input Kode 6-Digit + Sandi Baru -->
+                    <form x-show="recoveryStep === 2" @submit.prevent="submitResetPassword()" class="space-y-3.5">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor WhatsApp atau Username *</label>
+                            <input type="text"
+                                   x-model="recoveryForm.login_id"
+                                   @input="recoveryForm.login_id = (recoveryForm.login_id || '').toLowerCase().replace(/[^a-z0-9._+]/g, '')"
+                                   required
+                                   placeholder="0812xxxxxxxx atau username"
+                                   class="w-full rounded-xl border-slate-300 text-sm lowercase">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Kode Pemulihan 6-Digit dari Pengurus *</label>
+                            <input type="text"
+                                   x-model="recoveryForm.recovery_code"
+                                   @input="recoveryForm.recovery_code = (recoveryForm.recovery_code || '').replace(/[^0-9]/g, '').slice(0, 6)"
+                                   required
+                                   maxlength="6"
+                                   inputmode="numeric"
+                                   placeholder="000000"
+                                   class="w-full rounded-xl border-slate-300 text-center text-lg font-mono font-extrabold tracking-[0.35em]">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Kata Sandi Baru (Min. 8 Karakter) *</label>
+                            <input type="password" x-model="recoveryForm.password" required minlength="8" placeholder="••••••••"
+                                   class="w-full rounded-xl border-slate-300 text-sm">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Ulangi Kata Sandi Baru *</label>
+                            <input type="password" x-model="recoveryForm.password_confirmation" required minlength="8" placeholder="••••••••"
+                                   class="w-full rounded-xl border-slate-300 text-sm">
+                        </div>
+
+                        <button type="submit" :disabled="submitting"
+                                class="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm shadow transition disabled:opacity-50 cursor-pointer">
+                            <span x-show="!submitting">Simpan Sandi Baru &amp; Masuk</span>
+                            <span x-show="submitting">Menyimpan...</span>
+                        </button>
+                    </form>
+
+                    <div class="pt-3 border-t border-slate-100 text-center">
+                        <button type="button"
+                                @click="modalMode = 'login'; alertMessage = ''"
+                                class="text-xs font-semibold text-slate-600 hover:text-slate-900 cursor-pointer">
+                            &larr; Kembali ke form Masuk
+                        </button>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -289,6 +398,8 @@ function ppmtPublicHome() {
     return {
         hasToken: !!localStorage.getItem('ppmt_token'),
         modalOpen: false,
+        modalMode: 'login',
+        recoveryStep: 1,
         submitting: false,
         alertMessage: '',
         alertType: 'success',
@@ -296,11 +407,17 @@ function ppmtPublicHome() {
             login_id: '',
             password: ''
         },
+        recoveryForm: {
+            login_id: '',
+            unit_code: '',
+            recovery_code: '',
+            password: '',
+            password_confirmation: ''
+        },
 
         init() {
             const params = new URLSearchParams(window.location.search);
 
-            // Kompatibilitas link undangan lama (?unit=C-21&invite=xxxx) -> arahkan ke /register
             if (params.get('invite')) {
                 window.location.href = '/register' + window.location.search;
                 return;
@@ -324,8 +441,16 @@ function ppmtPublicHome() {
                 window.location.href = '/dashboard';
                 return;
             }
+            this.modalMode = 'login';
             this.alertMessage = '';
             this.modalOpen = true;
+        },
+
+        switchToForgot() {
+            this.modalMode = 'forgot';
+            this.recoveryStep = 1;
+            this.recoveryForm.login_id = this.loginForm.login_id || '';
+            this.alertMessage = '';
         },
 
         async submitLogin() {
@@ -345,6 +470,72 @@ function ppmtPublicHome() {
                     return;
                 }
 
+                sessionStorage.removeItem('ppmt_is_impersonated');
+                sessionStorage.removeItem('ppmt_impersonated_name');
+                sessionStorage.removeItem('ppmt_admin_restore_token');
+                sessionStorage.removeItem('ppmt_nav_profile');
+                localStorage.setItem('ppmt_token', json.token);
+                window.location.href = '/dashboard';
+            } catch (e) {
+                this.alertType = 'error';
+                this.alertMessage = 'Terjadi gangguan koneksi ke server.';
+            } finally {
+                this.submitting = false;
+            }
+        },
+
+        async submitForgotPassword() {
+            this.submitting = true;
+            this.alertMessage = '';
+            try {
+                const res = await fetch('/api/v1/auth/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({
+                        login_id: this.recoveryForm.login_id,
+                        unit_code: this.recoveryForm.unit_code
+                    })
+                });
+                const json = await res.json();
+
+                if (!res.ok) {
+                    this.alertType = 'error';
+                    this.alertMessage = json.message || 'Gagal mengajukan pemulihan sandi.';
+                    return;
+                }
+
+                this.alertType = 'success';
+                this.alertMessage = json.message;
+                this.recoveryStep = 2;
+            } catch (e) {
+                this.alertType = 'error';
+                this.alertMessage = 'Terjadi gangguan koneksi ke server.';
+            } finally {
+                this.submitting = false;
+            }
+        },
+
+        async submitResetPassword() {
+            this.submitting = true;
+            this.alertMessage = '';
+            try {
+                const res = await fetch('/api/v1/auth/reset-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify(this.recoveryForm)
+                });
+                const json = await res.json();
+
+                if (!res.ok) {
+                    this.alertType = 'error';
+                    this.alertMessage = json.message || 'Kode pemulihan salah atau sudah kedaluwarsa.';
+                    return;
+                }
+
+                sessionStorage.removeItem('ppmt_is_impersonated');
+                sessionStorage.removeItem('ppmt_impersonated_name');
+                sessionStorage.removeItem('ppmt_admin_restore_token');
+                sessionStorage.removeItem('ppmt_nav_profile');
                 localStorage.setItem('ppmt_token', json.token);
                 window.location.href = '/dashboard';
             } catch (e) {

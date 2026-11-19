@@ -15,11 +15,22 @@ use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
 {
+    private function isImpersonatedRequest(Request $request): bool
+    {
+        $token = $request->user()?->currentAccessToken();
+        if (! $token) {
+            return false;
+        }
+
+        return str_starts_with((string) $token->name, 'impersonated-by:')
+            || in_array('impersonated', $token->abilities ?? [], true);
+    }
+
     public function updateProgressiveProfile(Request $request): JsonResponse
     {
         $user = $request->user();
 
-        if ($user->currentAccessToken()?->can('impersonated')) {
+        if ($this->isImpersonatedRequest($request)) {
             if ($request->filled('new_password') || $request->filled('nik') || $request->filled('kk')) {
                 return response()->json([
                     'message' => 'Demi keamanan privasi warga, kata sandi, NIK, dan Nomor KK tidak dapat diubah selama sesi bantuan teknis Admin.',
@@ -166,7 +177,7 @@ class ProfileController extends Controller
     {
         $actor = $request->user();
 
-        if ($actor->currentAccessToken()?->can('impersonated')) {
+        if ($this->isImpersonatedRequest($request)) {
             if ($request->filled('nib_shm') || $request->boolean('clear_nib_shm')) {
                 return response()->json([
                     'message' => 'Nomor NIB SHM warga tidak dapat diubah atau dihapus selama sesi bantuan teknis Admin.',
@@ -241,12 +252,10 @@ class ProfileController extends Controller
                 $verifiedBy = null;
             } elseif ($newNibShm !== null) {
                 $nibToSave = $newNibShm;
-                // Jika pengurus pusat yang menginputkan langsung, bisa langsung verified; jika warga biasa, statusnya menunggu verifikasi NIB SHM
                 $ownershipStatus = $isGovernor ? 'verified_shm' : 'unverified_claim';
                 $verifiedAt = $isGovernor ? now() : null;
                 $verifiedBy = $isGovernor ? $actor->id : null;
             } else {
-                // Pertahankan status verified_shm jika sebelumnya sudah sah dan tidak diubah NIB-nya, selain itu unverified_claim
                 $ownershipStatus = ($membership->is_owner && $membership->ownership_verification_status === 'verified_shm')
                     ? 'verified_shm'
                     : 'unverified_claim';

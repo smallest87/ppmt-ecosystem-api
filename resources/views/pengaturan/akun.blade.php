@@ -8,7 +8,7 @@
 <div x-data="ppmtAccountSettings()" x-init="init()" @keydown.escape.window="closeModal()" class="max-w-3xl mx-auto px-4 py-6 sm:py-8 space-y-6">
 
     <p class="text-xs sm:text-sm text-slate-500">
-        Kelola identitas tampilan publik, kredensial masuk akun, visibilitas data ke tetangga, serta dokumen kependudukan terenkripsi.
+        Kelola identitas tampilan publik, kredensial masuk akun, visibilitas data ke tetangga, dokumen kependudukan terenkripsi, serta catatan keamanan akun Anda.
     </p>
 
     <!-- Loading State -->
@@ -98,13 +98,22 @@
                     <span class="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition text-lg font-medium shrink-0">&rsaquo;</span>
                 </button>
 
-                <button type="button" @click="openModal('password')"
-                        class="w-full px-6 py-4 flex items-center justify-between gap-4 text-left hover:bg-slate-50/90 transition cursor-pointer group">
+                <button type="button"
+                        @click="!user?.is_impersonated && openModal('password')"
+                        :disabled="user?.is_impersonated"
+                        :class="user?.is_impersonated ? 'opacity-60 cursor-not-allowed bg-slate-50/60' : 'hover:bg-slate-50/90 cursor-pointer group'"
+                        class="w-full px-6 py-4 flex items-center justify-between gap-4 text-left transition">
                     <div class="space-y-0.5">
-                        <div class="text-xs font-medium text-slate-500">Kata Sandi Akun</div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-medium text-slate-500">Kata Sandi Akun</span>
+                            <span x-show="user?.is_impersonated"
+                                  class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                Dikunci saat sesi bantuan Admin
+                            </span>
+                        </div>
                         <div class="text-sm font-semibold text-slate-900 tracking-widest">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</div>
                     </div>
-                    <span class="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition text-lg font-medium shrink-0">&rsaquo;</span>
+                    <span x-show="!user?.is_impersonated" class="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition text-lg font-medium shrink-0">&rsaquo;</span>
                 </button>
             </div>
         </section>
@@ -113,14 +122,23 @@
         <!-- KARTU 2: DOKUMEN KEPENDUDUKAN TERENKRIPSI (AES-256)       -->
         <!-- ========================================================= -->
         <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100">
-                <h2 class="text-base font-bold text-slate-900">2. Dokumen Kependudukan Terenkripsi</h2>
-                <p class="text-xs text-slate-500 mt-0.5">NIK dan Nomor KK dienkripsi penuh (AES-256) di server dan tidak pernah ditampilkan kembali dalam teks terbuka.</p>
+            <div class="px-6 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                    <h2 class="text-base font-bold text-slate-900">2. Dokumen Kependudukan Terenkripsi</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">NIK dan Nomor KK dienkripsi penuh (AES-256) di server dan tidak pernah ditampilkan kembali dalam teks terbuka.</p>
+                </div>
+                <span x-show="user?.is_impersonated"
+                      class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                    Dikunci selama sesi bantuan Admin
+                </span>
             </div>
 
             <div class="divide-y divide-slate-100">
-                <button type="button" @click="openModal('nik')"
-                        class="w-full px-6 py-4 flex items-center justify-between gap-4 text-left hover:bg-slate-50/90 transition cursor-pointer group">
+                <button type="button"
+                        @click="!user?.is_impersonated && openModal('nik')"
+                        :disabled="user?.is_impersonated"
+                        :class="user?.is_impersonated ? 'opacity-60 cursor-not-allowed bg-slate-50/60' : 'hover:bg-slate-50/90 cursor-pointer group'"
+                        class="w-full px-6 py-4 flex items-center justify-between gap-4 text-left transition">
                     <div class="space-y-1">
                         <div class="text-xs font-medium text-slate-500">Nomor Induk Kependudukan (NIK • 16 Digit)</div>
                         <div class="flex items-center gap-2">
@@ -131,11 +149,14 @@
                             <span x-show="!user?.has_nik" class="text-sm font-medium text-slate-400">Belum diisi</span>
                         </div>
                     </div>
-                    <span class="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition text-lg font-medium shrink-0">&rsaquo;</span>
+                    <span x-show="!user?.is_impersonated" class="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition text-lg font-medium shrink-0">&rsaquo;</span>
                 </button>
 
-                <button type="button" @click="openModal('kk')"
-                        class="w-full px-6 py-4 flex items-center justify-between gap-4 text-left hover:bg-slate-50/90 transition cursor-pointer group">
+                <button type="button"
+                        @click="!user?.is_impersonated && openModal('kk')"
+                        :disabled="user?.is_impersonated"
+                        :class="user?.is_impersonated ? 'opacity-60 cursor-not-allowed bg-slate-50/60' : 'hover:bg-slate-50/90 cursor-pointer group'"
+                        class="w-full px-6 py-4 flex items-center justify-between gap-4 text-left transition">
                     <div class="space-y-1">
                         <div class="text-xs font-medium text-slate-500">Nomor Kartu Keluarga (KK • 16 Digit)</div>
                         <div class="flex items-center gap-2">
@@ -146,8 +167,49 @@
                             <span x-show="!user?.has_kk" class="text-sm font-medium text-slate-400">Belum diisi</span>
                         </div>
                     </div>
-                    <span class="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition text-lg font-medium shrink-0">&rsaquo;</span>
+                    <span x-show="!user?.is_impersonated" class="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition text-lg font-medium shrink-0">&rsaquo;</span>
                 </button>
+            </div>
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- KARTU 3: RIWAYAT KEAMANAN & BANTUAN TEKNIS ADMIN          -->
+        <!-- ========================================================= -->
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-2">
+                <div>
+                    <h2 class="text-base font-bold text-slate-900">3. Riwayat Keamanan &amp; Bantuan Teknis</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Catatan permanen setiap pemulihan kata sandi dan sesi bantuan teknis Admin Sistem (tidak dapat dihapus).</p>
+                </div>
+                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200 shrink-0"
+                      x-text="securityLogs.length + ' catatan'"></span>
+            </div>
+
+            <div x-show="securityLogs.length === 0" class="p-6 text-center text-xs text-slate-500">
+                Belum ada catatan aktivitas pemulihan sandi atau sesi bantuan teknis pada akun Anda.
+            </div>
+
+            <div x-show="securityLogs.length > 0" class="divide-y divide-slate-100">
+                <template x-for="log in securityLogs" :key="log.id">
+                    <div class="px-6 py-4 flex flex-col sm:flex-row sm:items-start justify-between gap-2 text-xs">
+                        <div class="space-y-1">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span :class="{
+                                        'bg-rose-50 text-rose-800 border-rose-200': log.action === 'impersonation_started',
+                                        'bg-slate-100 text-slate-700 border-slate-200': log.action === 'impersonation_ended',
+                                        'bg-amber-50 text-amber-800 border-amber-200': log.action === 'password_recovery_requested' || log.action === 'password_recovery_issued',
+                                        'bg-emerald-50 text-emerald-800 border-emerald-200': log.action === 'password_reset_completed'
+                                      }"
+                                      class="px-2 py-0.5 rounded-md font-bold border"
+                                      x-text="formatSecurityAction(log.action)">
+                                </span>
+                                <span class="font-semibold text-slate-800" x-text="'Pelaksana: ' + log.actor_name"></span>
+                            </div>
+                            <p class="text-slate-600 leading-relaxed" x-text="log.reason"></p>
+                        </div>
+                        <div class="text-[11px] font-mono text-slate-400 shrink-0" x-text="log.created_at"></div>
+                    </div>
+                </template>
             </div>
         </section>
 
@@ -330,6 +392,7 @@ function ppmtAccountSettings() {
     return {
         token: localStorage.getItem('ppmt_token'),
         user: null,
+        securityLogs: [],
         loading: true,
         toastMessage: '',
         toastType: 'success',
@@ -355,7 +418,7 @@ function ppmtAccountSettings() {
                 window.location.href = '/';
                 return;
             }
-            await this.loadMe();
+            await Promise.all([this.loadMe(), this.loadSecurityLogs()]);
         },
 
         headers() {
@@ -364,6 +427,17 @@ function ppmtAccountSettings() {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             };
+        },
+
+        formatSecurityAction(action) {
+            const labels = {
+                'password_recovery_requested': 'Permintaan Reset Sandi',
+                'password_recovery_issued': 'Kode Reset Diterbitkan Pengurus',
+                'password_reset_completed': 'Kata Sandi Diperbarui',
+                'impersonation_started': 'Sesi Bantuan Teknis Admin Dimulai',
+                'impersonation_ended': 'Sesi Bantuan Teknis Admin Diakhiri'
+            };
+            return labels[action] || action;
         },
 
         get modalTitle() {
@@ -450,7 +524,7 @@ function ppmtAccountSettings() {
                 this.closeModal();
                 this.toastType = 'success';
                 this.toastMessage = json.message || 'Data akun berhasil diperbarui.';
-                await this.loadMe();
+                await Promise.all([this.loadMe(), this.loadSecurityLogs()]);
             } catch (e) {
                 this.modalError = 'Terjadi gangguan koneksi saat menyimpan.';
             } finally {
@@ -470,6 +544,16 @@ function ppmtAccountSettings() {
             } finally {
                 this.loading = false;
             }
+        },
+
+        async loadSecurityLogs() {
+            try {
+                const res = await fetch('/api/v1/me/security-logs', { headers: this.headers() });
+                if (res.ok) {
+                    const json = await res.json();
+                    this.securityLogs = json.data || [];
+                }
+            } catch (e) {}
         }
     }
 }

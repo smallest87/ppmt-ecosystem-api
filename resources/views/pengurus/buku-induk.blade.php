@@ -23,6 +23,32 @@
             <button type="button" @click="toastMessage = ''" class="text-sm opacity-70 hover:opacity-100 cursor-pointer">✕</button>
         </div>
 
+        <!-- ANTREAN PERMINTAAN PEMULIHAN SANDI WARGA -->
+        <div x-show="recoveryTickets.length > 0"
+             x-cloak
+             class="bg-amber-50 border border-amber-300 rounded-2xl p-4 sm:p-5 space-y-3 shadow-sm">
+            <div class="flex items-center justify-between gap-2">
+                <h3 class="text-sm font-extrabold text-amber-950">🔑 Permintaan Pemulihan Kata Sandi Aktif</h3>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-200 text-amber-950"
+                      x-text="recoveryTickets.length + ' tiket'"></span>
+            </div>
+            <p class="text-xs text-amber-900">
+                Pastikan identitas pemohon valid secara langsung atau via chat WhatsApp pribadi sebelum menyerahkan 6-digit kode berikut:
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                <template x-for="t in recoveryTickets" :key="t.id">
+                    <div class="bg-white rounded-xl p-3 border border-amber-200 flex items-center justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="font-bold text-sm text-slate-900 truncate" x-text="t.user_name + ' (' + (t.unit_code || '-') + ')'"></div>
+                            <div class="text-xs text-slate-500 font-mono" x-text="t.contact + ' • Sisa ' + t.expires_in_minutes + ' mnt'"></div>
+                        </div>
+                        <div class="px-3 py-1.5 rounded-lg bg-slate-900 text-amber-300 font-mono font-extrabold text-base tracking-widest shrink-0"
+                             x-text="t.recovery_code"></div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
         <!-- Navigasi Tab (Muncul jika Gubernur / Pengurus Pusat) -->
         <div x-show="user?.is_global_governor" class="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
             <button type="button"
@@ -177,7 +203,7 @@
 
                                                 <!-- Detail Terlipat (Muncul saat tombol Detail diklik) -->
                                                 <div x-show="expandedUnitIds.includes(u.id)"
-                                                     class="pl-3 border-l-2 border-slate-200 text-xs text-slate-600 space-y-1 py-1">
+                                                     class="pl-3 border-l-2 border-slate-200 text-xs text-slate-600 space-y-1.5 py-1.5">
                                                     <div x-show="m.valid_until" class="text-sky-700 font-medium"
                                                          x-text="'Masa sewa s/d ' + m.valid_until"></div>
                                                     <div x-show="m.has_nib_shm" class="font-mono">
@@ -185,6 +211,21 @@
                                                     </div>
                                                     <div x-show="m.endorsed_by_sentence" class="text-emerald-700"
                                                          x-text="m.endorsed_by_sentence"></div>
+
+                                                    <!-- Bantuan Pemulihan Sandi & Sesi Bantuan Teknis Admin -->
+                                                    <div class="pt-1 flex flex-wrap items-center gap-2">
+                                                        <button type="button"
+                                                                @click="issuePasswordRecoveryTicket(m)"
+                                                                class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold transition cursor-pointer">
+                                                            🔑 Terbitkan Kode Reset Sandi
+                                                        </button>
+                                                        <button x-show="user?.is_pure_system_admin && m.user_id !== user?.id"
+                                                                type="button"
+                                                                @click="startAuditedImpersonation(m)"
+                                                                class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-xs font-bold transition cursor-pointer">
+                                                            🛡️ Bantu Akses (15 Menit)
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </template>
@@ -263,13 +304,26 @@
                                     </div>
 
                                     <div x-show="expandedUnitIds.includes(u.id)"
-                                         class="pl-3 border-l-2 border-slate-200 text-xs text-slate-600 space-y-1">
+                                         class="pl-3 border-l-2 border-slate-200 text-xs text-slate-600 space-y-1.5 py-1">
                                         <div class="font-mono" x-text="m.contact"></div>
                                         <div x-show="m.valid_until" class="text-sky-700" x-text="'Sewa s/d ' + m.valid_until"></div>
                                         <div x-show="m.has_nib_shm" class="font-mono">
                                             NIB/SHM: <strong x-text="m.can_see_raw_nib ? m.nib_shm_plain : m.nib_shm_masked"></strong>
                                         </div>
                                         <div x-show="m.endorsed_by_sentence" class="text-emerald-700" x-text="m.endorsed_by_sentence"></div>
+                                        <div class="pt-1 flex flex-wrap items-center gap-2">
+                                            <button type="button"
+                                                    @click="issuePasswordRecoveryTicket(m)"
+                                                    class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-900 border border-amber-300 text-xs font-bold cursor-pointer">
+                                                🔑 Kode Reset Sandi
+                                            </button>
+                                            <button x-show="user?.is_pure_system_admin && m.user_id !== user?.id"
+                                                    type="button"
+                                                    @click="startAuditedImpersonation(m)"
+                                                    class="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-800 border border-rose-200 text-xs font-bold cursor-pointer">
+                                                🛡️ Bantu Akses (15 Mnt)
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </template>
@@ -534,6 +588,7 @@ function ppmtRegistryGovernancePanel() {
         perPage: 15,
         toastMessage: '',
         toastType: 'success',
+        recoveryTickets: [],
         verifiedResidents: [],
         governanceList: [],
         allUnits: [],
@@ -638,7 +693,7 @@ function ppmtRegistryGovernancePanel() {
         },
 
         hasExpandableDetail(u) {
-            return (u.members || []).some(m => m.valid_until || m.has_nib_shm || m.endorsed_by_sentence || m.contact);
+            return (u.members || []).length > 0;
         },
 
         async init() {
@@ -673,7 +728,7 @@ function ppmtRegistryGovernancePanel() {
                 window.history.replaceState({}, '', '/pengurus/buku-induk#assisted-register');
             }
 
-            const tasks = [this.loadOccupancyRegistry()];
+            const tasks = [this.loadOccupancyRegistry(), this.loadRecoveryTickets()];
             if (this.user?.is_global_governor) {
                 tasks.push(this.loadGovernanceData());
             }
@@ -719,6 +774,64 @@ function ppmtRegistryGovernancePanel() {
                 const data = json.data || {};
                 this.registryScopeIsCentral = Boolean(data.scope_is_central);
                 this.registryUnits = data.units || [];
+            }
+        },
+
+        async loadRecoveryTickets() {
+            const res = await fetch('/api/v1/governance/recovery-tickets', { headers: this.headers() });
+            if (res.ok) {
+                const json = await res.json();
+                this.recoveryTickets = json.data || [];
+            }
+        },
+
+        async issuePasswordRecoveryTicket(member) {
+            if (!confirm(`Terbitkan kode pemulihan sandi 6-digit (berlaku 15 menit) untuk ${member.name}?`)) {
+                return;
+            }
+            const res = await fetch(`/api/v1/governance/recovery-tickets/${member.user_id}`, {
+                method: 'POST',
+                headers: this.headers()
+            });
+            const json = await res.json();
+            if (res.ok) {
+                this.toastType = 'success';
+                this.toastMessage = `Kode pemulihan untuk ${member.name}: ${json.data.recovery_code} (berlaku 15 menit).`;
+                await this.loadRecoveryTickets();
+            } else {
+                this.toastType = 'error';
+                this.toastMessage = json.message || 'Gagal menerbitkan kode pemulihan.';
+            }
+        },
+
+        async startAuditedImpersonation(member) {
+            const reason = prompt(
+                `Masukkan alasan teknis mengakses sementara akun ${member.name} (minimal 15 karakter — tercatat permanen di log keamanan warga):`
+            );
+            if (!reason || reason.trim().length < 15) {
+                if (reason !== null) {
+                    this.toastType = 'error';
+                    this.toastMessage = 'Alasan bantuan teknis wajib diisi minimal 15 karakter.';
+                }
+                return;
+            }
+
+            const res = await fetch(`/api/v1/governance/impersonate/${member.user_id}`, {
+                method: 'POST',
+                headers: this.headers(),
+                body: JSON.stringify({ reason: reason.trim() })
+            });
+            const json = await res.json();
+            if (res.ok && json.impersonation_token) {
+                sessionStorage.setItem('ppmt_admin_restore_token', this.token);
+                sessionStorage.setItem('ppmt_is_impersonated', '1');
+                sessionStorage.setItem('ppmt_impersonated_name', member.name);
+                sessionStorage.removeItem('ppmt_nav_profile');
+                localStorage.setItem('ppmt_token', json.impersonation_token);
+                window.location.href = '/dashboard';
+            } else {
+                this.toastType = 'error';
+                this.toastMessage = json.message || 'Gagal memulai sesi bantuan teknis.';
             }
         },
 

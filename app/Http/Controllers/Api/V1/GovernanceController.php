@@ -19,6 +19,16 @@ use Illuminate\Validation\Rule;
 
 class GovernanceController extends Controller
 {
+    private function isImpersonationToken($token): bool
+    {
+        if (! $token) {
+            return false;
+        }
+
+        return str_starts_with((string) $token->name, 'impersonated-by:')
+            || in_array('impersonated', $token->abilities ?? [], true);
+    }
+
     public function pendingOwnershipVerifications(Request $request): JsonResponse
     {
         $actor = $request->user();
@@ -243,7 +253,7 @@ class GovernanceController extends Controller
     {
         $actor = $request->user();
 
-        if ($actor->currentAccessToken()?->can('impersonated')) {
+        if ($this->isImpersonationToken($actor->currentAccessToken())) {
             return response()->json([
                 'message' => 'Penetapan jabatan pengurus dilarang dilakukan menggunakan sesi pinjam akun.',
             ], 403);
@@ -312,7 +322,7 @@ class GovernanceController extends Controller
     {
         $actor = $request->user();
 
-        if ($actor->currentAccessToken()?->can('impersonated')) {
+        if ($this->isImpersonationToken($actor->currentAccessToken())) {
             return response()->json([
                 'message' => 'Pencabutan jabatan pengurus dilarang dilakukan menggunakan sesi pinjam akun.',
             ], 403);

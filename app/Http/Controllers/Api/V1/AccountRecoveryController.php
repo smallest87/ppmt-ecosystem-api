@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\AccountAuditLog;
 use App\Models\PasswordRecoveryTicket;
-use App\Models\Unit;
 use App\Models\UnitMembership;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -15,6 +14,19 @@ use Illuminate\Support\Facades\Hash;
 
 class AccountRecoveryController extends Controller
 {
+    /**
+     * Helper eksak untuk memastikan token benar-benar token impersonation (bukan wildcard ['*']).
+     */
+    private function isImpersonationToken($token): bool
+    {
+        if (! $token) {
+            return false;
+        }
+
+        return str_starts_with((string) $token->name, 'impersonated-by:')
+            || in_array('impersonated', $token->abilities ?? [], true);
+    }
+
     /**
      * 1. Warga mengajukan permintaan reset sandi (Publik / Tanpa Login)
      */
@@ -248,6 +260,12 @@ class AccountRecoveryController extends Controller
     {
         $actor = $request->user();
 
+        if ($this->isImpersonationToken($actor->currentAccessToken())) {
+            return response()->json([
+                'message' => 'Akhiri sesi bantuan teknis saat ini terlebih dahulu sebelum memulai sesi baru.',
+            ], 403);
+        }
+
         // Hanya Admin Sistem murni yang boleh melakukan bantuan akses teknis sementara
         if (! $actor->isPureSystemAdmin()) {
             return response()->json([
@@ -310,7 +328,7 @@ class AccountRecoveryController extends Controller
         $user = $request->user();
         $token = $user->currentAccessToken();
 
-        if (! $token || ! $token->can('impersonated')) {
+        if (! $this->isImpersonationToken($token)) {
             return response()->json(['message' => 'Sesi saat ini bukan sesi bantuan teknis sementara.'], 422);
         }
 
