@@ -7,17 +7,25 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class ResidentDirectoryResource extends JsonResource
 {
+    protected static array $viewerAdminCache = [];
+
     public function toArray(Request $request): array
     {
         $viewer = $request->user();
         $profile = $this->profile;
         $privacy = $profile?->privacy_settings ?? [];
 
-        $isSelfOrAdmin = $viewer && (
-            $viewer->id === $this->id ||
-            (method_exists($viewer, 'isGlobalGovernor') && $viewer->isGlobalGovernor()) ||
-            in_array($viewer->profile?->global_role, ['admin', 'koordinator_blok'])
-        );
+        $isViewerAdmin = false;
+        if ($viewer) {
+            if (! array_key_exists($viewer->id, self::$viewerAdminCache)) {
+                self::$viewerAdminCache[$viewer->id] =
+                    (method_exists($viewer, 'isGlobalGovernor') && $viewer->isGlobalGovernor()) ||
+                    in_array($viewer->profile?->global_role, ['admin', 'koordinator_blok'], true);
+            }
+            $isViewerAdmin = self::$viewerAdminCache[$viewer->id];
+        }
+
+        $isSelfOrAdmin = ($viewer && $viewer->id === $this->id) || $isViewerAdmin;
 
         $canSeeFullName = $isSelfOrAdmin || ($privacy['show_full_name'] ?? false);
         $canSeePhone = $isSelfOrAdmin || ($privacy['show_phone'] ?? false);

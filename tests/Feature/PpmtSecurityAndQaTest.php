@@ -67,7 +67,7 @@ class PpmtSecurityAndQaTest extends TestCase
             'sub_role' => 'primary_owner',
         ])->assertStatus(422);
 
-        // Buat akun Koordinator Blok ZONA-4 (Unit D-1)
+        // Buat akun Koordinator Blok ZONA-4 (Unit D-1, satu zona dengan C-21)
         $koordinator = $this->createVerifiedResident('Pak Koordinator', '081200000002', 'D-1', 'owner', 'primary_owner', 'koordinator_blok');
 
         // Warga baru mendaftar mandiri di unit C-21 (ZONA-4)
@@ -92,7 +92,7 @@ class PpmtSecurityAndQaTest extends TestCase
             ->assertJsonPath('code', 'UNVERIFIED_WARGA_PPMT');
 
         // Koordinator Blok ZONA-4 menyetujui pendaftaran Warga C-21
-        $this->actingAs($koordinator, 'sanctum')
+        $this->actingAs($koordinator->fresh(), 'sanctum')
             ->postJson('/api/v1/verifications/approve', [
                 'target_user_id' => $wargaId,
                 'unit_code' => 'C-21',

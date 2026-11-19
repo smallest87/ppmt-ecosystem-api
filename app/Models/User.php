@@ -50,15 +50,25 @@ class User extends Authenticatable
 
     public function hasGovernanceRole(string $roleCode, ?string $scopeType = null, ?string $scopeValue = null): bool
     {
+        $this->loadMissing(['profile', 'governanceRoles']);
+
         if (in_array($roleCode, ['admin', 'operator_aplikasi'], true) && $this->profile?->global_role === 'admin') {
             return true;
         }
 
-        return $this->governanceRoles()
-            ->where('role_code', $roleCode)
-            ->when($scopeType, fn ($q) => $q->where('scope_type', $scopeType))
-            ->when($scopeValue, fn ($q) => $q->where('scope_value', $scopeValue))
-            ->exists();
+        return $this->governanceRoles->contains(function (UserGovernanceRole $role) use ($roleCode, $scopeType, $scopeValue) {
+            if ($role->role_code !== $roleCode) {
+                return false;
+            }
+            if ($scopeType !== null && $role->scope_type !== $scopeType) {
+                return false;
+            }
+            if ($scopeValue !== null && strtoupper(trim((string) $role->scope_value)) !== strtoupper(trim($scopeValue))) {
+                return false;
+            }
+
+            return true;
+        });
     }
 
     public function isSystemAdmin(): bool
@@ -175,14 +185,16 @@ class User extends Authenticatable
             return true;
         }
 
-        return $this->governanceRoles()
+        $this->loadMissing('governanceRoles');
+
+        return $this->governanceRoles
             ->whereIn('role_code', [
                 'sekretaris_paguyuban',
                 'bendahara_paguyuban',
                 'seksi_ekonomi',
                 'keamanan_lingkungan',
             ])
-            ->exists();
+            ->isNotEmpty();
     }
 
     public function canViewOccupancyRegistry(): bool
@@ -305,11 +317,15 @@ class User extends Authenticatable
             return true;
         }
 
-        return $this->governanceRoles()->exists();
+        $this->loadMissing('governanceRoles');
+
+        return $this->governanceRoles->isNotEmpty();
     }
 
     public function canVouchUnit(Unit $unit): bool
     {
+        $this->loadMissing('profile');
+
         if (! $this->profile || ! $this->profile->is_verified) {
             return false;
         }

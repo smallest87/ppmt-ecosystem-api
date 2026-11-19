@@ -98,6 +98,7 @@ class CabinetDomainIsolationTest extends TestCase
             'scope_value' => 'A',
             'is_active' => true,
         ]);
+        $koorBlokA->unsetRelation('governanceRoles');
 
         // Pemilik di Blok A dan Pemilik di Blok D yang menginput NIB SHM
         $ownerBlokA = $this->createVerifiedResident('Pemilik A-11', '081400000021', 'A-11');
@@ -117,13 +118,13 @@ class CabinetDomainIsolationTest extends TestCase
         ]);
 
         // Koordinator Blok A DITOLAK mengesahkan SHM milik warga di Blok D
-        $this->actingAs($koorBlokA, 'sanctum')
+        $this->actingAs($koorBlokA->fresh(), 'sanctum')
             ->postJson("/api/v1/verifications/ownership/{$membershipD->id}", [
                 'action' => 'approve_shm',
             ])->assertStatus(403);
 
-        // Koordinator Blok A BERHASIL mengesahkan SHM warga di Blok A, dan angka mentah NIB SHM tetap tertutup (null)
-        $pendingRes = $this->actingAs($koorBlokA, 'sanctum')
+        // Koordinator Blok A BERHASIL melihat antrean Blok A tanpa membocorkan angka mentah NIB SHM
+        $pendingRes = $this->actingAs($koorBlokA->fresh(), 'sanctum')
             ->getJson('/api/v1/verifications/ownership-pending')
             ->assertStatus(200);
 
@@ -132,7 +133,8 @@ class CabinetDomainIsolationTest extends TestCase
         $this->assertFalse($itemA['can_see_raw_nib']);
         $this->assertNull($itemA['nib_shm_plain']);
 
-        $this->actingAs($koorBlokA, 'sanctum')
+        // Koordinator Blok A BERHASIL mengesahkan SHM warga di Blok A
+        $this->actingAs($koorBlokA->fresh(), 'sanctum')
             ->postJson("/api/v1/verifications/ownership/{$membershipA->id}", [
                 'action' => 'approve_shm',
             ])->assertStatus(200);
