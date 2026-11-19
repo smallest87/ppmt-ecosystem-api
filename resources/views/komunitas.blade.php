@@ -12,11 +12,11 @@
             <p class="text-xs text-slate-500">Eksklusif bagi warga terverifikasi &bull; Aspirasi kolektif, transparansi kas, arsip musyawarah &amp; ekonomi tetangga.</p>
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 bg-slate-100 p-1 rounded-xl text-xs font-bold shrink-0 gap-1">
-            <button type="button" @click="setTab('umkm')"
-                    :class="tab === 'umkm' ? 'bg-emerald-700 text-white shadow' : 'text-slate-600 hover:text-slate-900'"
-                    class="px-3 py-2 rounded-lg transition cursor-pointer">
-                Pasar Tetangga
-            </button>
+            <a href="/komunitas/pasar-tetangga"
+            class="px-3 py-2 rounded-lg transition text-center text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 flex items-center justify-center gap-1">
+                <span>Pasar Tetangga</span>
+                <span class="text-[10px]">&nearr;</span>
+            </a>
             <button type="button" @click="setTab('aspirasi')"
                     :class="tab === 'aspirasi' ? 'bg-emerald-700 text-white shadow' : 'text-slate-600 hover:text-slate-900'"
                     class="px-3 py-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5">
@@ -868,10 +868,13 @@
 <script>
 function ppmtCommunity() {
     const urlParams = new URLSearchParams(window.location.search);
-    const validTabs = ['umkm', 'aspirasi', 'kas', 'directory', 'minutes', 'siteplan'];
+    if (urlParams.get('tab') === 'umkm') {
+        window.location.replace('/komunitas/pasar-tetangga');
+    }
+    const validTabs = ['aspirasi', 'kas', 'directory', 'minutes', 'siteplan'];
     const initialTab = validTabs.includes(urlParams.get('tab'))
         ? urlParams.get('tab')
-        : 'umkm';
+        : 'aspirasi';
     const currentMonthStr = new Date().toISOString().slice(0, 7);
 
     return {

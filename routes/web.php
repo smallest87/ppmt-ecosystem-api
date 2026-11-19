@@ -24,7 +24,10 @@ Route::prefix('pengurus')->name('pengurus.')->group(function () {
 });
 Route::redirect('/admin', '/pengurus');
 
+// Komunitas & Pasar Tetangga
 Route::view('/komunitas', 'komunitas')->name('komunitas');
+Route::view('/komunitas/pasar-tetangga', 'komunitas.pasar-tetangga')->name('komunitas.pasar-tetangga');
+
 Route::view('/peta-kavling', 'siteplan')->name('siteplan');
 
 // Permalink Berita Warga: /berita/2026/11/17/judul-berita-slug
