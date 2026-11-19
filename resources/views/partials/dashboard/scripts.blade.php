@@ -66,6 +66,28 @@ function ppmtFamilyRoom() {
             return Boolean(this.user?.can_manage_announcements || this.user?.is_global_governor);
         },
 
+        get groupedAgendaNotifications() {
+            const groups = new Map();
+
+            for (const ag of this.agendas) {
+                const visibility = ag.visibility || 'public';
+                const label = ag.visibility_label || 'Seluruh Warga';
+                const key = `${visibility}::${label}`;
+
+                if (!groups.has(key)) {
+                    groups.set(key, {
+                        key,
+                        visibility,
+                        label,
+                        count: 0
+                    });
+                }
+                groups.get(key).count += 1;
+            }
+
+            return Array.from(groups.values());
+        },
+
         formatRupiah(value) {
             return 'Rp ' + Number(value || 0).toLocaleString('id-ID');
         },

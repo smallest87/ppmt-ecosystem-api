@@ -12,7 +12,7 @@
                         : (item.is_pinned
                             ? 'bg-amber-50 hover:bg-amber-100/80 border-amber-300 border-l-4 border-l-amber-500 text-amber-950'
                             : 'bg-white hover:bg-emerald-50/50 border-slate-200 border-l-4 border-l-emerald-600 text-slate-900')"
-                    class="relative w-full px-4 py-3.5 rounded-xl border shadow-xs flex items-center justify-between gap-3.5 text-left transition cursor-pointer group">
+                    class="relative w-full px-4 py-3.5 rounded-md border shadow-xs flex items-center justify-between gap-3.5 text-left transition cursor-pointer group">
 
                 <!-- Ikon Pin di Pojok Kiri Atas (Hanya untuk item yang di-pin) -->
                 <span x-show="item.is_pinned"

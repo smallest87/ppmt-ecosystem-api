@@ -1,69 +1,61 @@
-<!-- Kartu 2: Agenda Warga (Live API) -->
-<section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
-        <a href="/agenda" class="text-base font-bold text-slate-900 hover:text-emerald-800 transition">
-            Agenda Warga
-        </a>
-        <div class="flex items-center gap-2 shrink-0">
-            <a href="/agenda"
-               class="text-xs font-bold text-emerald-700 hover:text-emerald-900 transition">
-                Semua &rarr;
-            </a>
-            <a x-show="canPublishNews"
-               href="/pengurus"
-               class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition">
-                + Kelola
-            </a>
-        </div>
-    </div>
+<!-- Notifikasi Ringkas Dikelompokkan per Visibilitas: Agenda Warga (Live API) -->
+<section x-show="groupedAgendaNotifications.length > 0" x-cloak class="space-y-2.5">
+    <template x-for="grp in groupedAgendaNotifications" :key="grp.key">
+        <div :class="grp.visibility === 'invite_only'
+                ? 'bg-purple-50/90 hover:bg-purple-100/70 border-purple-200 border-l-purple-600'
+                : (grp.visibility === 'block'
+                    ? 'bg-amber-50/90 hover:bg-amber-100/70 border-amber-200 border-l-amber-600'
+                    : 'bg-emerald-50/90 hover:bg-emerald-100/70 border-emerald-200 border-l-emerald-600')"
+             class="w-full px-3 py-2.5 rounded-md border border-l-4 shadow-2xs flex items-center justify-between gap-3 transition">
 
-    <div x-show="agendas.length === 0" class="px-6 py-8 text-center text-xs text-slate-500">
-        Belum ada agenda atau jadwal kegiatan warga dalam waktu dekat.
-    </div>
-
-    <div class="divide-y divide-slate-100" x-show="agendas.length > 0">
-        <template x-for="ag in agendas.slice(0, 4)" :key="ag.id">
-            <div class="px-6 py-4 flex items-center gap-4">
-                <!-- Kotak Hari, Tanggal & Bulan Relatif Besar -->
-                <div class="w-16 h-20 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col items-center justify-center shrink-0 text-emerald-950 shadow-2xs">
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-700 leading-none" x-text="ag.dayShort"></span>
-                    <span class="text-2xl font-extrabold leading-tight my-0.5" x-text="ag.dateNum"></span>
-                    <span class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-800 leading-none" x-text="indoMonthShort(ag.monthShort)"></span>
+            <div class="flex items-center gap-3 min-w-0 flex-1">
+                <!-- Ikon Kalender -->
+                <div :class="grp.visibility === 'invite_only'
+                        ? 'bg-purple-100 text-purple-800 border-purple-300/80'
+                        : (grp.visibility === 'block'
+                            ? 'bg-amber-100 text-amber-800 border-amber-300/80'
+                            : 'bg-emerald-100 text-emerald-800 border-emerald-300/80')"
+                     class="w-9 h-9 rounded-xl border flex items-center justify-center shrink-0">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                    </svg>
                 </div>
 
-                <!-- Detail Agenda -->
-                <div class="min-w-0 flex-1 space-y-2">
-                    <div class="text-sm sm:text-base font-bold text-slate-900 leading-snug" x-text="ag.title"></div>
-
-                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
-                        <!-- Waktu dengan Ikon Jam -->
-                        <span class="inline-flex items-center gap-1.5 font-medium">
-                            <svg class="w-4 h-4 text-emerald-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span x-text="ag.time"></span>
-                        </span>
-
-                        <!-- Lokasi dengan Ikon Pin Lokasi -->
-                        <span class="inline-flex items-center gap-1.5 font-medium">
-                            <svg class="w-4 h-4 text-emerald-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                            </svg>
-                            <span x-text="ag.location"></span>
-                        </span>
-                    </div>
-
-                    <p x-show="ag.notes" class="text-xs text-slate-500 italic" x-text="ag.notes"></p>
-                </div>
+                <!-- Teks Notifikasi -->
+                <p class="text-sm sm:text-sm text-slate-800 leading-snug min-w-0">
+                    <span :class="grp.visibility === 'invite_only'
+                            ? 'text-purple-900 border-purple-300'
+                            : (grp.visibility === 'block'
+                                ? 'text-amber-900 border-amber-300'
+                                : 'text-emerald-900 border-emerald-300')"
+                          class="inline-flex items-center px-2 py-0.5 mr-1 rounded-md text-[11px] font-bold bg-white border align-middle"
+                          x-text="grp.label"></span>
+                    <span>Ada </span>
+                    <a :href="'/agenda?visibility=' + encodeURIComponent(grp.visibility)"
+                       :class="grp.visibility === 'invite_only'
+                            ? 'text-purple-800 decoration-purple-500/70 hover:text-purple-950'
+                            : (grp.visibility === 'block'
+                                ? 'text-amber-900 decoration-amber-500/70 hover:text-amber-950'
+                                : 'text-emerald-800 decoration-emerald-500/70 hover:text-emerald-950')"
+                       class="font-extrabold underline underline-offset-2 transition"
+                       x-text="grp.count + ' agenda'"></a>
+                    <span> sedang menanti keterlibatanmu!</span>
+                </p>
             </div>
-        </template>
-    </div>
 
-    <div x-show="agendas.length > 0" class="px-6 py-3 bg-slate-50/70 border-t border-slate-100 flex items-center justify-between text-xs">
-        <span class="text-slate-500" x-text="'Menampilkan ' + Math.min(4, agendas.length) + ' dari ' + agendas.length + ' agenda terkini'"></span>
-        <a href="/agenda" class="font-bold text-emerald-700 hover:text-emerald-900 transition">
-            Lihat Semua Agenda &rarr;
-        </a>
-    </div>
+            <!-- Aksi Kanan (Kelola untuk Pengurus + Panah ke /agenda) -->
+            <div class="flex items-center gap-2 shrink-0">
+                <a x-show="canPublishNews"
+                   href="/pengurus/publikasi#agenda"
+                   class="hidden sm:inline-flex px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white text-indigo-700 border border-indigo-200 hover:bg-indigo-50 transition">
+                    + Kelola
+                </a>
+                <a :href="'/agenda?visibility=' + encodeURIComponent(grp.visibility)"
+                   aria-label="Lihat detail agenda"
+                   class="text-slate-600 hover:text-slate-900 font-bold text-lg leading-none px-1 transition">
+                    &rsaquo;
+                </a>
+            </div>
+        </div>
+    </template>
 </section>
