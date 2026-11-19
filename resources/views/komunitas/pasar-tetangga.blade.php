@@ -5,9 +5,9 @@
 @section('subpage_back_url', '/komunitas')
 
 @section('content')
-<div x-data="ppmtMarketplaceMockup()"
+<div x-data="ppmtMarketplace()"
      x-init="init()"
-     @keydown.escape.window="selectedItem = null; showOpenLapakModal = false"
+     @keydown.escape.window="selectedItem = null"
      class="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-5">
 
     <!-- Loading State -->
@@ -17,19 +17,11 @@
 
     <div x-show="!loading && user" x-cloak class="space-y-5">
 
-        <!-- Toast Notifikasi -->
-        <div x-show="toastMessage"
-             x-cloak
-             class="p-3.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs sm:text-sm font-medium flex justify-between items-center shadow-2xs">
-            <span x-text="toastMessage"></span>
-            <button type="button" @click="toastMessage = ''" class="text-xs opacity-70 hover:opacity-100 cursor-pointer">✕</button>
-        </div>
-
-        <!-- Banner Storefront & Mode Mockup -->
+        <!-- Banner Storefront -->
         <section class="bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-900 text-white rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div class="space-y-1.5 max-w-2xl">
                 <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-amber-400/20 border border-amber-300/30 text-amber-200 text-[11px] font-bold">
-                    <span>Pratinjau Etalase Online Shop &bull; Ekonomi Internal Warga</span>
+                    <span>Ekonomi Internal Warga &bull; Dari Tetangga untuk Tetangga</span>
                 </div>
                 <h1 class="text-lg sm:text-2xl font-extrabold tracking-tight">Belanja, Pesan Jasa &amp; Pinjam Alat dari Tetangga Sendiri</h1>
                 <p class="text-xs sm:text-sm text-emerald-100/90 leading-relaxed">
@@ -37,11 +29,10 @@
                 </p>
             </div>
             <div class="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0">
-                <button type="button"
-                        @click="showOpenLapakModal = true"
-                        class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs sm:text-sm font-extrabold shadow-sm transition cursor-pointer">
-                    + Pasang Produk / Jasa
-                </button>
+                <a href="/pengaturan/lapak"
+                   class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs sm:text-sm font-extrabold shadow-sm transition text-center">
+                    Kelola Lapak Saya &rarr;
+                </a>
             </div>
         </section>
 
@@ -96,7 +87,12 @@
 
         <!-- Info Jumlah Hasil -->
         <div class="flex items-center justify-between text-xs text-slate-500 px-0.5">
-            <span>Menampilkan <strong class="text-slate-800" x-text="filteredItems.length"></strong> produk &amp; jasa tetangga</span>
+            <span>
+                Menampilkan <strong class="text-slate-800" x-text="filteredItems.length"></strong> produk &amp; jasa
+                <span x-show="liveItemsCount > 0"
+                      class="text-emerald-700 font-semibold"
+                      x-text="'(' + liveItemsCount + ' dari lapak warga aktif)'"></span>
+            </span>
             <span class="hidden sm:inline text-slate-400">Klik kartu untuk detail, opsi antar, &amp; pesan cepat via WhatsApp</span>
         </div>
 
@@ -117,6 +113,7 @@
                  class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
             <template x-for="item in filteredItems" :key="item.id">
                 <article @click="openItemDetail(item)"
+                         :class="item.isAvailable === false ? 'opacity-70' : ''"
                          class="group bg-white rounded-2xl border border-slate-200 hover:border-emerald-400 shadow-2xs hover:shadow-md overflow-hidden flex flex-col justify-between transition cursor-pointer">
 
                     <div>
@@ -126,13 +123,14 @@
 
                             <!-- Badge Status Kiri Atas -->
                             <span :class="{
-                                    'bg-emerald-600 text-white': item.badgeType === 'ready',
-                                    'bg-amber-500 text-slate-950': item.badgeType === 'po',
-                                    'bg-indigo-600 text-white': item.badgeType === 'service',
-                                    'bg-teal-600 text-white': item.badgeType === 'loan'
+                                    'bg-rose-600 text-white': item.isAvailable === false || item.storeStatus === 'closed',
+                                    'bg-emerald-600 text-white': item.isAvailable !== false && item.storeStatus !== 'closed' && item.badgeType === 'ready',
+                                    'bg-amber-500 text-slate-950': item.isAvailable !== false && item.storeStatus !== 'closed' && item.badgeType === 'po',
+                                    'bg-indigo-600 text-white': item.isAvailable !== false && item.storeStatus !== 'closed' && item.badgeType === 'service',
+                                    'bg-teal-600 text-white': item.isAvailable !== false && item.storeStatus !== 'closed' && item.badgeType === 'loan'
                                   }"
                                   class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide shadow-2xs"
-                                  x-text="item.badgeLabel"></span>
+                                  x-text="item.storeStatus === 'closed' ? 'Lapak Tutup' : (item.isAvailable === false ? 'Stok Habis' : item.badgeLabel)"></span>
 
                             <!-- Badge Blok / Kavling Kanan Atas -->
                             <span class="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-white/90 text-slate-800 border border-slate-200/80 shadow-2xs"
@@ -142,11 +140,12 @@
                             <div class="text-5xl sm:text-6xl group-hover:scale-110 transition-transform duration-200 drop-shadow-xs"
                                  x-text="item.emoji"></div>
 
-                            <!-- Label Antar / Ambil di Bawah Gambar -->
-                            <div x-show="item.deliveryTag"
+                            <!-- Label Antar / Ambil / Mockup di Bawah Gambar -->
+                            <div x-show="item.deliveryTag || item.isMockup"
                                  class="absolute bottom-2 inset-x-2.5 flex justify-center">
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-900/75 text-white backdrop-blur-[1px] truncate"
-                                      x-text="item.deliveryTag"></span>
+                                <span :class="item.isMockup ? 'bg-slate-800/75 text-amber-200' : 'bg-slate-900/75 text-white'"
+                                      class="px-2 py-0.5 rounded-full text-[10px] font-semibold backdrop-blur-[1px] truncate"
+                                      x-text="item.isMockup ? 'Contoh Etalase' : item.deliveryTag"></span>
                             </div>
                         </div>
 
@@ -162,7 +161,7 @@
                                 <div class="text-sm sm:text-base font-extrabold text-emerald-800"
                                      x-text="item.priceLabel"></div>
                                 <div x-show="item.unitNote"
-                                     class="text-[10px] text-slate-400"
+                                     class="text-[10px] text-slate-400 truncate"
                                      x-text="item.unitNote"></div>
                             </div>
                         </div>
@@ -172,9 +171,11 @@
                     <div class="px-3 sm:px-3.5 pb-3 sm:pb-3.5 pt-2 border-t border-slate-100 space-y-2.5">
                         <div class="flex items-center justify-between gap-1.5 text-[11px] text-slate-500">
                             <span class="truncate font-medium text-slate-700" x-text="item.storeName"></span>
-                            <span class="inline-flex items-center gap-1 shrink-0 text-[10px] font-bold text-emerald-700">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                Buka
+                            <span :class="item.storeStatus === 'closed' ? 'text-slate-400' : (item.storeStatus === 'open_po' ? 'text-amber-700' : 'text-emerald-700')"
+                                  class="inline-flex items-center gap-1 shrink-0 text-[10px] font-bold">
+                                <span :class="item.storeStatus === 'closed' ? 'bg-slate-400' : (item.storeStatus === 'open_po' ? 'bg-amber-500' : 'bg-emerald-500')"
+                                      class="w-1.5 h-1.5 rounded-full"></span>
+                                <span x-text="item.storeStatus === 'closed' ? 'Tutup' : (item.storeStatus === 'open_po' ? 'PO' : 'Buka')"></span>
                             </span>
                         </div>
 
@@ -228,14 +229,21 @@
 
             <!-- Isi Detail & Form Pesan Singkat -->
             <div class="p-5 space-y-4 overflow-y-auto">
+                <!-- Banner Simulasi jika Item Mockup -->
+                <div x-show="selectedItem?.isMockup"
+                     class="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
+                    Ini adalah contoh katalog etalase. Anda dapat mendaftarkan produk atau jasa asli Anda melalui menu <a href="/pengaturan/lapak" class="font-bold underline">Pengaturan &rarr; Lapak Usaha</a>.
+                </div>
+
                 <!-- Info Lapak -->
                 <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-2 text-xs">
                     <div>
                         <div class="font-bold text-slate-900" x-text="selectedItem?.storeName"></div>
-                        <div class="text-slate-500" x-text="'Dikelola oleh ' + selectedItem?.ownerName + ' • ' + selectedItem?.openHours"></div>
+                        <div class="text-slate-500" x-text="'Dikelola oleh ' + selectedItem?.ownerName + (selectedItem?.deliveryTag ? ' • ' + selectedItem.deliveryTag : '')"></div>
                     </div>
-                    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 shrink-0">
-                        ● Buka
+                    <span :class="selectedItem?.storeStatus === 'closed' ? 'bg-slate-200 text-slate-700' : (selectedItem?.storeStatus === 'open_po' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800')"
+                          class="px-2.5 py-1 rounded-full text-[11px] font-bold shrink-0"
+                          x-text="selectedItem?.storeStatus === 'closed' ? '○ Tutup' : (selectedItem?.storeStatus === 'open_po' ? '◐ Open PO' : '● Buka')">
                     </span>
                 </div>
 
@@ -243,7 +251,7 @@
                 <div class="space-y-1">
                     <div class="text-xs font-bold text-slate-700">Deskripsi &amp; Ketentuan</div>
                     <p class="text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line"
-                       x-text="selectedItem?.description"></p>
+                       x-text="selectedItem?.description || 'Layanan usaha internal warga Perumahan Pesona Mandiri Turen.'"></p>
                 </div>
 
                 <!-- Pilihan Jumlah & Pengiriman -->
@@ -306,94 +314,17 @@
         </div>
     </div>
 
-    <!-- ===================================================================== -->
-    <!-- MODAL PRATINJAU TAMBAH PRODUK / JASA BARU (MOCKUP INTERAKTIF)         -->
-    <!-- ===================================================================== -->
-    <div x-show="showOpenLapakModal"
-         x-cloak
-         class="fixed inset-0 z-50 !mt-0 flex items-center justify-center p-3 sm:p-4 bg-slate-900/55 backdrop-blur-[1px] overflow-y-auto">
-        <div @click.away="showOpenLapakModal = false"
-             class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-[calc(100vw-1.5rem)] sm:max-w-lg max-h-[90dvh] flex flex-col overflow-hidden my-auto">
-            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3 shrink-0">
-                <div>
-                    <h3 class="text-base font-bold text-slate-900">Tambah Produk / Jasa ke Etalase</h3>
-                    <p class="text-xs text-slate-500">Simulasi penambahan katalog lapak warga PPMT.</p>
-                </div>
-                <button type="button" @click="showOpenLapakModal = false" class="text-slate-400 hover:text-slate-700 text-sm p-1 cursor-pointer">✕</button>
-            </div>
-
-            <form @submit.prevent="addMockupItem()" class="p-5 space-y-3.5 overflow-y-auto">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Produk atau Jasa *</label>
-                    <input type="text" x-model="draftItem.name" required placeholder="Contoh: Risol Mayo Isi 5 / Jasa Tambal Ban"
-                           class="w-full rounded-xl border-slate-300 text-sm">
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Kategori *</label>
-                        <select x-model="draftItem.category" class="w-full rounded-xl border-slate-300 text-sm">
-                            <option value="kuliner">Kuliner &amp; Minuman</option>
-                            <option value="sembako">Sembako, Galon &amp; Gas</option>
-                            <option value="jasa">Jasa &amp; Pertukangan</option>
-                            <option value="pinjam_alat">Pinjam / Sewa Alat</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Status Ketersediaan *</label>
-                        <select x-model="draftItem.badgeType" class="w-full rounded-xl border-slate-300 text-sm">
-                            <option value="ready">Ready Stock / Buka</option>
-                            <option value="po">Open PO</option>
-                            <option value="service">Layanan Jasa</option>
-                            <option value="loan">Pinjam / Sewa</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Harga (Rp) *</label>
-                        <input type="number" x-model.number="draftItem.numericPrice" min="0" step="500"
-                               class="w-full rounded-xl border-slate-300 text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lapak Anda *</label>
-                        <input type="text" x-model="draftItem.storeName" required placeholder="Contoh: Dapur Blok B"
-                               class="w-full rounded-xl border-slate-300 text-sm">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Deskripsi Singkat *</label>
-                    <textarea x-model="draftItem.description" required rows="3" placeholder="Jelaskan detail produk, jam antar, atau syarat peminjaman..."
-                              class="w-full rounded-xl border-slate-300 text-sm"></textarea>
-                </div>
-
-                <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
-                    <button type="button" @click="showOpenLapakModal = false"
-                            class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold cursor-pointer">
-                        Batal
-                    </button>
-                    <button type="submit"
-                            class="px-5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-sm cursor-pointer">
-                        Tampilkan di Etalase
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
 </div>
 @endsection
 
 @push('scripts')
 <script>
-function ppmtMarketplaceMockup() {
+function ppmtMarketplace() {
     return {
         token: localStorage.getItem('ppmt_token'),
         user: null,
         loading: true,
-        toastMessage: '',
+        liveItems: [],
         searchQuery: '',
         selectedCategory: 'all',
         selectedAvailability: 'all',
@@ -402,27 +333,22 @@ function ppmtMarketplaceMockup() {
         orderQty: 1,
         orderDelivery: 'Antar ke Kavling Saya',
         orderNote: '',
-        showOpenLapakModal: false,
-        draftItem: {
-            name: '',
-            category: 'kuliner',
-            badgeType: 'ready',
-            numericPrice: 15000,
-            storeName: '',
-            description: ''
-        },
 
         categories: [
             { code: 'all', label: 'Semua Etalase', icon: '🏪' },
             { code: 'kuliner', label: 'Kuliner & Minuman', icon: '🍱' },
             { code: 'sembako', label: 'Sembako, Galon & Gas', icon: '💧' },
             { code: 'jasa', label: 'Jasa & Pertukangan', icon: '🛠️' },
-            { code: 'pinjam_alat', label: 'Pinjam / Sewa Alat', icon: '🪜' }
+            { code: 'pinjam_alat', label: 'Pinjam / Sewa Alat', icon: '🪜' },
+            { code: 'lainnya', label: 'Lainnya', icon: '📦' }
         ],
 
-        items: [
+        mockupItems: [
             {
-                id: 1,
+                id: 'mock-1',
+                isMockup: true,
+                isAvailable: true,
+                storeStatus: 'open',
                 name: 'Galon Air Mineral & Isi Ulang RO Antar Depan Pintu',
                 category: 'sembako',
                 categoryLabel: 'Sembako, Galon & Gas',
@@ -434,7 +360,6 @@ function ppmtMarketplaceMockup() {
                 unitCode: 'R-1',
                 storeName: 'Depot & Toko Ruko R1',
                 ownerName: 'Pak Hendra',
-                openHours: '07.00 – 20.30 WIB',
                 deliveryTag: 'Gratis antar semua blok',
                 emoji: '💧',
                 coverGradient: 'bg-gradient-to-br from-sky-100 via-cyan-50 to-blue-100',
@@ -442,7 +367,10 @@ function ppmtMarketplaceMockup() {
                 description: 'Sedia air isi ulang RO higienis (Rp 6.000) dan galon segel pabrik Aqua / Cleo (Rp 19.000). Pesan lewat WA langsung diantar sampai depan teras rumah.'
             },
             {
-                id: 2,
+                id: 'mock-2',
+                isMockup: true,
+                isAvailable: true,
+                storeStatus: 'open',
                 name: 'Nasi Pecel Madiun Komplit + Rempeyek Kacang',
                 category: 'kuliner',
                 categoryLabel: 'Kuliner & Minuman',
@@ -454,35 +382,17 @@ function ppmtMarketplaceMockup() {
                 unitCode: 'B-4',
                 storeName: 'Warung Sarapan Bu Siti',
                 ownerName: 'Bu Siti Aminah',
-                openHours: '06.00 – 09.30 WIB',
                 deliveryTag: 'Bisa titip antar jam 06.30',
                 emoji: '🍛',
                 coverGradient: 'bg-gradient-to-br from-amber-100 via-orange-50 to-yellow-100',
                 whatsapp: '6281234567802',
-                description: 'Sarapan pagi hangat dengan bumbu pecel kacang sangrai asli Madiun, sayuran segar, tahu tempe bacem, dan rempeyek renyah. Cocok untuk bekal kerja atau sekolah.'
+                description: 'Sarapan pagi hangat dengan bumbu pecel kacang sangrai asli Madiun, sayuran segar, tahu tempe bacem, dan rempeyek renyah.'
             },
             {
-                id: 3,
-                name: 'Gas LPG 3 Kg Melon & Bright Gas 5.5 Kg',
-                category: 'sembako',
-                categoryLabel: 'Sembako, Galon & Gas',
-                badgeType: 'ready',
-                badgeLabel: 'Ready Stok',
-                numericPrice: 20000,
-                priceLabel: 'Rp 20.000',
-                unitNote: 'Tukar tabung kosong • Pasang gratis',
-                unitCode: 'A-3',
-                storeName: 'Agen Gas & Sembako Blok A',
-                ownerName: 'Mas Dani',
-                openHours: '06.30 – 21.00 WIB',
-                deliveryTag: 'Siap bantu pasangkan regulator',
-                emoji: '🔥',
-                coverGradient: 'bg-gradient-to-br from-emerald-100 via-teal-50 to-green-100',
-                whatsapp: '6281234567803',
-                description: 'Stok tabung gas LPG 3 kg dan Bright Gas 5.5 kg siap antar ke seluruh blok PPMT. Gratis bantu pemasangan regulator dan cek kebocoran selang.'
-            },
-            {
-                id: 4,
+                id: 'mock-3',
+                isMockup: true,
+                isAvailable: true,
+                storeStatus: 'open',
                 name: 'Jasa Cuci & Servis AC Split (Semua Merk)',
                 category: 'jasa',
                 categoryLabel: 'Jasa & Pertukangan',
@@ -494,35 +404,17 @@ function ppmtMarketplaceMockup() {
                 unitCode: 'C-11',
                 storeName: 'Turen Cool Teknik',
                 ownerName: 'Mas Arifin',
-                openHours: '08.00 – 17.00 WIB',
-                deliveryTag: 'Panggilan cepat tanpa ongkos transport',
+                deliveryTag: 'Tanpa ongkos transport',
                 emoji: '❄️',
                 coverGradient: 'bg-gradient-to-br from-indigo-100 via-blue-50 to-sky-100',
                 whatsapp: '6281234567804',
-                description: 'Layanan cuci rutin unit indoor & outdoor, pengecekan tekanan freon, perbaikan AC bocor air/tidak dingin, serta bongkar pasang AC pindahan.'
+                description: 'Layanan cuci rutin unit indoor & outdoor, pengecekan tekanan freon, perbaikan AC bocor air/tidak dingin, serta bongkar pasang AC.'
             },
             {
-                id: 5,
-                name: 'Open PO Ayam Geprek Sambal Bawang + Es Teh',
-                category: 'kuliner',
-                categoryLabel: 'Kuliner & Minuman',
-                badgeType: 'po',
-                badgeLabel: 'Open PO',
-                numericPrice: 13000,
-                priceLabel: 'Rp 13.000 / porsi',
-                unitNote: 'Tutup PO jam 10.30 • Antar jam 12.00',
-                unitCode: 'D-8',
-                storeName: 'Dapur Mbak Rina',
-                ownerName: 'Mbak Rina',
-                openHours: 'PO Harian Makan Siang',
-                deliveryTag: 'Level pedas 1 – 5 sesuai selera',
-                emoji: '🍗',
-                coverGradient: 'bg-gradient-to-br from-rose-100 via-red-50 to-orange-100',
-                whatsapp: '6281234567805',
-                description: 'Ayam krispi ukuran besar digeprek dadakan dengan sambal bawang segar. Sudah termasuk nasi putih pulen, lalapan timun, dan es teh manis.'
-            },
-            {
-                id: 6,
+                id: 'mock-4',
+                isMockup: true,
+                isAvailable: true,
+                storeStatus: 'open',
                 name: 'Pinjam / Sewa Tangga Lipat Aluminium 2,5 Meter',
                 category: 'pinjam_alat',
                 categoryLabel: 'Pinjam / Sewa Alat',
@@ -534,52 +426,11 @@ function ppmtMarketplaceMockup() {
                 unitCode: 'B-15',
                 storeName: 'Inventaris & Alat Kav. B-15',
                 ownerName: 'Pak Bambang',
-                openHours: '07.00 – 20.00 WIB',
-                deliveryTag: 'Ambil & kembalikan bersih ke B-15',
+                deliveryTag: 'Ambil & kembalikan bersih',
                 emoji: '🪜',
                 coverGradient: 'bg-gradient-to-br from-teal-100 via-emerald-50 to-cyan-100',
                 whatsapp: '6281234567806',
                 description: 'Tangga lipat aluminium kokoh tinggi 2,5 meter (bisa dibentang 5 meter) untuk pasang lampu teras, bersihkan talang, atau pasang kanopi.'
-            },
-            {
-                id: 7,
-                name: 'Jasa Las Kanopi, Pagar Minimalis & Perbaikan Engsel',
-                category: 'jasa',
-                categoryLabel: 'Jasa & Pertukangan',
-                badgeType: 'service',
-                badgeLabel: 'Jasa Bengkel',
-                numericPrice: 100000,
-                priceLabel: 'Mulai Rp 100.000',
-                unitNote: 'Gratis survei ukur lokasi di PPMT',
-                unitCode: 'D-2',
-                storeName: 'Karya Mandiri Las',
-                ownerName: 'Pak Agus',
-                openHours: '08.00 – 16.30 WIB',
-                deliveryTag: 'Bisa perbaikan kecil panggilan',
-                emoji: '🛠️',
-                coverGradient: 'bg-gradient-to-br from-slate-200 via-zinc-100 to-stone-200',
-                whatsapp: '6281234567807',
-                description: 'Menerima pembuatan kanopi galvalum/spandek, pagar dorong minimalis, teralis jendela, serta servis las engsel pintu pagar yang turun atau macet.'
-            },
-            {
-                id: 8,
-                name: 'Sewa Mesin Bor Beton (Rotary Hammer) & Gerinda',
-                category: 'pinjam_alat',
-                categoryLabel: 'Pinjam / Sewa Alat',
-                badgeType: 'loan',
-                badgeLabel: 'Sewa Harian',
-                numericPrice: 25000,
-                priceLabel: 'Rp 25.000 / hari',
-                unitNote: 'Sudah termasuk mata bor tembok',
-                unitCode: 'C-5',
-                storeName: 'Perkakas Blok C',
-                ownerName: 'Mas Yoga',
-                openHours: '07.30 – 20.00 WIB',
-                deliveryTag: 'Lengkap koper & mata bor 6–12mm',
-                emoji: '🔌',
-                coverGradient: 'bg-gradient-to-br from-violet-100 via-purple-50 to-indigo-100',
-                whatsapp: '6281234567808',
-                description: 'Sewa bor listrik mode hammer untuk pasang bracket TV, rak dinding, gorden, atau lubang kabel. Hemat tanpa perlu beli mesin baru.'
             }
         ],
 
@@ -589,12 +440,7 @@ function ppmtMarketplaceMockup() {
                 return;
             }
             try {
-                const res = await fetch('/api/v1/me', {
-                    headers: {
-                        'Authorization': 'Bearer ' + this.token,
-                        'Accept': 'application/json'
-                    }
-                });
+                const res = await fetch('/api/v1/me', { headers: this.headers() });
                 if (!res.ok) throw new Error('Unauthorized');
                 const json = await res.json();
                 this.user = json.data;
@@ -602,6 +448,7 @@ function ppmtMarketplaceMockup() {
                     window.location.href = '/dashboard';
                     return;
                 }
+                await this.loadLiveCatalog();
             } catch (e) {
                 localStorage.removeItem('ppmt_token');
                 window.location.href = '/';
@@ -610,13 +457,137 @@ function ppmtMarketplaceMockup() {
             }
         },
 
+        headers() {
+            return {
+                'Authorization': 'Bearer ' + this.token,
+                'Accept': 'application/json'
+            };
+        },
+
+        categoryMeta(cat) {
+            const map = {
+                kuliner: { label: 'Kuliner & Minuman', emoji: '🍱', grad: 'bg-gradient-to-br from-amber-100 via-orange-50 to-yellow-100' },
+                sembako: { label: 'Sembako, Galon & Gas', emoji: '💧', grad: 'bg-gradient-to-br from-sky-100 via-cyan-50 to-blue-100' },
+                jasa: { label: 'Jasa & Pertukangan', emoji: '🛠️', grad: 'bg-gradient-to-br from-indigo-100 via-blue-50 to-sky-100' },
+                pinjam_alat: { label: 'Pinjam / Sewa Alat', emoji: '🪜', grad: 'bg-gradient-to-br from-teal-100 via-emerald-50 to-cyan-100' },
+                lainnya: { label: 'Produk & Jasa Warga', emoji: '📦', grad: 'bg-gradient-to-br from-emerald-100 via-teal-50 to-green-100' }
+            };
+            return map[cat] || map.lainnya;
+        },
+
+        badgeLabelFor(type) {
+            const map = {
+                ready: 'Ready Stock',
+                po: 'Open PO',
+                service: 'Layanan Jasa',
+                loan: 'Pinjam / Sewa'
+            };
+            return map[type] || 'Ready Stock';
+        },
+
+        normalizeWhatsapp(raw) {
+            const digits = String(raw || '').replace(/[^0-9]/g, '');
+            if (!digits) return '';
+            return digits.startsWith('0') ? '62' + digits.slice(1) : digits;
+        },
+
+        async loadLiveCatalog() {
+            const res = await fetch('/api/v1/umkm/stores', { headers: this.headers() });
+            if (!res.ok) return;
+
+            const json = await res.json();
+            const stores = json.data || [];
+            const flattened = [];
+
+            for (const store of stores) {
+                const catalog = Array.isArray(store.catalog_items) ? store.catalog_items : [];
+                const unitCode = store.unit?.code || 'PPMT';
+                const ownerName = store.owner?.name || 'Warga PPMT';
+                const wa = this.normalizeWhatsapp(store.whatsapp_number);
+
+                if (catalog.length > 0) {
+                    catalog.forEach((prod, idx) => {
+                        const catCode = prod.category || store.category || 'lainnya';
+                        const meta = this.categoryMeta(catCode);
+                        const badgeType = prod.badge_type || (store.status === 'open_po' ? 'po' : 'ready');
+                        const priceNum = Number(prod.price || 0);
+
+                        flattened.push({
+                            id: `live-${store.id}-${prod.id || idx}`,
+                            isMockup: false,
+                            isAvailable: prod.is_available !== false,
+                            storeStatus: store.status || 'open',
+                            name: prod.name,
+                            category: catCode,
+                            categoryLabel: meta.label,
+                            badgeType,
+                            badgeLabel: this.badgeLabelFor(badgeType),
+                            numericPrice: priceNum,
+                            priceLabel: priceNum > 0 ? this.formatRupiah(priceNum) : 'Gratis / Pinjam',
+                            unitNote: prod.unit_note || '',
+                            unitCode,
+                            storeName: store.store_name,
+                            ownerName,
+                            deliveryTag: prod.delivery_tag || '',
+                            emoji: meta.emoji,
+                            coverGradient: meta.grad,
+                            whatsapp: wa,
+                            description: prod.description || store.description || ''
+                        });
+                    });
+                } else {
+                    // Jika lapak sudah buka tapi belum mengisi rincian item, tetap tampilkan kartu profil lapak
+                    const catCode = store.category || 'lainnya';
+                    const meta = this.categoryMeta(catCode);
+                    const badgeType = store.status === 'open_po' ? 'po' : (catCode === 'jasa' ? 'service' : (catCode === 'pinjam_alat' ? 'loan' : 'ready'));
+
+                    flattened.push({
+                        id: `store-${store.id}`,
+                        isMockup: false,
+                        isAvailable: store.status !== 'closed',
+                        storeStatus: store.status || 'open',
+                        name: store.store_name,
+                        category: catCode,
+                        categoryLabel: meta.label,
+                        badgeType,
+                        badgeLabel: this.badgeLabelFor(badgeType),
+                        numericPrice: 0,
+                        priceLabel: 'Tanya Harga via WA',
+                        unitNote: 'Lapak Usaha Warga',
+                        unitCode,
+                        storeName: store.store_name,
+                        ownerName,
+                        deliveryTag: '',
+                        emoji: meta.emoji,
+                        coverGradient: meta.grad,
+                        whatsapp: wa,
+                        description: store.description || ''
+                    });
+                }
+            }
+
+            this.liveItems = flattened;
+        },
+
+        get liveItemsCount() {
+            return this.liveItems.length;
+        },
+
+        get combinedItems() {
+            if (this.liveItems.length >= 4) {
+                return this.liveItems;
+            }
+            const needed = Math.max(0, 4 - this.liveItems.length);
+            return [...this.liveItems, ...this.mockupItems.slice(0, needed)];
+        },
+
         get filteredItems() {
             const q = this.searchQuery.trim().toLowerCase();
-            let list = this.items.filter(item => {
+            let list = this.combinedItems.filter(item => {
                 if (this.selectedCategory !== 'all' && item.category !== this.selectedCategory) {
                     return false;
                 }
-                if (this.selectedAvailability === 'ready' && item.badgeType !== 'ready') {
+                if (this.selectedAvailability === 'ready' && (item.badgeType !== 'ready' || item.storeStatus === 'closed' || item.isAvailable === false)) {
                     return false;
                 }
                 if (this.selectedAvailability === 'po' && item.badgeType !== 'po') {
@@ -626,10 +597,10 @@ function ppmtMarketplaceMockup() {
                     return false;
                 }
                 if (!q) return true;
-                return item.name.toLowerCase().includes(q)
-                    || item.storeName.toLowerCase().includes(q)
-                    || item.description.toLowerCase().includes(q)
-                    || item.unitCode.toLowerCase().includes(q);
+                return (item.name || '').toLowerCase().includes(q)
+                    || (item.storeName || '').toLowerCase().includes(q)
+                    || (item.description || '').toLowerCase().includes(q)
+                    || (item.unitCode || '').toLowerCase().includes(q);
             });
 
             if (this.sortBy === 'price_asc') {
@@ -669,58 +640,6 @@ function ppmtMarketplaceMockup() {
             ].filter(Boolean).join('\n');
 
             return `https://wa.me/${item.whatsapp}?text=${encodeURIComponent(lines)}`;
-        },
-
-        addMockupItem() {
-            const catMeta = {
-                kuliner: { label: 'Kuliner & Minuman', emoji: '🍱', grad: 'bg-gradient-to-br from-amber-100 via-orange-50 to-yellow-100' },
-                sembako: { label: 'Sembako, Galon & Gas', emoji: '🛒', grad: 'bg-gradient-to-br from-emerald-100 via-teal-50 to-green-100' },
-                jasa: { label: 'Jasa & Pertukangan', emoji: '🛠️', grad: 'bg-gradient-to-br from-indigo-100 via-blue-50 to-sky-100' },
-                pinjam_alat: { label: 'Pinjam / Sewa Alat', emoji: '🪜', grad: 'bg-gradient-to-br from-teal-100 via-emerald-50 to-cyan-100' }
-            };
-            const badgeMeta = {
-                ready: 'Ready Stok',
-                po: 'Open PO',
-                service: 'Layanan Jasa',
-                loan: 'Pinjam / Sewa'
-            };
-
-            const meta = catMeta[this.draftItem.category] || catMeta.kuliner;
-            const myUnit = this.user?.memberships?.[0]?.unit?.code || 'PPMT';
-            const myName = this.user?.display_name || this.user?.name || 'Warga PPMT';
-            const priceNum = Number(this.draftItem.numericPrice || 0);
-
-            this.items.unshift({
-                id: Date.now(),
-                name: this.draftItem.name.trim(),
-                category: this.draftItem.category,
-                categoryLabel: meta.label,
-                badgeType: this.draftItem.badgeType,
-                badgeLabel: badgeMeta[this.draftItem.badgeType] || 'Ready Stok',
-                numericPrice: priceNum,
-                priceLabel: priceNum > 0 ? this.formatRupiah(priceNum) : 'Gratis / Pinjam',
-                unitNote: 'Item simulasi baru ditambahkan',
-                unitCode: myUnit,
-                storeName: this.draftItem.storeName.trim(),
-                ownerName: myName,
-                openHours: 'Sesuai kesepakatan WA',
-                deliveryTag: 'Layanan internal warga PPMT',
-                emoji: meta.emoji,
-                coverGradient: meta.grad,
-                whatsapp: '6281234567890',
-                description: this.draftItem.description.trim()
-            });
-
-            this.showOpenLapakModal = false;
-            this.draftItem = {
-                name: '',
-                category: 'kuliner',
-                badgeType: 'ready',
-                numericPrice: 15000,
-                storeName: '',
-                description: ''
-            };
-            this.toastMessage = 'Produk/jasa simulasi berhasil ditambahkan ke etalase!';
         }
     }
 }
