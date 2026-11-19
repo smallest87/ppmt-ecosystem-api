@@ -503,6 +503,7 @@ function ppmtRegistryGovernancePanel() {
         { code: 'ketua_paguyuban', label: 'Ketua Paguyuban' },
         { code: 'sekretaris_paguyuban', label: 'Sekretaris Paguyuban' },
         { code: 'bendahara_paguyuban', label: 'Bendahara Paguyuban' },
+        { code: 'seksi_ekonomi', label: 'Seksi Ekonomi & UMKM' },
         { code: 'koordinator_zona', label: 'Koordinator Zona' },
         { code: 'koordinator_blok', label: 'Koordinator Blok' },
         { code: 'keamanan_lingkungan', label: 'Keamanan Lingkungan' }
@@ -547,6 +548,10 @@ function ppmtRegistryGovernancePanel() {
         },
 
         get availableRoleOptions() {
+            if (Array.isArray(this.user?.assignable_role_options) && this.user.assignable_role_options.length > 0) {
+                return this.user.assignable_role_options;
+            }
+
             const allowed = Array.isArray(this.user?.assignable_governance_roles)
                 ? this.user.assignable_governance_roles
                 : [];

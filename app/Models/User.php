@@ -81,6 +81,11 @@ class User extends Authenticatable
         return $this->hasGovernanceRole('bendahara_paguyuban');
     }
 
+    public function isSeksiEkonomi(): bool
+    {
+        return $this->hasGovernanceRole('seksi_ekonomi');
+    }
+
     public function canManageAnnouncements(): bool
     {
         return $this->isSekretarisPaguyuban() || $this->isKetuaPaguyuban();
@@ -96,6 +101,11 @@ class User extends Authenticatable
         return $this->isBendaharaPaguyuban() || $this->isKetuaPaguyuban();
     }
 
+    public function canManageMarketplace(): bool
+    {
+        return $this->isSeksiEkonomi() || $this->isKetuaPaguyuban();
+    }
+
     /**
      * Visibilitas Level 2 (Angka Penuh NIB SHM):
      * Tertutup penuh (false) bagi seluruh pengurus paguyuban & admin sistem.
@@ -108,9 +118,6 @@ class User extends Authenticatable
             ->exists();
     }
 
-    /**
-     * Menentukan jabatan aktif paling relevan yang dipakai pengurus saat mengesahkan kavling.
-     */
     public function resolveVerifierRoleForUnit(Unit $unit): array
     {
         $roles = $this->governanceRoles()->get();
@@ -123,6 +130,7 @@ class User extends Authenticatable
             'koordinator_zona',
             'sekretaris_paguyuban',
             'bendahara_paguyuban',
+            'seksi_ekonomi',
             'keamanan_lingkungan',
             'operator_aplikasi',
             'admin',
@@ -171,6 +179,7 @@ class User extends Authenticatable
             ->whereIn('role_code', [
                 'sekretaris_paguyuban',
                 'bendahara_paguyuban',
+                'seksi_ekonomi',
                 'keamanan_lingkungan',
             ])
             ->exists();
@@ -249,6 +258,7 @@ class User extends Authenticatable
             $roles = array_merge($roles, [
                 'sekretaris_paguyuban',
                 'bendahara_paguyuban',
+                'seksi_ekonomi',
                 'koordinator_zona',
                 'koordinator_blok',
                 'keamanan_lingkungan',
@@ -326,7 +336,6 @@ class User extends Authenticatable
             return true;
         }
 
-        // Izinkan penjamin yang ditunjuk pada pengajuan pending di unit ini
         return UnitMembership::where('unit_id', $unit->id)
             ->where('guarantor_user_id', $this->id)
             ->where('is_approved', false)

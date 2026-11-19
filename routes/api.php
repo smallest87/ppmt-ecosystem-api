@@ -43,6 +43,13 @@ Route::prefix('v1')->group(function () {
                     'is_ketua_paguyuban' => $user->isKetuaPaguyuban(),
                     'is_sekretaris_paguyuban' => $user->isSekretarisPaguyuban(),
                     'is_bendahara_paguyuban' => $user->isBendaharaPaguyuban(),
+                    'is_seksi_ekonomi' => $user->isSeksiEkonomi(),
+                    'can_manage_marketplace' => $user->canManageMarketplace(),
+                    'assignable_role_options' => collect($user->assignableGovernanceRoles())->map(fn ($code) => [
+                        'code' => $code,
+                        'label' => \App\Models\UserGovernanceRole::labelFor($code),
+                        'scope' => \App\Models\UserGovernanceRole::requiredScopeFor($code),
+                    ])->values(),
                     'can_manage_announcements' => $user->canManageAnnouncements(),
                     'can_manage_treasury' => $user->canManageTreasury(),
                     'can_view_treasury' => $user->canViewTreasury(),

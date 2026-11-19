@@ -251,16 +251,7 @@ class GovernanceController extends Controller
 
         $validated = $request->validate([
             'target_user_id' => ['required', 'integer', 'exists:users,id'],
-            'role_code' => ['required', Rule::in([
-                'admin',
-                'operator_aplikasi',
-                'ketua_paguyuban',
-                'sekretaris_paguyuban',
-                'bendahara_paguyuban',
-                'koordinator_zona',
-                'koordinator_blok',
-                'keamanan_lingkungan',
-            ])],
+            'role_code' => ['required', Rule::in(UserGovernanceRole::validRoleCodes())],
             'scope_type' => ['required', Rule::in(['global', 'zone', 'block'])],
             'scope_value' => ['nullable', 'string', 'max:30'],
         ]);
@@ -281,13 +272,22 @@ class GovernanceController extends Controller
             ], 422);
         }
 
-        $scopeValue = $validated['scope_type'] === 'global' ? null : strtoupper($validated['scope_value'] ?? '');
+        $enforcedScopeType = UserGovernanceRole::requiredScopeFor($validated['role_code']);
+        $scopeValue = $enforcedScopeType === 'global'
+            ? null
+            : strtoupper(trim((string) ($validated['scope_value'] ?? '')));
+
+        if ($enforcedScopeType !== 'global' && $scopeValue === '') {
+            return response()->json([
+                'message' => 'Pilih cakupan Zona atau Blok untuk jabatan koordinator ini.',
+            ], 422);
+        }
 
         $assignment = UserGovernanceRole::updateOrCreate(
             [
                 'user_id' => $targetUser->id,
                 'role_code' => $validated['role_code'],
-                'scope_type' => $validated['scope_type'],
+                'scope_type' => $enforcedScopeType,
                 'scope_value' => $scopeValue,
             ],
             [
@@ -295,7 +295,7 @@ class GovernanceController extends Controller
                 'is_active' => true,
             ]
         );
-
+        
         return response()->json([
             'message' => "Jabatan '{$assignment->display_label}' berhasil disematkan kepada {$targetUser->name}.",
             'data' => $assignment,
