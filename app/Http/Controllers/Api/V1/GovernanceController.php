@@ -295,7 +295,7 @@ class GovernanceController extends Controller
                 'is_active' => true,
             ]
         );
-        
+
         return response()->json([
             'message' => "Jabatan '{$assignment->display_label}' berhasil disematkan kepada {$targetUser->name}.",
             'data' => $assignment,
@@ -483,5 +483,56 @@ class GovernanceController extends Controller
                 'unit_code' => $unit->code,
             ],
         ], 201);
+    }
+
+    public function accessMatrix(Request $request): JsonResponse
+    {
+        $actor = $request->user();
+
+        if (! $actor->isSystemAdmin()) {
+            return response()->json([
+                'message' => 'Akses ditolak. Halaman Role Management & Audit Hak Akses hanya untuk Admin Sistem.',
+            ], 403);
+        }
+
+        $activeAssignments = UserGovernanceRole::query()
+            ->where('is_active', true)
+            ->with(['user:id,name', 'user.profile:user_id,display_name,phone,username', 'user.unitMemberships.unit:id,code', 'assignedBy:id,name'])
+            ->latest()
+            ->get();
+
+        // Kelompokkan per warga yang menjabat (Subjek -> Gabungan Role Aktif)
+        $holders = $activeAssignments
+            ->groupBy('user_id')
+            ->map(function ($roles) use ($actor) {
+                $first = $roles->first();
+                $u = $first->user;
+
+                return [
+                    'user_id' => $u->id,
+                    'name' => $u->name,
+                    'display_name' => $u->profile?->display_name,
+                    'contact' => $u->profile?->phone ?: ($u->profile?->username ? '@' . $u->profile->username : '-'),
+                    'unit_codes' => $u->unitMemberships->pluck('unit.code')->filter()->unique()->join(', ') ?: '-',
+                    'roles' => $roles->map(fn (UserGovernanceRole $r) => [
+                        'id' => $r->id,
+                        'role_code' => $r->role_code,
+                        'display_label' => $r->display_label,
+                        'domain' => UserGovernanceRole::ROLES[$r->role_code]['domain'] ?? 'organization',
+                        'scope_type' => $r->scope_type,
+                        'scope_value' => $r->scope_value,
+                        'assigned_by' => $r->assignedBy?->name ?? 'Sistem Genesis',
+                        'can_revoke' => $actor->canRevokeGovernanceRole($r),
+                    ])->values(),
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'data' => [
+                'matrix' => UserGovernanceRole::permissionMatrix(),
+                'holders' => $holders,
+            ],
+        ]);
     }
 }

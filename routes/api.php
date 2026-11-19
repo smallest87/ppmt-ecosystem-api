@@ -125,6 +125,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/governance/assign', [GovernanceController::class, 'assign']);
             Route::delete('/governance/roles/{role}', [GovernanceController::class, 'revoke']);
             Route::post('/governance/assisted-register', [GovernanceController::class, 'assistedRegister']);
+            Route::get('/governance/access-matrix', [GovernanceController::class, 'accessMatrix']);
 
             // Aspirasi & Petisi Kolektif Warga
             Route::get('/aspirations', [AspirationController::class, 'index']);

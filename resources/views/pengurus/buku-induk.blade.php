@@ -418,6 +418,21 @@
 
             <!-- Kolom Kanan (7 Kolom): Penyematan Jabatan & Hak Akses -->
             <section class="lg:col-span-7 bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200 space-y-4">
+                <div class="border-b border-slate-100 pb-3 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h2 class="text-base sm:text-lg font-bold text-slate-900">
+                            <span x-text="user?.is_ketua_paguyuban ? 'Susunan Kabinet Pengurus & Koordinator' : 'Penetapan Mandat & Jabatan'"></span>
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5"
+                        x-text="user?.is_ketua_paguyuban ? 'Hak prerogatif Ketua Paguyuban dalam menyusun sekretaris, bendahara, seksi bidang, dan koordinator wilayah.' : 'Mandat teknis Admin Sistem (Operator Aplikasi & pengukuhan Ketua Paguyuban).'"></p>
+                    </div>
+                    <a x-show="user?.is_operator_aplikasi"
+                    href="/pengurus/hak-akses"
+                    class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-xs font-bold transition">
+                        Audit Matriks Hak Akses &rarr;
+                    </a>
+                </div>
+
                 <div class="border-b border-slate-100 pb-3">
                     <h2 class="text-base sm:text-lg font-bold text-slate-900">Struktur Jabatan &amp; Hak Akses</h2>
                 </div>

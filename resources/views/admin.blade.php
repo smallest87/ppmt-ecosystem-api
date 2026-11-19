@@ -210,6 +210,29 @@
                 <span class="text-slate-400 group-hover:text-indigo-700 group-hover:translate-x-0.5 transition text-xl font-medium shrink-0">&rsaquo;</span>
             </a>
 
+            <!-- 5. Role Management & Audit Hak Akses (Eksklusif Admin Sistem) -->
+            <a x-show="user?.is_operator_aplikasi"
+            x-cloak
+            href="/pengurus/hak-akses"
+            class="px-4 py-3.5 sm:px-6 sm:py-4 flex items-center justify-between gap-4 hover:bg-slate-50/90 transition group">
+                <div class="flex items-center gap-3.5 sm:gap-4 min-w-0">
+                    <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 flex items-center justify-center shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                        </svg>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 min-w-0">
+                        <span class="text-sm sm:text-base font-bold text-slate-900 group-hover:text-rose-800 transition">
+                            Role Management &amp; Audit Hak Akses
+                        </span>
+                        <span class="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold">
+                            Teknis Admin Sistem
+                        </span>
+                    </div>
+                </div>
+                <span class="text-slate-400 group-hover:text-rose-700 group-hover:translate-x-0.5 transition text-xl font-medium shrink-0">&rsaquo;</span>
+            </a>
+
         </section>
 
         <!-- ================================================================= -->
