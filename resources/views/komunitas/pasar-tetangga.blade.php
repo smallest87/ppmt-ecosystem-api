@@ -62,7 +62,7 @@
                     <select x-model="sortBy"
                             aria-label="Urutkan"
                             class="flex-1 sm:flex-none rounded-xl border-slate-300 text-xs sm:text-sm font-medium text-slate-700 focus:border-emerald-600 focus:ring-emerald-600">
-                        <option value="featured">Rekomendasi</option>
+                        <option value="featured">Etalase Merata (Adil)</option>
                         <option value="price_asc">Harga Terendah</option>
                         <option value="price_desc">Harga Tertinggi</option>
                     </select>
@@ -91,9 +91,9 @@
                 Menampilkan <strong class="text-slate-800" x-text="filteredItems.length"></strong> produk &amp; jasa
                 <span x-show="liveItemsCount > 0"
                       class="text-emerald-700 font-semibold"
-                      x-text="'(' + liveItemsCount + ' dari lapak warga aktif)'"></span>
+                      x-text="'(' + liveItemsCount + ' dari ' + activeStoresCount + ' lapak warga)'"></span>
             </span>
-            <span class="hidden sm:inline text-slate-400">Klik kartu untuk detail, opsi antar, &amp; pesan cepat via WhatsApp</span>
+            <span class="hidden sm:inline text-slate-400">Urutan dirotasi bergantian antar-lapak setiap jam</span>
         </div>
 
         <!-- Empty State -->
@@ -131,6 +131,12 @@
                                   }"
                                   class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide shadow-2xs"
                                   x-text="item.storeStatus === 'closed' ? 'Lapak Tutup' : (item.isAvailable === false ? 'Stok Habis' : item.badgeLabel)"></span>
+
+                            <!-- Pita Sorotan Seksi Ekonomi -->
+                            <span x-show="item.isFeatured"
+                                  class="absolute top-8 left-2.5 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-400 text-slate-950 shadow-2xs">
+                                &#9733; Sorotan
+                            </span>
 
                             <!-- Badge Blok / Kavling Kanan Atas -->
                             <span class="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-white/90 text-slate-800 border border-slate-200/80 shadow-2xs"
@@ -217,6 +223,10 @@
                     <div class="flex flex-wrap items-center gap-1.5">
                         <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-white/90 text-slate-800"
                               x-text="selectedItem?.badgeLabel"></span>
+                        <span x-show="selectedItem?.isFeatured"
+                              class="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-400 text-slate-950">
+                            &#9733; Sorotan Seksi Ekonomi
+                        </span>
                         <span class="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-slate-900/80 text-white"
                               x-text="'Kav. ' + selectedItem?.unitCode"></span>
                     </div>
@@ -325,6 +335,7 @@ function ppmtMarketplace() {
         user: null,
         loading: true,
         liveItems: [],
+        activeStoresCount: 0,
         searchQuery: '',
         selectedCategory: 'all',
         selectedAvailability: 'all',
@@ -346,7 +357,9 @@ function ppmtMarketplace() {
         mockupItems: [
             {
                 id: 'mock-1',
+                storeKey: 'mock-store-1',
                 isMockup: true,
+                isFeatured: false,
                 isAvailable: true,
                 storeStatus: 'open',
                 name: 'Galon Air Mineral & Isi Ulang RO Antar Depan Pintu',
@@ -368,7 +381,9 @@ function ppmtMarketplace() {
             },
             {
                 id: 'mock-2',
+                storeKey: 'mock-store-2',
                 isMockup: true,
+                isFeatured: false,
                 isAvailable: true,
                 storeStatus: 'open',
                 name: 'Nasi Pecel Madiun Komplit + Rempeyek Kacang',
@@ -390,7 +405,9 @@ function ppmtMarketplace() {
             },
             {
                 id: 'mock-3',
+                storeKey: 'mock-store-3',
                 isMockup: true,
+                isFeatured: false,
                 isAvailable: true,
                 storeStatus: 'open',
                 name: 'Jasa Cuci & Servis AC Split (Semua Merk)',
@@ -412,7 +429,9 @@ function ppmtMarketplace() {
             },
             {
                 id: 'mock-4',
+                storeKey: 'mock-store-4',
                 isMockup: true,
+                isFeatured: false,
                 isAvailable: true,
                 storeStatus: 'open',
                 name: 'Pinjam / Sewa Tangga Lipat Aluminium 2,5 Meter',
@@ -491,19 +510,29 @@ function ppmtMarketplace() {
             return digits.startsWith('0') ? '62' + digits.slice(1) : digits;
         },
 
+        rotateArray(arr, offset) {
+            if (!Array.isArray(arr) || arr.length <= 1) return arr;
+            const shift = ((offset % arr.length) + arr.length) % arr.length;
+            return [...arr.slice(shift), ...arr.slice(0, shift)];
+        },
+
         async loadLiveCatalog() {
             const res = await fetch('/api/v1/umkm/stores', { headers: this.headers() });
             if (!res.ok) return;
 
             const json = await res.json();
             const stores = json.data || [];
+            this.activeStoresCount = stores.length;
             const flattened = [];
 
             for (const store of stores) {
-                const catalog = Array.isArray(store.catalog_items) ? store.catalog_items : [];
+                const rawCatalog = Array.isArray(store.catalog_items) ? store.catalog_items : [];
+                const catalog = this.rotateArray(rawCatalog, Number(store.rotation_seed || 0));
                 const unitCode = store.unit?.code || 'PPMT';
                 const ownerName = store.owner?.name || 'Warga PPMT';
                 const wa = this.normalizeWhatsapp(store.whatsapp_number);
+                const storeKey = `store-${store.id}`;
+                const isFeatured = Boolean(store.is_currently_featured);
 
                 if (catalog.length > 0) {
                     catalog.forEach((prod, idx) => {
@@ -514,7 +543,9 @@ function ppmtMarketplace() {
 
                         flattened.push({
                             id: `live-${store.id}-${prod.id || idx}`,
+                            storeKey,
                             isMockup: false,
+                            isFeatured,
                             isAvailable: prod.is_available !== false,
                             storeStatus: store.status || 'open',
                             name: prod.name,
@@ -536,14 +567,15 @@ function ppmtMarketplace() {
                         });
                     });
                 } else {
-                    // Jika lapak sudah buka tapi belum mengisi rincian item, tetap tampilkan kartu profil lapak
                     const catCode = store.category || 'lainnya';
                     const meta = this.categoryMeta(catCode);
                     const badgeType = store.status === 'open_po' ? 'po' : (catCode === 'jasa' ? 'service' : (catCode === 'pinjam_alat' ? 'loan' : 'ready'));
 
                     flattened.push({
                         id: `store-${store.id}`,
+                        storeKey,
                         isMockup: false,
+                        isFeatured,
                         isAvailable: store.status !== 'closed',
                         storeStatus: store.status || 'open',
                         name: store.store_name,
@@ -567,6 +599,39 @@ function ppmtMarketplace() {
             }
 
             this.liveItems = flattened;
+        },
+
+        // Menyusun item secara bergantian (1 item per lapak per putaran) agar tidak ada satu lapak mendominasi layar
+        interleaveByStore(items) {
+            const storeOrder = [];
+            const buckets = new Map();
+
+            for (const item of items) {
+                const key = item.storeKey || item.storeName || item.id;
+                if (!buckets.has(key)) {
+                    buckets.set(key, []);
+                    storeOrder.push(key);
+                }
+                buckets.get(key).push(item);
+            }
+
+            const result = [];
+            let round = 0;
+            let addedInRound = true;
+
+            while (addedInRound) {
+                addedInRound = false;
+                for (const key of storeOrder) {
+                    const list = buckets.get(key);
+                    if (round < list.length) {
+                        result.push(list[round]);
+                        addedInRound = true;
+                    }
+                }
+                round++;
+            }
+
+            return result;
         },
 
         get liveItemsCount() {
@@ -604,11 +669,30 @@ function ppmtMarketplace() {
             });
 
             if (this.sortBy === 'price_asc') {
-                list = [...list].sort((a, b) => a.numericPrice - b.numericPrice);
-            } else if (this.sortBy === 'price_desc') {
-                list = [...list].sort((a, b) => b.numericPrice - a.numericPrice);
+                return [...list].sort((a, b) => a.numericPrice - b.numericPrice);
             }
-            return list;
+            if (this.sortBy === 'price_desc') {
+                return [...list].sort((a, b) => b.numericPrice - a.numericPrice);
+            }
+
+            // Mode 'featured' (Etalase Merata / Default):
+            // 1. Sorotan Seksi Ekonomi (maksimal 3 lapak terpilih yang sedang buka & tersedia)
+            // 2. Seluruh lapak reguler yang sedang buka & tersedia (Round-Robin bergantian antar-lapak)
+            // 3. Lapak yang sedang tutup
+            // 4. Item yang stoknya sedang habis
+            const featuredItems = list.filter(i => i.isFeatured && i.storeStatus !== 'closed' && i.isAvailable !== false && !i.isMockup);
+            const activeAvailable = list.filter(i => !i.isFeatured && i.storeStatus !== 'closed' && i.isAvailable !== false && !i.isMockup);
+            const closedStores = list.filter(i => i.storeStatus === 'closed' && !i.isMockup);
+            const outOfStock = list.filter(i => i.storeStatus !== 'closed' && i.isAvailable === false && !i.isMockup);
+            const mockups = list.filter(i => i.isMockup);
+
+            return [
+                ...this.interleaveByStore(featuredItems),
+                ...this.interleaveByStore(activeAvailable),
+                ...this.interleaveByStore(closedStores),
+                ...this.interleaveByStore(outOfStock),
+                ...mockups,
+            ];
         },
 
         formatRupiah(value) {

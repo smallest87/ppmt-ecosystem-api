@@ -20,6 +20,7 @@ Route::prefix('pengurus')->name('pengurus.')->group(function () {
     Route::view('/', 'admin')->name('index');
     Route::view('/keuangan', 'pengurus.keuangan')->name('keuangan');
     Route::view('/publikasi', 'pengurus.publikasi')->name('publikasi');
+    Route::view('/pasar-tetangga', 'pengurus.pasar-tetangga')->name('pasar-tetangga');
     Route::view('/buku-induk', 'pengurus.buku-induk')->name('buku-induk');
     Route::view('/hak-akses', 'pengurus.hak-akses')->name('hak-akses');
     Route::view('/pemadupadanan-kontak', 'admin-wa-contacts')->name('wa-contacts');

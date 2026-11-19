@@ -115,6 +115,42 @@
         <template x-if="store">
             <div class="space-y-6">
 
+                <!-- Banner Status Kurasi Seksi Ekonomi (Jika Ditangguhkan / Sorotan / Ada Catatan) -->
+                <div x-show="store.is_suspended"
+                     class="p-4 sm:p-5 rounded-2xl bg-rose-50 border-2 border-rose-300 text-rose-950 space-y-1.5 shadow-2xs">
+                    <div class="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-rose-700">
+                        <span>&#9888; Lapak Ditangguhkan Sementara oleh Seksi Ekonomi</span>
+                    </div>
+                    <p class="text-xs sm:text-sm leading-relaxed">
+                        Untuk sementara waktu, produk dan profil lapak Anda disembunyikan dari etalase publik Pasar Tetangga. Silakan lakukan penyesuaian data lapak lalu hubungi Seksi Ekonomi atau Ketua Paguyuban untuk pengaktifan kembali.
+                    </p>
+                    <div x-show="store.moderation_note"
+                         class="p-3 rounded-xl bg-white border border-rose-200 text-xs text-rose-900">
+                        <strong>Catatan Seksi Ekonomi:</strong> <span x-text="store.moderation_note"></span>
+                    </div>
+                </div>
+
+                <div x-show="!store.is_suspended && store.is_currently_featured"
+                     class="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+                    <div class="space-y-0.5">
+                        <div class="text-xs font-extrabold uppercase tracking-wider text-amber-800">
+                            &#9733; Lapak Anda Terpilih sebagai Sorotan Pekan Ini
+                        </div>
+                        <p class="text-xs text-amber-900/90">
+                            Produk Anda ditampilkan di barisan teratas Pasar Tetangga dengan pita emas <strong>Sorotan</strong>. Pastikan status buka dan stok selalu diperbarui!
+                        </p>
+                    </div>
+                    <span x-show="store.featured_until"
+                          class="px-2.5 py-1 rounded-lg bg-amber-200/80 text-amber-950 text-[11px] font-bold shrink-0"
+                          x-text="'Hingga ' + formatDateId(store.featured_until)"></span>
+                </div>
+
+                <div x-show="!store.is_suspended && store.moderation_note"
+                     class="p-4 rounded-2xl bg-sky-50 border border-sky-200 text-sky-950 text-xs space-y-1">
+                    <div class="font-extrabold text-sky-900">Catatan Pembinaan dari Seksi Ekonomi:</div>
+                    <p class="leading-relaxed" x-text="store.moderation_note"></p>
+                </div>
+
                 <!-- Kartu Header & Kontrol Status Lapak -->
                 <section class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-4">
                     <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-slate-100 pb-4">
@@ -123,6 +159,10 @@
                                 <h2 class="text-lg font-extrabold text-slate-900" x-text="store.store_name"></h2>
                                 <span class="px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-slate-100 text-slate-800 border border-slate-200"
                                       x-text="'Kav. ' + (store.unit?.code || '')"></span>
+                                <span x-show="!store.is_suspended && store.is_currently_featured"
+                                      class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-400 text-slate-950">
+                                    &#9733; Sorotan
+                                </span>
                             </div>
                             <p class="text-xs text-slate-500 leading-relaxed"
                                x-text="store.description || 'Lapak usaha warga internal PPMT.'"></p>
@@ -132,7 +172,8 @@
                         </div>
 
                         <div class="flex items-center gap-2 shrink-0">
-                            <a href="/komunitas/pasar-tetangga"
+                            <a x-show="!store.is_suspended"
+                               href="/komunitas/pasar-tetangga"
                                class="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition">
                                 Lihat Etalase &nearr;
                             </a>
@@ -484,6 +525,13 @@ function ppmtMyLapakSettings() {
 
         formatRupiah(val) {
             return 'Rp ' + Number(val || 0).toLocaleString('id-ID');
+        },
+
+        formatDateId(isoString) {
+            if (!isoString) return '';
+            const d = new Date(isoString);
+            if (Number.isNaN(d.getTime())) return '';
+            return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
         },
 
         categoryEmoji(cat) {

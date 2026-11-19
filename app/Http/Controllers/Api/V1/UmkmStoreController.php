@@ -25,7 +25,10 @@ class UmkmStoreController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        $hourlyWindow = now()->format('YmdH');
+
         $stores = UmkmStore::query()
+            ->where('is_suspended', false)
             ->with([
                 'unit:id,code,block,zone',
                 'owner:id,name',
@@ -33,10 +36,20 @@ class UmkmStoreController extends Controller
             ])
             ->when($request->query('category'), fn ($q, $cat) => $q->where('category', $cat))
             ->when($request->query('status'), fn ($q, $status) => $q->where('status', $status))
-            ->orderByRaw("CASE status WHEN 'open' THEN 1 WHEN 'open_po' THEN 2 ELSE 3 END")
-            ->latest()
             ->get()
-            ->map(function (UmkmStore $store) {
+            ->sortBy(function (UmkmStore $store) use ($hourlyWindow) {
+                $statusPriority = match ($store->status) {
+                    'open' => 1,
+                    'open_po' => 2,
+                    default => 3,
+                };
+
+                $fairOrder = sprintf('%08u', crc32("ppmt-fair-{$hourlyWindow}-store-{$store->id}") % 100000000);
+
+                return "{$statusPriority}-{$fairOrder}";
+            })
+            ->values()
+            ->map(function (UmkmStore $store) use ($hourlyWindow) {
                 $ownerProfile = $store->owner?->profile;
                 $privacy = $ownerProfile?->privacy_settings ?? [];
                 $showFullName = (bool) ($privacy['show_full_name'] ?? false);
@@ -45,17 +58,129 @@ class UmkmStoreController extends Controller
                     ?: ($showFullName ? $store->owner?->name : explode(' ', trim((string) $store->owner?->name))[0]);
 
                 $data = $store->toArray();
+                $data['is_currently_featured'] = $store->is_currently_featured;
                 $data['owner'] = [
                     'id' => $store->owner?->id,
                     'name' => $publicOwnerName,
                 ];
+                $data['rotation_seed'] = (int) (crc32("ppmt-items-{$hourlyWindow}-store-{$store->id}") % 100000);
 
                 return $data;
             });
 
         return response()->json([
             'total' => $stores->count(),
+            'rotation_window' => $hourlyWindow,
             'data' => $stores,
+        ]);
+    }
+
+    public function governanceIndex(Request $request): JsonResponse
+    {
+        if (! $request->user()->canManageMarketplace()) {
+            return response()->json(['message' => 'Akses ditolak. Khusus Seksi Ekonomi atau Ketua Paguyuban.'], 403);
+        }
+
+        $stores = UmkmStore::query()
+            ->with([
+                'unit:id,code,block,zone',
+                'owner:id,name',
+                'owner.profile:user_id,display_name,phone',
+                'curator:id,name',
+            ])
+            ->orderByDesc('is_featured')
+            ->orderBy('is_suspended')
+            ->latest()
+            ->get()
+            ->map(function (UmkmStore $store) {
+                $data = $store->toArray();
+                $data['is_currently_featured'] = $store->is_currently_featured;
+                $data['items_count'] = is_array($store->catalog_items) ? count($store->catalog_items) : 0;
+
+                return $data;
+            });
+
+        $stats = [
+            'total_stores' => $stores->count(),
+            'active_stores' => $stores->where('is_suspended', false)->count(),
+            'featured_stores' => $stores->where('is_currently_featured', true)->count(),
+            'suspended_stores' => $stores->where('is_suspended', true)->count(),
+            'total_items' => $stores->sum('items_count'),
+            'by_category' => $stores->groupBy('category')->map->count(),
+            'by_zone' => $stores->groupBy(fn ($s) => $s['unit']['zone'] ?? 'Lainnya')->map->count(),
+        ];
+
+        return response()->json([
+            'stats' => $stats,
+            'data' => $stores->values(),
+        ]);
+    }
+
+    public function curate(Request $request, UmkmStore $store): JsonResponse
+    {
+        if (! $request->user()->canManageMarketplace()) {
+            return response()->json(['message' => 'Akses ditolak. Khusus Seksi Ekonomi atau Ketua Paguyuban.'], 403);
+        }
+
+        $validated = $request->validate([
+            'is_featured' => ['sometimes', 'boolean'],
+            'featured_days' => ['nullable', 'integer', 'min:1', 'max:30'],
+            'is_suspended' => ['sometimes', 'boolean'],
+            'moderation_note' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $isSuspended = array_key_exists('is_suspended', $validated)
+            ? (bool) $validated['is_suspended']
+            : $store->is_suspended;
+
+        $isFeatured = array_key_exists('is_featured', $validated)
+            ? (bool) $validated['is_featured']
+            : $store->is_featured;
+
+        if ($isSuspended) {
+            $isFeatured = false;
+        }
+
+        // Batasi maksimal 3 lapak sorotan aktif agar etalase warga tetap merata
+        if ($isFeatured && ! $store->is_currently_featured) {
+            $activeFeaturedCount = UmkmStore::query()
+                ->where('id', '!=', $store->id)
+                ->where('is_featured', true)
+                ->where('is_suspended', false)
+                ->where(function ($q) {
+                    $q->whereNull('featured_until')->orWhere('featured_until', '>', now());
+                })
+                ->count();
+
+            if ($activeFeaturedCount >= 3) {
+                return response()->json([
+                    'message' => 'Kuota Sorotan Pekan Ini sudah penuh (maksimal 3 lapak). Nonaktifkan sorotan pada salah satu lapak terlebih dahulu.',
+                ], 422);
+            }
+        }
+
+        $featuredUntil = $store->featured_until;
+        if (! $isFeatured) {
+            $featuredUntil = null;
+        } elseif (! empty($validated['featured_days'])) {
+            $featuredUntil = now()->addDays((int) $validated['featured_days']);
+        } elseif (! $store->featured_until || $store->featured_until->isPast()) {
+            $featuredUntil = now()->addDays(7);
+        }
+
+        $store->update([
+            'is_featured' => $isFeatured,
+            'featured_until' => $featuredUntil,
+            'is_suspended' => $isSuspended,
+            'moderation_note' => array_key_exists('moderation_note', $validated)
+                ? (trim((string) $validated['moderation_note']) ?: null)
+                : $store->moderation_note,
+            'curated_by_user_id' => $request->user()->id,
+        ]);
+
+        return response()->json([
+            'message' => "Pengaturan kurasi untuk lapak '{$store->store_name}' berhasil diperbarui.",
+            'data' => $store->fresh()->load(['unit:id,code,block,zone', 'owner:id,name', 'curator:id,name']),
         ]);
     }
 
