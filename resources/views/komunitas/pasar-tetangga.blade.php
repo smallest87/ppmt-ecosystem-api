@@ -40,7 +40,7 @@
 @section('content')
 <div x-data="ppmtMarketplace()"
      x-init="init()"
-     @keydown.escape.window="closeItemDetail()"
+     @keydown.escape.window="if (cartModalOpen) { cartModalOpen = false; } else { closeItemDetail(); }"
      class="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-5">
 
     <!-- Loading State -->
@@ -160,7 +160,10 @@
     <!-- ===================================================================== -->
     <!-- TAMPILAN PENUH WARGA TERVERIFIKASI                                    -->
     <!-- ===================================================================== -->
-    <div x-show="!loading && isVerifiedCitizen" x-cloak class="space-y-5">
+    <div x-show="!loading && isVerifiedCitizen"
+         x-cloak
+         :class="cartTotalItems > 0 ? 'pb-24' : ''"
+         class="space-y-5">
 
         <!-- Banner Storefront -->
         <section class="bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-900 text-white rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -296,7 +299,51 @@
     </div>
 
     <!-- ===================================================================== -->
-    <!-- MODAL DETAIL PRODUK / JASA & CHECKOUT WHATSAPP (WARGA TERVERIFIKASI)  -->
+    <!-- TOAST NOTIFIKASI KERANJANG                                            -->
+    <!-- ===================================================================== -->
+    <div x-show="cartToastMessage"
+         x-cloak
+         x-transition.opacity.duration.150ms
+         class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-slate-900 text-white text-xs font-bold shadow-lg flex items-center gap-2 whitespace-nowrap">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span x-text="cartToastMessage"></span>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- FLOATING BAR KERANJANG TERKELOMPOK PER LAPAK                          -->
+    <!-- ===================================================================== -->
+    <div x-show="isVerifiedCitizen && cartTotalItems > 0"
+         x-cloak
+         x-transition:enter="transition ease-out duration-150"
+         x-transition:enter-start="opacity-0 translate-y-4"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         class="fixed inset-x-0 bottom-4 z-40 px-4 pointer-events-none">
+        <div class="max-w-2xl mx-auto pointer-events-auto">
+            <button type="button"
+                    @click="cartModalOpen = true"
+                    class="w-full px-4 py-3 rounded-2xl bg-emerald-950 hover:bg-emerald-900 text-white shadow-xl border border-emerald-700/80 flex items-center justify-between gap-3 transition cursor-pointer">
+                <div class="flex items-center gap-3 min-w-0 text-left">
+                    <div class="w-9 h-9 rounded-xl bg-amber-400 text-slate-950 font-extrabold text-sm flex items-center justify-center shrink-0"
+                         x-text="cartTotalItems"></div>
+                    <div class="min-w-0">
+                        <div class="text-xs sm:text-sm font-extrabold truncate">
+                            Keranjang Belanja (<span x-text="cartStoreGroups.length"></span> Lapak)
+                        </div>
+                        <div class="text-[11px] text-emerald-200 truncate">
+                            <span x-text="cartEstimatedTotal > 0 ? 'Estimasi ' + formatRupiah(cartEstimatedTotal) : 'Siap dikirim via WhatsApp'"></span>
+                            &bull; Terkelompok otomatis per lapak
+                        </div>
+                    </div>
+                </div>
+                <span class="px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 text-xs font-extrabold shrink-0">
+                    Lihat &amp; Pesan &rarr;
+                </span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL DETAIL PRODUK / JASA & CHECKOUT WHATSAPP / KERANJANG            -->
     <!-- ===================================================================== -->
     <div x-show="selectedItem !== null && isVerifiedCitizen"
          x-cloak
@@ -438,22 +485,196 @@
                            :placeholder="selectedItem?.storeStatus === 'closed' ? 'Contoh: Untuk besok pagi jam 07.00 ya...' : 'Contoh: Sambal dipisah, atau antar jam 4 sore...'"
                            class="w-full rounded-xl border-slate-300 text-xs sm:text-sm">
                 </div>
+
+                <!-- Rekomendasi Item Lain dari Lapak yang Sama -->
+                <div x-show="sameStoreOtherItems.length > 0"
+                     class="pt-3 border-t border-slate-100 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-700"
+                              x-text="'Sekalian pesan dari ' + selectedItem?.storeName + '?'"></span>
+                        <span class="text-[11px] text-slate-400">Tambah ke keranjang</span>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <template x-for="other in sameStoreOtherItems" :key="other.id">
+                            <div class="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 flex items-center justify-between gap-2.5">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <div class="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-base shrink-0 overflow-hidden">
+                                        <img x-show="other.imageUrl" :src="other.imageUrl" :alt="other.name" class="w-full h-full object-cover">
+                                        <span x-show="!other.imageUrl" x-text="other.emoji"></span>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="text-xs font-bold text-slate-800 truncate" x-text="other.name"></div>
+                                        <div class="text-[11px] font-semibold text-emerald-700" x-text="other.priceLabel"></div>
+                                    </div>
+                                </div>
+
+                                <button type="button"
+                                        @click="quickAddSiblingToCart(other)"
+                                        class="px-2.5 py-1.5 rounded-lg bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 text-[11px] font-extrabold shrink-0 cursor-pointer transition">
+                                    <span x-text="getCartItemQty(other.id) > 0 ? '+ Tambah (' + getCartItemQty(other.id) + ')' : '+ Keranjang'"></span>
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
             </div>
 
-            <!-- Footer Aksi WhatsApp -->
-            <div class="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-3 shrink-0">
-                <div class="text-xs">
-                    <span class="text-slate-500 block">Estimasi Total:</span>
+            <!-- Footer Aksi: Tambah ke Keranjang + Pesan Langsung WhatsApp -->
+            <div class="px-4 sm:px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shrink-0">
+                <div class="text-xs flex items-center justify-between sm:block">
+                    <span class="text-slate-500 sm:block">Estimasi Total:</span>
                     <span class="text-sm sm:text-base font-extrabold text-slate-900"
                           x-text="selectedItem?.numericPrice > 0 ? formatRupiah(selectedItem.numericPrice * orderQty) : selectedItem?.priceLabel"></span>
                 </div>
 
-                <a :href="buildOrderWhatsappUrl()"
-                   target="_blank"
-                   class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-sm transition inline-flex items-center gap-2 shrink-0">
-                    <span x-text="selectedItem?.storeStatus === 'closed' ? 'Titip Pesan untuk Besok (WA)' : (selectedItem?.badgeType === 'po' ? 'Ikut PO via WhatsApp' : 'Pesan via WhatsApp')"></span>
-                    <span>&rarr;</span>
-                </a>
+                <div class="flex items-center gap-2">
+                    <button x-show="selectedItem && !selectedItem.isMockup"
+                            type="button"
+                            @click="addCurrentModalItemToCart()"
+                            class="flex-1 sm:flex-none px-3.5 py-2.5 rounded-xl bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 text-xs sm:text-sm font-extrabold transition cursor-pointer">
+                        + Keranjang
+                    </button>
+
+                    <a :href="buildOrderWhatsappUrl()"
+                       target="_blank"
+                       class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-sm transition inline-flex items-center justify-center gap-1.5 shrink-0">
+                        <span x-text="selectedItem?.storeStatus === 'closed' ? 'Titip Besok (WA)' : (selectedItem?.badgeType === 'po' ? 'Ikut PO (WA)' : 'Pesan via WA')"></span>
+                        <span>&rarr;</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL KERANJANG BELANJA (TERKELOMPOK PER LAPAK)                        -->
+    <!-- ===================================================================== -->
+    <div x-show="cartModalOpen && isVerifiedCitizen"
+         x-cloak
+         class="fixed inset-0 z-50 !mt-0 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-[1px] overflow-y-auto">
+        <div @click.away="cartModalOpen = false"
+             class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-[calc(100vw-1.5rem)] sm:max-w-xl max-h-[90dvh] flex flex-col overflow-hidden my-auto">
+
+            <!-- Header Modal Keranjang -->
+            <div class="px-5 py-4 bg-emerald-950 text-white flex items-center justify-between gap-3 shrink-0">
+                <div>
+                    <h3 class="text-base font-extrabold">Keranjang Pasar Tetangga</h3>
+                    <p class="text-[11px] text-emerald-200">
+                        Pesanan otomatis dikelompokkan per lapak agar mudah dikirim lewat WhatsApp
+                    </p>
+                </div>
+                <button type="button"
+                        @click="cartModalOpen = false"
+                        aria-label="Tutup Keranjang"
+                        class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-sm font-bold cursor-pointer">
+                    ✕
+                </button>
+            </div>
+
+            <!-- Daftar Grup Lapak -->
+            <div class="p-4 sm:p-5 space-y-4 overflow-y-auto">
+                <template x-if="cartStoreGroups.length === 0">
+                    <div class="py-10 text-center space-y-2">
+                        <div class="text-sm font-bold text-slate-700">Keranjang belanja masih kosong</div>
+                        <p class="text-xs text-slate-500">Pilih produk atau jasa dari katalog lalu tekan tombol "+ Keranjang".</p>
+                    </div>
+                </template>
+
+                <template x-for="group in cartStoreGroups" :key="group.storeKey">
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50/70 overflow-hidden">
+                        <!-- Header Grup Lapak -->
+                        <div class="px-4 py-3 bg-white border-b border-slate-200 flex items-center justify-between gap-2">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-extrabold text-sm text-slate-900 truncate" x-text="group.storeName"></span>
+                                    <span class="px-1.5 py-0.5 rounded bg-slate-900 text-white font-mono text-[10px] font-bold shrink-0"
+                                          x-text="'Kav. ' + group.unitCode"></span>
+                                </div>
+                                <div class="text-[11px] text-slate-500"
+                                     x-text="group.items.length + ' jenis item' + (group.operatingHours ? ' • Jam: ' + group.operatingHours : '')"></div>
+                            </div>
+
+                            <div class="flex items-center gap-2 shrink-0">
+                                <span :class="group.storeStatus === 'closed' ? 'bg-slate-200 text-slate-700' : 'bg-emerald-100 text-emerald-800'"
+                                      class="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                                      x-text="group.storeStatus === 'closed' ? '○ Tutup' : '● Buka'"></span>
+                                <button type="button"
+                                        @click="clearStoreFromCart(group.storeKey)"
+                                        title="Hapus semua pesanan di lapak ini"
+                                        class="text-[11px] font-semibold text-rose-600 hover:underline cursor-pointer">
+                                    Hapus
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Daftar Item dalam Lapak Ini -->
+                        <div class="divide-y divide-slate-200/80 bg-white">
+                            <template x-for="entry in group.items" :key="entry.itemId">
+                                <div class="px-4 py-3 flex items-start justify-between gap-3">
+                                    <div class="min-w-0 flex-1 space-y-0.5">
+                                        <div class="text-xs sm:text-sm font-bold text-slate-900 leading-snug" x-text="entry.name"></div>
+                                        <div class="text-xs font-semibold text-emerald-700"
+                                             x-text="entry.numericPrice > 0 ? formatRupiah(entry.numericPrice) + ' × ' + entry.qty + ' = ' + formatRupiah(entry.numericPrice * entry.qty) : entry.priceLabel"></div>
+                                        <div x-show="entry.note"
+                                             class="text-[11px] text-slate-500 italic"
+                                             x-text="'Catatan: ' + entry.note"></div>
+                                    </div>
+
+                                    <!-- Kontrol Qty -->
+                                    <div class="flex items-center gap-1.5 shrink-0">
+                                        <button type="button"
+                                                @click="updateCartItemQty(entry.itemId, entry.qty - 1)"
+                                                class="w-7 h-7 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 font-bold text-xs text-slate-700 cursor-pointer">
+                                            -
+                                        </button>
+                                        <span class="w-6 text-center text-xs font-extrabold text-slate-900" x-text="entry.qty"></span>
+                                        <button type="button"
+                                                @click="updateCartItemQty(entry.itemId, entry.qty + 1)"
+                                                class="w-7 h-7 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 font-bold text-xs text-slate-700 cursor-pointer">
+                                            +
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Pengaturan Pengiriman & Tombol Kirim WA Per Lapak -->
+                        <div class="p-3.5 bg-slate-50 border-t border-slate-200 space-y-2.5">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <select x-model="storeDeliveryPrefs[group.storeKey]"
+                                        @change="persistCart()"
+                                        aria-label="Metode Pengambilan Lapak"
+                                        class="rounded-xl border-slate-300 text-xs bg-white">
+                                    <option value="Antar ke Kavling Saya">Antar ke Kavling Saya</option>
+                                    <option value="Ambil Sendiri di Lapak">Ambil Sendiri di Lapak</option>
+                                </select>
+
+                                <input type="text"
+                                       x-model="storeNotes[group.storeKey]"
+                                       @input="persistCart()"
+                                       placeholder="Catatan tambahan untuk lapak..."
+                                       class="rounded-xl border-slate-300 text-xs bg-white">
+                            </div>
+
+                            <div class="flex items-center justify-between gap-3 pt-1">
+                                <div class="text-xs">
+                                    <span class="text-slate-500 block">Subtotal Lapak:</span>
+                                    <span class="text-sm font-extrabold text-slate-900"
+                                          x-text="group.subtotal > 0 ? formatRupiah(group.subtotal) : 'Tanya / Pinjam'"></span>
+                                </div>
+
+                                <a :href="buildStoreCartWhatsappUrl(group)"
+                                   @click="markStoreCartSent(group.storeKey)"
+                                   target="_blank"
+                                   class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-sm transition inline-flex items-center gap-1.5 shrink-0">
+                                    <span x-text="group.storeStatus === 'closed' ? 'Titip ' + group.totalQty + ' Item (WA)' : 'Pesan ' + group.totalQty + ' Item via WA'"></span>
+                                    <span>&rarr;</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </template>
             </div>
         </div>
     </div>
@@ -464,6 +685,7 @@
 @push('scripts')
 <script>
 const PPMT_INITIAL_SHARED_ITEM = @json($sharedItem);
+const PPMT_CART_STORAGE_KEY = 'ppmt_marketplace_cart_v1';
 
 function ppmtMarketplace() {
     return {
@@ -484,12 +706,21 @@ function ppmtMarketplace() {
         sentinelObserver: null,
         loadTimer: null,
 
+        // Detail & Deep Link
         selectedItem: null,
         guestSharedItem: null,
         shareCopied: false,
         orderQty: 1,
         orderDelivery: 'Antar ke Kavling Saya',
         orderNote: '',
+
+        // Keranjang Terkelompok per Lapak
+        cartItems: [],
+        storeDeliveryPrefs: {},
+        storeNotes: {},
+        cartModalOpen: false,
+        cartToastMessage: '',
+        cartToastTimer: null,
 
         categories: [
             { code: 'all', label: 'Semua Etalase', icon: '🏪' },
@@ -639,10 +870,208 @@ function ppmtMarketplace() {
             };
         },
 
+        loadSavedCart() {
+            try {
+                const raw = JSON.parse(localStorage.getItem(PPMT_CART_STORAGE_KEY) || '{}');
+                this.cartItems = Array.isArray(raw.items) ? raw.items : [];
+                this.storeDeliveryPrefs = (raw.deliveryPrefs && typeof raw.deliveryPrefs === 'object') ? raw.deliveryPrefs : {};
+                this.storeNotes = (raw.storeNotes && typeof raw.storeNotes === 'object') ? raw.storeNotes : {};
+            } catch (e) {
+                this.cartItems = [];
+                this.storeDeliveryPrefs = {};
+                this.storeNotes = {};
+            }
+        },
+
+        persistCart() {
+            try {
+                localStorage.setItem(PPMT_CART_STORAGE_KEY, JSON.stringify({
+                    items: this.cartItems,
+                    deliveryPrefs: this.storeDeliveryPrefs,
+                    storeNotes: this.storeNotes
+                }));
+            } catch (e) {}
+        },
+
+        syncCartWithLiveCatalog() {
+            if (!this.liveItems.length || !this.cartItems.length) return;
+            const liveMap = new Map(this.liveItems.map(i => [i.id, i]));
+            this.cartItems = this.cartItems
+                .filter(entry => liveMap.has(entry.itemId))
+                .map(entry => {
+                    const fresh = liveMap.get(entry.itemId);
+                    return {
+                        ...entry,
+                        name: fresh.name,
+                        numericPrice: fresh.numericPrice,
+                        priceLabel: fresh.priceLabel,
+                        badgeType: fresh.badgeType,
+                        storeKey: fresh.storeKey,
+                        storeName: fresh.storeName,
+                        unitCode: fresh.unitCode,
+                        storeStatus: fresh.storeStatus,
+                        operatingHours: fresh.operatingHours,
+                        whatsapp: fresh.whatsapp
+                    };
+                });
+            this.persistCart();
+        },
+
+        showCartToast(msg) {
+            this.cartToastMessage = msg;
+            if (this.cartToastTimer) clearTimeout(this.cartToastTimer);
+            this.cartToastTimer = setTimeout(() => {
+                this.cartToastMessage = '';
+                this.cartToastTimer = null;
+            }, 2200);
+        },
+
+        getCartItemQty(itemId) {
+            const found = this.cartItems.find(c => c.itemId === itemId);
+            return found ? found.qty : 0;
+        },
+
+        upsertCartItem(item, qtyToAdd = 1, note = '', deliveryPref = null) {
+            if (!item || item.isMockup) return;
+            const addCount = Math.max(1, Math.min(50, Number(qtyToAdd || 1)));
+
+            if (!this.storeDeliveryPrefs[item.storeKey]) {
+                this.storeDeliveryPrefs[item.storeKey] = deliveryPref || 'Antar ke Kavling Saya';
+            } else if (deliveryPref) {
+                this.storeDeliveryPrefs[item.storeKey] = deliveryPref;
+            }
+
+            const existingIdx = this.cartItems.findIndex(c => c.itemId === item.id);
+            if (existingIdx >= 0) {
+                const updated = [...this.cartItems];
+                const current = updated[existingIdx];
+                updated[existingIdx] = {
+                    ...current,
+                    qty: Math.min(50, current.qty + addCount),
+                    note: note.trim() ? note.trim() : current.note
+                };
+                this.cartItems = updated;
+            } else {
+                this.cartItems = [
+                    ...this.cartItems,
+                    {
+                        itemId: item.id,
+                        storeKey: item.storeKey,
+                        storeName: item.storeName,
+                        unitCode: item.unitCode,
+                        storeStatus: item.storeStatus,
+                        operatingHours: item.operatingHours || '',
+                        whatsapp: item.whatsapp,
+                        name: item.name,
+                        badgeType: item.badgeType,
+                        numericPrice: item.numericPrice,
+                        priceLabel: item.priceLabel,
+                        qty: addCount,
+                        note: note.trim()
+                    }
+                ];
+            }
+            this.persistCart();
+        },
+
+        addCurrentModalItemToCart() {
+            if (!this.selectedItem || this.selectedItem.isMockup) return;
+            const addedName = this.selectedItem.name;
+            const addedQty = this.orderQty;
+            this.upsertCartItem(this.selectedItem, addedQty, this.orderNote, this.orderDelivery);
+            this.closeItemDetail();
+            this.showCartToast(`+${addedQty} ${addedName} masuk keranjang`);
+        },
+
+        quickAddSiblingToCart(otherItem) {
+            if (!otherItem || otherItem.isMockup) return;
+            if (!this.storeDeliveryPrefs[otherItem.storeKey]) {
+                this.storeDeliveryPrefs[otherItem.storeKey] = this.orderDelivery || 'Antar ke Kavling Saya';
+            }
+            this.upsertCartItem(otherItem, 1, '', null);
+            this.showCartToast(`+1 ${otherItem.name} masuk keranjang`);
+        },
+
+        updateCartItemQty(itemId, newQty) {
+            if (newQty <= 0) {
+                this.cartItems = this.cartItems.filter(c => c.itemId !== itemId);
+            } else {
+                this.cartItems = this.cartItems.map(c => c.itemId === itemId
+                    ? { ...c, qty: Math.min(50, newQty) }
+                    : c
+                );
+            }
+            this.persistCart();
+            if (this.cartItems.length === 0) {
+                this.cartModalOpen = false;
+            }
+        },
+
+        clearStoreFromCart(storeKey) {
+            this.cartItems = this.cartItems.filter(c => c.storeKey !== storeKey);
+            delete this.storeDeliveryPrefs[storeKey];
+            delete this.storeNotes[storeKey];
+            this.persistCart();
+            if (this.cartItems.length === 0) {
+                this.cartModalOpen = false;
+            }
+        },
+
+        markStoreCartSent(storeKey) {
+            const storeName = this.cartItems.find(c => c.storeKey === storeKey)?.storeName || 'Lapak';
+            setTimeout(() => {
+                this.clearStoreFromCart(storeKey);
+                this.showCartToast(`Pesanan ke ${storeName} diteruskan ke WhatsApp`);
+            }, 300);
+        },
+
+        get cartTotalItems() {
+            return this.cartItems.reduce((sum, item) => sum + Number(item.qty || 0), 0);
+        },
+
+        get cartEstimatedTotal() {
+            return this.cartItems.reduce((sum, item) => sum + (Number(item.numericPrice || 0) * Number(item.qty || 0)), 0);
+        },
+
+        get cartStoreGroups() {
+            const map = new Map();
+            for (const entry of this.cartItems) {
+                if (!map.has(entry.storeKey)) {
+                    map.set(entry.storeKey, {
+                        storeKey: entry.storeKey,
+                        storeName: entry.storeName,
+                        unitCode: entry.unitCode,
+                        storeStatus: entry.storeStatus,
+                        operatingHours: entry.operatingHours,
+                        whatsapp: entry.whatsapp,
+                        items: [],
+                        totalQty: 0,
+                        subtotal: 0
+                    });
+                }
+                const g = map.get(entry.storeKey);
+                g.items.push(entry);
+                g.totalQty += Number(entry.qty || 0);
+                g.subtotal += Number(entry.numericPrice || 0) * Number(entry.qty || 0);
+            }
+            return Array.from(map.values());
+        },
+
+        get sameStoreOtherItems() {
+            if (!this.selectedItem || this.selectedItem.isMockup || !this.selectedItem.storeKey) {
+                return [];
+            }
+            return this.liveItems
+                .filter(i => i.storeKey === this.selectedItem.storeKey
+                    && i.id !== this.selectedItem.id
+                    && i.isAvailable !== false)
+                .slice(0, 4);
+        },
+
         async init() {
+            this.loadSavedCart();
             this.guestSharedItem = this.formatSharedItemForGuest(PPMT_INITIAL_SHARED_ITEM);
 
-            // Jika tamu membuka katalog utama tanpa memilih item, arahkan ke halaman login
             if (!this.token && !this.guestSharedItem) {
                 localStorage.setItem('ppmt_intended_url', window.location.pathname);
                 window.location.href = '/?login=1';
@@ -665,7 +1094,6 @@ function ppmtMarketplace() {
             this.$watch('sortBy', resetPagination);
 
             if (!this.token) {
-                // Mode Tamu: tampilkan kartu pratinjau item tanpa membocorkan nomor WA & etalase penuh
                 this.loading = false;
                 return;
             }
@@ -703,8 +1131,8 @@ function ppmtMarketplace() {
                 if (storesRes.ok) {
                     const storesJson = await storesRes.json();
                     this.hydrateStoresCatalog(storesJson.data || []);
+                    this.syncCartWithLiveCatalog();
 
-                    // Jika dibuka via deep link produk, otomatis buka modal pemesanan lengkap
                     if (this.guestSharedItem) {
                         const matched = this.liveItems.find(i => i.id === this.guestSharedItem.id);
                         if (matched) {
@@ -1024,7 +1452,7 @@ function ppmtMarketplace() {
             this.selectedItem = item;
             this.shareCopied = false;
             this.orderQty = 1;
-            this.orderDelivery = 'Antar ke Kavling Saya';
+            this.orderDelivery = this.storeDeliveryPrefs[item.storeKey] || 'Antar ke Kavling Saya';
             this.orderNote = '';
 
             if (syncUrl && window.history && typeof window.history.replaceState === 'function') {
@@ -1060,9 +1488,7 @@ function ppmtMarketplace() {
                         url: shareUrl
                     });
                     return;
-                } catch (e) {
-                    // User membatalkan dialog share atau browser menolak; lanjut fallback salin
-                }
+                } catch (e) {}
             }
 
             try {
@@ -1100,6 +1526,42 @@ function ppmtMarketplace() {
             ].filter(Boolean).join('\n');
 
             return `https://wa.me/${item.whatsapp}?text=${encodeURIComponent(lines)}`;
+        },
+
+        buildStoreCartWhatsappUrl(group) {
+            if (!group) return '#';
+            const myName = this.user?.display_name || this.user?.name || 'Warga PPMT';
+            const myUnit = this.user?.memberships?.[0]?.unit?.code || 'PPMT';
+            const isClosed = group.storeStatus === 'closed';
+            const delivery = this.storeDeliveryPrefs[group.storeKey] || 'Antar ke Kavling Saya';
+            const generalNote = (this.storeNotes[group.storeKey] || '').trim();
+
+            const introLine = isClosed
+                ? `Mohon maaf mengganggu waktu istirahatnya. Saya *${myName}* dari *Kavling ${myUnit}* ingin menitipkan pesanan untuk besok / saat lapak buka kembali:`
+                : `Saya *${myName}* dari *Kavling ${myUnit}* ingin memesan beberapa item dari Pasar Tetangga PPMT:`;
+
+            const itemLines = group.items.map(entry => {
+                const subText = entry.numericPrice > 0
+                    ? ` (${this.formatRupiah(entry.numericPrice * entry.qty)})`
+                    : '';
+                const noteText = entry.note ? ` — _${entry.note}_` : '';
+                return `• *${entry.qty}x ${entry.name}*${subText}${noteText}`;
+            });
+
+            const lines = [
+                `Halo *${group.storeName}* (Kav. ${group.unitCode}),`,
+                introLine,
+                ``,
+                ...itemLines,
+                ``,
+                group.subtotal > 0 ? `• *Estimasi Total:* ${this.formatRupiah(group.subtotal)}` : null,
+                `• *Pengambilan:* ${delivery}`,
+                generalNote ? `• *Catatan:* ${generalNote}` : null,
+                ``,
+                `Terima kasih!`
+            ].filter(Boolean).join('\n');
+
+            return `https://wa.me/${group.whatsapp}?text=${encodeURIComponent(lines)}`;
         }
     }
 }
