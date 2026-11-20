@@ -335,17 +335,32 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Harga (Rp) * <span class="font-normal text-slate-400">(0 jika gratis)</span></label>
-                        <input type="number" x-model.number="itemForm.price" required min="0" step="500"
-                               class="w-full rounded-xl border-slate-300 text-sm">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Harga (Rp) * <span class="font-normal text-slate-400">(isi 0 jika gratis / pinjam)</span></label>
+                    <input type="number" x-model.number="itemForm.price" required min="0" step="500"
+                           class="w-full rounded-xl border-slate-300 text-sm">
+                </div>
+
+                <!-- Pilihan Satuan (Toggle Buttons) -->
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="block text-xs font-semibold text-slate-700">Satuan / Keterangan Harga</label>
+                        <span x-show="itemForm.unit_note"
+                              class="text-[11px] font-semibold text-emerald-700"
+                              x-text="itemForm.unit_note"></span>
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Satuan / Keterangan Harga</label>
-                        <input type="text" x-model="itemForm.unit_note" maxlength="100"
-                               placeholder="Contoh: per porsi / per unit / gratis"
-                               class="w-full rounded-xl border-slate-300 text-sm">
+                    <div class="flex flex-wrap gap-1.5">
+                        <template x-for="unit in availableUnitOptions" :key="unit">
+                            <button type="button"
+                                    @click="toggleUnitOption(unit)"
+                                    :aria-pressed="itemForm.unit_note === unit"
+                                    :class="itemForm.unit_note === unit
+                                        ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs'
+                                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'"
+                                    class="px-3 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer">
+                                <span x-text="unit"></span>
+                            </button>
+                        </template>
                     </div>
                 </div>
 
@@ -454,6 +469,18 @@ function ppmtMyLapakSettings() {
         showEditStoreModal: false,
         editingItemIndex: null,
 
+        // Daftar pilihan satuan (mudah ditambah di kemudian hari)
+        unitOptions: [
+            'Porsi',
+            'Bungkus',
+            'Kilogram',
+            'Liter',
+            'Galon',
+            'Unit',
+            'Jam',
+            'Gratis',
+        ],
+
         createForm: {
             unit_code: '',
             store_name: '',
@@ -474,7 +501,7 @@ function ppmtMyLapakSettings() {
             category: 'kuliner',
             badge_type: 'ready',
             price: 10000,
-            unit_note: '',
+            unit_note: 'Porsi',
             delivery_tag: '',
             description: '',
             is_available: true
@@ -521,6 +548,19 @@ function ppmtMyLapakSettings() {
 
         get catalogItems() {
             return Array.isArray(this.store?.catalog_items) ? this.store.catalog_items : [];
+        },
+
+        // Gabungkan opsi standar dengan nilai lama jika ada item lawas yang ditulis manual
+        get availableUnitOptions() {
+            const current = (this.itemForm.unit_note || '').trim();
+            if (current && !this.unitOptions.includes(current)) {
+                return [...this.unitOptions, current];
+            }
+            return this.unitOptions;
+        },
+
+        toggleUnitOption(unit) {
+            this.itemForm.unit_note = this.itemForm.unit_note === unit ? '' : unit;
         },
 
         formatRupiah(val) {
@@ -637,12 +677,20 @@ function ppmtMyLapakSettings() {
 
         openNewItemModal() {
             this.editingItemIndex = null;
+            const defaultUnitByCat = {
+                kuliner: 'Porsi',
+                sembako: 'Kilogram',
+                jasa: 'Unit',
+                pinjam_alat: 'Gratis / Pinjam',
+                lainnya: 'Unit',
+            };
+            const cat = this.store?.category || 'kuliner';
             this.itemForm = {
                 name: '',
-                category: this.store?.category || 'kuliner',
+                category: cat,
                 badge_type: 'ready',
                 price: 10000,
-                unit_note: '',
+                unit_note: defaultUnitByCat[cat] || 'Porsi',
                 delivery_tag: '',
                 description: '',
                 is_available: true
