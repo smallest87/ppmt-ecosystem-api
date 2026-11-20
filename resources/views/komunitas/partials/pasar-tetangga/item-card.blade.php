@@ -7,6 +7,18 @@
         <div :class="item.coverGradient"
              class="relative aspect-square w-full flex flex-col items-center justify-center p-4 overflow-hidden select-none">
 
+            <!-- Foto Produk (Jika Diunggah Pelapak) -->
+            <img x-show="item.imageUrl"
+                 :src="item.imageUrl"
+                 :alt="item.name"
+                 loading="lazy"
+                 x-on:error="item.imageUrl = ''"
+                 class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+
+            <!-- Scrim Tipis Agar Badge Tetap Kontras di Atas Foto Terang -->
+            <div x-show="item.imageUrl"
+                 class="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/25 pointer-events-none"></div>
+
             <!-- Badge Status Kiri Atas -->
             <span :class="{
                     'bg-rose-600 text-white': item.isAvailable === false || item.storeStatus === 'closed',
@@ -15,28 +27,29 @@
                     'bg-indigo-600 text-white': item.isAvailable !== false && item.storeStatus !== 'closed' && item.badgeType === 'service',
                     'bg-teal-600 text-white': item.isAvailable !== false && item.storeStatus !== 'closed' && item.badgeType === 'loan'
                   }"
-                  class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide shadow-2xs"
+                  class="z-10 absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide shadow-sm"
                   x-text="item.storeStatus === 'closed' ? 'Lapak Tutup' : (item.isAvailable === false ? 'Stok Habis' : item.badgeLabel)"></span>
 
             <!-- Pita Sorotan Seksi Ekonomi -->
             <span x-show="item.isFeatured"
-                  class="absolute top-8 left-2.5 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-400 text-slate-950 shadow-2xs">
+                  class="z-10 absolute top-9 left-2.5 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-400 text-slate-950 shadow-sm">
                 &#9733; Sorotan
             </span>
 
             <!-- Badge Blok / Kavling Kanan Atas -->
-            <span class="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-white/90 text-slate-800 border border-slate-200/80 shadow-2xs"
+            <span class="z-10 absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-white/95 text-slate-800 border border-slate-200/80 shadow-sm"
                   x-text="item.unitCode"></span>
 
-            <!-- Ilustrasi Besar Kategori -->
-            <div class="text-5xl sm:text-6xl group-hover:scale-110 transition-transform duration-200 drop-shadow-xs"
+            <!-- Ilustrasi Besar Kategori (Fallback jika belum ada foto) -->
+            <div x-show="!item.imageUrl"
+                 class="text-5xl sm:text-6xl group-hover:scale-110 transition-transform duration-200 drop-shadow-xs"
                  x-text="item.emoji"></div>
 
             <!-- Label Antar / Ambil / Mockup di Bawah Gambar -->
             <div x-show="item.deliveryTag || item.isMockup"
-                 class="absolute bottom-2 inset-x-2.5 flex justify-center">
-                <span :class="item.isMockup ? 'bg-slate-800/75 text-amber-200' : 'bg-slate-900/75 text-white'"
-                      class="px-2 py-0.5 rounded-full text-[10px] font-semibold backdrop-blur-[1px] truncate"
+                 class="z-10 absolute bottom-2 inset-x-2.5 flex justify-center">
+                <span :class="item.isMockup ? 'bg-slate-800/80 text-amber-200' : 'bg-slate-900/80 text-white'"
+                      class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold backdrop-blur-[1px] truncate max-w-full shadow-2xs"
                       x-text="item.isMockup ? 'Contoh Etalase' : item.deliveryTag"></span>
             </div>
         </div>
@@ -58,7 +71,7 @@
                               x-text="Number(item.numericPrice).toLocaleString('id-ID')"></span>
                         <span x-show="item.unitNote"
                               class="text-xs font-medium text-slate-500 ml-1"
-                              x-text="'/ ' + item.unitNote.replace(/^(\/\s*|per\s+)/i, '')"></span>
+                              x-text="'/ ' + String(item.unitNote || '').replace(/^(\/\s*|per\s+)/i, '')"></span>
                     </div>
                 </template>
 

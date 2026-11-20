@@ -137,8 +137,14 @@
                     ✕
                 </button>
 
-                <div class="w-20 h-20 rounded-2xl bg-white/85 border border-white shadow-xs flex items-center justify-center text-4xl shrink-0"
-                     x-text="selectedItem?.emoji"></div>
+                <div class="w-20 h-20 rounded-2xl bg-white/85 border border-white shadow-xs flex items-center justify-center text-4xl shrink-0 overflow-hidden">
+                    <img x-show="selectedItem?.imageUrl"
+                        :src="selectedItem?.imageUrl"
+                        :alt="selectedItem?.name"
+                        x-on:error="if (selectedItem) selectedItem.imageUrl = ''"
+                        class="w-full h-full object-cover">
+                    <span x-show="!selectedItem?.imageUrl" x-text="selectedItem?.emoji"></span>
+                </div>
 
                 <div class="min-w-0 flex-1 pr-6 space-y-1">
                     <div class="flex flex-wrap items-center gap-1.5">
@@ -153,8 +159,13 @@
                     </div>
                     <h3 class="text-base sm:text-lg font-extrabold text-slate-900 leading-snug"
                         x-text="selectedItem?.name"></h3>
-                    <div class="text-base font-extrabold text-emerald-800"
-                         x-text="selectedItem?.priceLabel"></div>
+                    <div class="flex flex-wrap items-baseline text-emerald-800 leading-tight">
+                        <span class="text-base font-extrabold"
+                              x-text="selectedItem?.priceLabel"></span>
+                        <span x-show="selectedItem?.numericPrice > 0 && selectedItem?.unitNote && !String(selectedItem?.priceLabel || '').includes('–')"
+                              class="text-xs font-medium text-slate-600 ml-1"
+                              x-text="'/ ' + String(selectedItem?.unitNote || '').replace(/^(\/\s*|per\s+)/i, '')"></span>
+                    </div>
                 </div>
             </div>
 
@@ -295,6 +306,7 @@ function ppmtMarketplace() {
                 storeName: 'Depot & Toko Ruko R1',
                 ownerName: 'Pak Hendra',
                 deliveryTag: 'Gratis antar semua blok',
+                imageUrl: '',
                 emoji: '💧',
                 coverGradient: 'bg-gradient-to-br from-sky-100 via-cyan-50 to-blue-100',
                 whatsapp: '6281234567801',
@@ -319,6 +331,7 @@ function ppmtMarketplace() {
                 storeName: 'Warung Sarapan Bu Siti',
                 ownerName: 'Bu Siti Aminah',
                 deliveryTag: 'Bisa titip antar jam 06.30',
+                imageUrl: '',
                 emoji: '🍛',
                 coverGradient: 'bg-gradient-to-br from-amber-100 via-orange-50 to-yellow-100',
                 whatsapp: '6281234567802',
@@ -343,6 +356,7 @@ function ppmtMarketplace() {
                 storeName: 'Turen Cool Teknik',
                 ownerName: 'Mas Arifin',
                 deliveryTag: 'Tanpa ongkos transport',
+                imageUrl: '',
                 emoji: '❄️',
                 coverGradient: 'bg-gradient-to-br from-indigo-100 via-blue-50 to-sky-100',
                 whatsapp: '6281234567804',
@@ -367,6 +381,7 @@ function ppmtMarketplace() {
                 storeName: 'Inventaris & Alat Kav. B-15',
                 ownerName: 'Pak Bambang',
                 deliveryTag: 'Ambil & kembalikan bersih',
+                imageUrl: '',
                 emoji: '🪜',
                 coverGradient: 'bg-gradient-to-br from-teal-100 via-emerald-50 to-cyan-100',
                 whatsapp: '6281234567806',
@@ -380,15 +395,24 @@ function ppmtMarketplace() {
                 return;
             }
             try {
-                const res = await fetch('/api/v1/me', { headers: this.headers() });
-                if (!res.ok) throw new Error('Unauthorized');
-                const json = await res.json();
-                this.user = json.data;
+                const [meRes, storesRes] = await Promise.all([
+                    fetch('/api/v1/me', { headers: this.headers() }),
+                    fetch('/api/v1/umkm/stores', { headers: this.headers() }),
+                ]);
+
+                if (!meRes.ok) throw new Error('Unauthorized');
+                const meJson = await meRes.json();
+                this.user = meJson.data;
+
                 if (!this.user?.is_verified) {
                     window.location.href = '/dashboard';
                     return;
                 }
-                await this.loadLiveCatalog();
+
+                if (storesRes.ok) {
+                    const storesJson = await storesRes.json();
+                    this.hydrateStoresCatalog(storesJson.data || []);
+                }
             } catch (e) {
                 localStorage.removeItem('ppmt_token');
                 window.location.href = '/';
@@ -437,12 +461,7 @@ function ppmtMarketplace() {
             return [...arr.slice(shift), ...arr.slice(0, shift)];
         },
 
-        async loadLiveCatalog() {
-            const res = await fetch('/api/v1/umkm/stores', { headers: this.headers() });
-            if (!res.ok) return;
-
-            const json = await res.json();
-            const stores = json.data || [];
+        hydrateStoresCatalog(stores) {
             this.activeStoresCount = stores.length;
             const flattened = [];
 
@@ -481,6 +500,7 @@ function ppmtMarketplace() {
                             storeName: store.store_name,
                             ownerName,
                             deliveryTag: prod.delivery_tag || '',
+                            imageUrl: prod.image_url || '',
                             emoji: meta.emoji,
                             coverGradient: meta.grad,
                             whatsapp: wa,
@@ -511,6 +531,7 @@ function ppmtMarketplace() {
                         storeName: store.store_name,
                         ownerName,
                         deliveryTag: '',
+                        imageUrl: '',
                         emoji: meta.emoji,
                         coverGradient: meta.grad,
                         whatsapp: wa,

@@ -7,7 +7,7 @@
 @section('content')
 <div x-data="ppmtMyLapakSettings()"
      x-init="init()"
-     @keydown.escape.window="showItemModal = false; showEditStoreModal = false"
+     @keydown.escape.window="if (!uploadingImage) { showItemModal = false; showEditStoreModal = false; }"
      class="max-w-3xl mx-auto px-4 py-6 sm:py-8 space-y-6">
 
     <!-- Loading -->
@@ -244,8 +244,14 @@
                         <template x-for="(item, idx) in catalogItems" :key="item.id || idx">
                             <div class="py-4 first:pt-1 last:pb-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                 <div class="flex items-start gap-3 min-w-0">
-                                    <div class="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xl shrink-0"
-                                         x-text="categoryEmoji(item.category)"></div>
+                                    <div class="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xl shrink-0 overflow-hidden">
+                                        <img x-show="item.image_url"
+                                            :src="item.image_url"
+                                            :alt="item.name"
+                                            x-on:error="item.image_url = ''"
+                                            class="w-full h-full object-cover">
+                                        <span x-show="!item.image_url" x-text="categoryEmoji(item.category)"></span>
+                                    </div>
                                     <div class="min-w-0 space-y-1">
                                         <div class="flex flex-wrap items-center gap-1.5">
                                             <span class="font-bold text-sm text-slate-900" x-text="item.name"></span>
@@ -257,7 +263,7 @@
                                             </span>
                                         </div>
                                         <div class="text-xs font-extrabold text-emerald-800"
-                                             x-text="Number(item.price || 0) > 0 ? formatRupiah(item.price) + (item.unit_note ? ' • ' + item.unit_note : '') : ('Gratis / Pinjam' + (item.unit_note ? ' • ' + item.unit_note : ''))"></div>
+                                             x-text="Number(item.price || 0) > 0 ? formatRupiah(item.price) + (item.unit_note ? ' / ' + String(item.unit_note).replace(/^(\/\s*|per\s+)/i, '') : '') : ('Gratis / Pinjam' + (item.unit_note ? ' • ' + item.unit_note : ''))"></div>
                                         <p x-show="item.description"
                                            class="text-xs text-slate-500 line-clamp-2"
                                            x-text="item.description"></p>
@@ -297,15 +303,49 @@
     <div x-show="showItemModal"
          x-cloak
          class="fixed inset-0 z-50 !mt-0 flex items-center justify-center p-3 sm:p-4 bg-slate-900/55 backdrop-blur-[1px] overflow-y-auto">
-        <div @click.away="showItemModal = false"
+        <div @click.away="if (!uploadingImage) showItemModal = false"
              class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-[calc(100vw-1.5rem)] sm:max-w-lg max-h-[90dvh] flex flex-col overflow-hidden my-auto">
             <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3 shrink-0">
                 <h3 class="text-base font-bold text-slate-900"
                     x-text="editingItemIndex !== null ? 'Edit Produk / Jasa' : 'Tambah Produk / Jasa Baru'"></h3>
-                <button type="button" @click="showItemModal = false" class="text-slate-400 hover:text-slate-700 text-sm p-1 cursor-pointer">✕</button>
+                <button type="button" @click="if (!uploadingImage) showItemModal = false" class="text-slate-400 hover:text-slate-700 text-sm p-1 cursor-pointer">✕</button>
             </div>
 
             <form @submit.prevent="saveCatalogItem()" class="p-5 space-y-3.5 overflow-y-auto">
+                <!-- Unggah Foto Produk / Jasa -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Foto Produk / Jasa <span class="font-normal text-slate-400">(Opsional, otomatis disesuaikan ke rasio kotak)</span></label>
+                    <div class="flex items-center gap-3.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <div class="w-16 h-16 rounded-xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
+                            <img x-show="itemForm.image_url"
+                                 :src="itemForm.image_url"
+                                 alt="Pratinjau foto"
+                                 class="w-full h-full object-cover">
+                            <span x-show="!itemForm.image_url" class="text-2xl" x-text="categoryEmoji(itemForm.category)"></span>
+                        </div>
+                        <div class="flex-1 min-w-0 space-y-1.5">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <label :class="uploadingImage ? 'opacity-60 pointer-events-none' : ''"
+                                       class="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 text-xs font-bold cursor-pointer transition">
+                                    <span x-text="uploadingImage ? 'Mengompresi & Mengunggah...' : (itemForm.image_url ? 'Ganti Foto' : 'Pilih Foto')"></span>
+                                    <input type="file"
+                                           accept="image/jpeg,image/png,image/webp"
+                                           :disabled="uploadingImage"
+                                           @change="handleItemImageSelected($event)"
+                                           class="hidden">
+                                </label>
+                                <button type="button"
+                                        x-show="itemForm.image_url && !uploadingImage"
+                                        @click="itemForm.image_url = ''"
+                                        class="px-2.5 py-1.5 rounded-lg text-rose-600 hover:bg-rose-50 text-xs font-semibold cursor-pointer">
+                                    Hapus Foto
+                                </button>
+                            </div>
+                            <p class="text-[11px] text-slate-500">JPG, PNG, atau WebP (maks. 5 MB). Otomatis dikompres agar hemat kuota.</p>
+                        </div>
+                    </div>
+                </div>
+
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Produk atau Jasa *</label>
                     <input type="text" x-model="itemForm.name" required maxlength="120"
@@ -379,12 +419,13 @@
                 </div>
 
                 <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
-                    <button type="button" @click="showItemModal = false"
-                            class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold cursor-pointer">
+                    <button type="button" @click="if (!uploadingImage) showItemModal = false"
+                            :disabled="uploadingImage"
+                            class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold disabled:opacity-50 cursor-pointer">
                         Batal
                     </button>
-                    <button type="submit" :disabled="saving"
-                            class="px-5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-sm cursor-pointer">
+                    <button type="submit" :disabled="saving || uploadingImage"
+                            class="px-5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-sm disabled:opacity-50 cursor-pointer">
                         <span x-show="!saving">Simpan ke Etalase</span>
                         <span x-show="saving">Menyimpan...</span>
                     </button>
@@ -463,6 +504,7 @@ function ppmtMyLapakSettings() {
         store: null,
         loading: true,
         saving: false,
+        uploadingImage: false,
         toastMessage: '',
         toastType: 'success',
         showItemModal: false,
@@ -504,6 +546,7 @@ function ppmtMyLapakSettings() {
             unit_note: 'Porsi',
             delivery_tag: '',
             description: '',
+            image_url: '',
             is_available: true
         },
 
@@ -595,6 +638,78 @@ function ppmtMyLapakSettings() {
             return map[type] || 'Ready Stock';
         },
 
+        async compressImageClientSide(file) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                const objectUrl = URL.createObjectURL(file);
+                img.onload = () => {
+                    URL.revokeObjectURL(objectUrl);
+                    const maxSide = 1000;
+                    let w = img.width;
+                    let h = img.height;
+                    if (w > maxSide || h > maxSide) {
+                        if (w >= h) {
+                            h = Math.round((h * maxSide) / w);
+                            w = maxSide;
+                        } else {
+                            w = Math.round((w * maxSide) / h);
+                            h = maxSide;
+                        }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w;
+                    canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    canvas.toBlob((blob) => resolve(blob || file), 'image/webp', 0.82);
+                };
+                img.onerror = () => {
+                    URL.revokeObjectURL(objectUrl);
+                    resolve(file);
+                };
+                img.src = objectUrl;
+            });
+        },
+
+        async handleItemImageSelected(event) {
+            const file = event.target.files?.[0];
+            event.target.value = '';
+            if (!file || !this.store) return;
+
+            if (file.size > 5 * 1024 * 1024) {
+                this.toastType = 'error';
+                this.toastMessage = 'Ukuran foto maksimal 5 MB.';
+                return;
+            }
+
+            this.uploadingImage = true;
+            try {
+                const compressedBlob = await this.compressImageClientSide(file);
+                const formData = new FormData();
+                formData.append('image', compressedBlob, 'upload.webp');
+
+                const res = await fetch(`/api/v1/umkm/stores/${this.store.id}/items/image`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + this.token,
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                });
+                const json = await res.json();
+                if (res.ok && json.image_url) {
+                    this.itemForm.image_url = json.image_url;
+                } else {
+                    this.toastType = 'error';
+                    this.toastMessage = json.message || 'Gagal mengunggah foto.';
+                }
+            } catch (e) {
+                this.toastType = 'error';
+                this.toastMessage = 'Terjadi gangguan jaringan saat mengunggah foto.';
+            } finally {
+                this.uploadingImage = false;
+            }
+        },
+
         async loadMyStore() {
             const res = await fetch('/api/v1/umkm/my-store', { headers: this.headers() });
             if (res.ok) {
@@ -681,7 +796,7 @@ function ppmtMyLapakSettings() {
                 kuliner: 'Porsi',
                 sembako: 'Kilogram',
                 jasa: 'Unit',
-                pinjam_alat: 'Gratis / Pinjam',
+                pinjam_alat: 'Gratis',
                 lainnya: 'Unit',
             };
             const cat = this.store?.category || 'kuliner';
@@ -693,6 +808,7 @@ function ppmtMyLapakSettings() {
                 unit_note: defaultUnitByCat[cat] || 'Porsi',
                 delivery_tag: '',
                 description: '',
+                image_url: '',
                 is_available: true
             };
             this.showItemModal = true;
@@ -711,12 +827,14 @@ function ppmtMyLapakSettings() {
                 unit_note: target.unit_note || '',
                 delivery_tag: target.delivery_tag || '',
                 description: target.description || '',
+                image_url: target.image_url || '',
                 is_available: target.is_available !== false
             };
             this.showItemModal = true;
         },
 
         async saveCatalogItem() {
+            if (this.uploadingImage) return;
             const nextItems = [...this.catalogItems];
             const payloadItem = {
                 id: this.editingItemIndex !== null ? (this.itemForm.id || Date.now()) : Date.now(),
@@ -727,6 +845,7 @@ function ppmtMyLapakSettings() {
                 unit_note: this.itemForm.unit_note.trim(),
                 delivery_tag: this.itemForm.delivery_tag.trim(),
                 description: this.itemForm.description.trim(),
+                image_url: (this.itemForm.image_url || '').trim(),
                 is_available: this.itemForm.is_available !== false
             };
 

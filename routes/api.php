@@ -106,6 +106,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/umkm/stores', [UmkmStoreController::class, 'store']);
             Route::patch('/umkm/stores/{store}', [UmkmStoreController::class, 'update']);
             Route::patch('/umkm/stores/{store}/status', [UmkmStoreController::class, 'updateStatus']);
+            Route::post('/umkm/stores/{store}/items/image', [UmkmStoreController::class, 'uploadItemImage']);
 
             // Kurasi & Moderasi Pasar Tetangga (Khusus Seksi Ekonomi & Ketua Paguyuban)
             Route::get('/umkm/governance/stores', [UmkmStoreController::class, 'governanceIndex']);

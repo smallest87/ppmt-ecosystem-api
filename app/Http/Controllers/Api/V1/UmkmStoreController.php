@@ -7,6 +7,8 @@ use App\Models\UmkmStore;
 use App\Models\Unit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class UmkmStoreController extends Controller
@@ -141,7 +143,6 @@ class UmkmStoreController extends Controller
             $isFeatured = false;
         }
 
-        // Batasi maksimal 3 lapak sorotan aktif agar etalase warga tetap merata
         if ($isFeatured && ! $store->is_currently_featured) {
             $activeFeaturedCount = UmkmStore::query()
                 ->where('id', '!=', $store->id)
@@ -201,7 +202,7 @@ class UmkmStoreController extends Controller
             'description' => ['nullable', 'string', 'max:500'],
             'status' => ['nullable', Rule::in(['open', 'open_po', 'closed'])],
             'whatsapp_number' => ['nullable', 'string', 'max:20'],
-            'catalog_items' => ['nullable', 'array'],
+            'catalog_items' => ['nullable', 'array', 'max:30'],
         ]);
 
         $unit = Unit::where('code', $validated['unit_code'])->firstOrFail();
@@ -246,7 +247,7 @@ class UmkmStoreController extends Controller
             'description' => ['nullable', 'string', 'max:500'],
             'status' => ['sometimes', 'required', Rule::in(['open', 'open_po', 'closed'])],
             'whatsapp_number' => ['sometimes', 'required', 'string', 'max:20'],
-            'catalog_items' => ['sometimes', 'array'],
+            'catalog_items' => ['sometimes', 'array', 'max:30'],
             'catalog_items.*.id' => ['required_with:catalog_items'],
             'catalog_items.*.name' => ['required_with:catalog_items', 'string', 'max:120'],
             'catalog_items.*.category' => ['required_with:catalog_items', Rule::in(['kuliner', 'sembako', 'jasa', 'pinjam_alat', 'lainnya'])],
@@ -255,8 +256,24 @@ class UmkmStoreController extends Controller
             'catalog_items.*.unit_note' => ['nullable', 'string', 'max:100'],
             'catalog_items.*.delivery_tag' => ['nullable', 'string', 'max:100'],
             'catalog_items.*.description' => ['nullable', 'string', 'max:500'],
+            'catalog_items.*.image_url' => ['nullable', 'string', 'max:255'],
             'catalog_items.*.is_available' => ['sometimes', 'boolean'],
         ]);
+
+        // Bersihkan file foto item yang sudah tidak dipakai (dihapus atau diganti foto baru)
+        if (array_key_exists('catalog_items', $validated)) {
+            $oldUrls = collect($store->catalog_items ?? [])->pluck('image_url')->filter()->all();
+            $newUrls = collect($validated['catalog_items'])->pluck('image_url')->filter()->all();
+            $removedUrls = array_diff($oldUrls, $newUrls);
+            $storeFolderPrefix = "umkm/stores/{$store->id}/items/";
+
+            foreach ($removedUrls as $url) {
+                $relativePath = ltrim((string) preg_replace('#^/storage/#', '', (string) $url), '/');
+                if (str_starts_with($relativePath, $storeFolderPrefix)) {
+                    Storage::disk('public')->delete($relativePath);
+                }
+            }
+        }
 
         $store->update($validated);
 
@@ -264,6 +281,75 @@ class UmkmStoreController extends Controller
             'message' => 'Perubahan lapak & etalase produk berhasil disimpan.',
             'data' => $store->fresh()->load('unit:id,code,block,zone'),
         ]);
+    }
+
+    public function uploadItemImage(Request $request, UmkmStore $store): JsonResponse
+    {
+        if ($store->owner_user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Anda tidak berhak mengunggah foto untuk lapak warga lain.'], 403);
+        }
+
+        $request->validate([
+            'image' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+        ], [
+            'image.max' => 'Ukuran foto maksimal 5 MB.',
+            'image.mimes' => 'Format foto harus JPG, PNG, atau WebP.',
+        ]);
+
+        $file = $request->file('image');
+        $rawContent = @file_get_contents($file->getRealPath());
+        $srcImage = $rawContent ? @imagecreatefromstring($rawContent) : false;
+
+        if (! $srcImage) {
+            return response()->json(['message' => 'File gambar tidak valid atau rusak.'], 422);
+        }
+
+        $srcW = imagesx($srcImage);
+        $srcH = imagesy($srcImage);
+
+        // Center-crop ke rasio 1:1 dan perkecil ke maksimal 800x800 px agar ringan & tajam di kartu etalase
+        $cropSize = min($srcW, $srcH);
+        $srcX = (int) floor(($srcW - $cropSize) / 2);
+        $srcY = (int) floor(($srcH - $cropSize) / 2);
+        $targetSize = min(800, $cropSize);
+
+        $canvas = imagecreatetruecolor($targetSize, $targetSize);
+        imagealphablending($canvas, false);
+        imagesavealpha($canvas, true);
+
+        imagecopyresampled(
+            $canvas,
+            $srcImage,
+            0,
+            0,
+            $srcX,
+            $srcY,
+            $targetSize,
+            $targetSize,
+            $cropSize,
+            $cropSize
+        );
+
+        ob_start();
+        imagewebp($canvas, null, 82);
+        $webpBinary = ob_get_clean();
+
+        imagedestroy($srcImage);
+        imagedestroy($canvas);
+
+        if (! $webpBinary) {
+            return response()->json(['message' => 'Gagal memproses kompresi gambar di server.'], 500);
+        }
+
+        $filename = 'item-' . now()->format('YmdHis') . '-' . Str::lower(Str::random(8)) . '.webp';
+        $relativePath = "umkm/stores/{$store->id}/items/{$filename}";
+
+        Storage::disk('public')->put($relativePath, $webpBinary);
+
+        return response()->json([
+            'message' => 'Foto item berhasil diunggah.',
+            'image_url' => Storage::url($relativePath),
+        ], 201);
     }
 
     public function updateStatus(Request $request, UmkmStore $store): JsonResponse
