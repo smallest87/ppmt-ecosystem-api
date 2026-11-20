@@ -1,6 +1,6 @@
 <article @click="openItemDetail(item)"
          :class="item.isAvailable === false ? 'opacity-70' : ''"
-         class="group bg-white rounded-2xl border border-slate-200 hover:border-emerald-400 shadow-2xs hover:shadow-md overflow-hidden flex flex-col justify-between transition cursor-pointer">
+         class="group bg-white rounded-md border border-slate-200 hover:border-emerald-400 shadow-2xs hover:shadow-md overflow-hidden flex flex-col justify-between transition cursor-pointer">
 
     <div>
         <!-- Area Visual Produk (Aspect Square) -->
@@ -61,14 +61,11 @@
         </div>
 
         <!-- Info Produk -->
-        <div class="p-3 sm:p-3.5 space-y-1">
-            <div class="text-[10px] font-bold uppercase tracking-wider text-emerald-700"
-                 x-text="item.categoryLabel"></div>
-
+        <div class="p-1.5 sm:p-2">
             <h2 class="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-emerald-800 leading-snug line-clamp-2"
                 x-text="item.name"></h2>
 
-            <div class="pt-0.5">
+            <div>
                 <!-- Kondisi 1: Harga angka tunggal (misal: Rp 10.000 / Porsi) -->
                 <template x-if="item.numericPrice > 0 && !String(item.priceLabel || '').includes('–')">
                     <div class="flex flex-wrap items-baseline leading-tight">
@@ -96,7 +93,7 @@
     </div>
 
     <!-- Footer Kartu: Nama Lapak & Tombol Cepat -->
-    <div class="px-3 sm:px-3.5 pb-3 sm:pb-3.5 pt-2 border-t border-slate-100 space-y-2.5">
+    <div class="px-1.5 sm:px-2 pb-1.5 sm:pb-2 pt-2 space-y-2.5">
         <div class="flex items-center justify-between gap-1.5 text-[11px] text-slate-500">
             <span class="truncate font-medium text-slate-700" x-text="item.storeName"></span>
             <span :class="item.storeStatus === 'closed' ? 'text-slate-500' : 'text-emerald-700'"
@@ -106,11 +103,5 @@
                 <span x-text="item.storeStatus === 'closed' ? 'Tutup' : 'Buka'"></span>
             </span>
         </div>
-
-        <button type="button"
-                @click.stop="openItemDetail(item)"
-                class="w-full py-1.5 px-2.5 rounded-xl bg-emerald-50 group-hover:bg-emerald-700 text-emerald-800 group-hover:text-white border border-emerald-200 group-hover:border-emerald-700 text-[11px] font-bold transition cursor-pointer"
-                x-text="item.storeStatus === 'closed' && item.badgeType !== 'po' ? 'Titip Pesan Besok' : 'Lihat & Pesan'">
-        </button>
     </div>
 </article>

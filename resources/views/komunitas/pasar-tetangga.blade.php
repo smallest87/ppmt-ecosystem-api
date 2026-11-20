@@ -8,7 +8,7 @@
 <div x-data="ppmtMarketplace()"
      x-init="init()"
      @keydown.escape.window="selectedItem = null"
-     class="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-5">
+     class="max-w-6xl mx-auto px-2 py-4 sm:py-8 space-y-5">
 
     <!-- Loading State -->
     <div x-show="loading" class="bg-white rounded-2xl p-12 text-center text-sm text-slate-500 border border-slate-200">
@@ -88,10 +88,13 @@
         <!-- Info Jumlah Hasil -->
         <div class="flex items-center justify-between text-xs text-slate-500 px-0.5">
             <span>
-                Menampilkan <strong class="text-slate-800" x-text="filteredItems.length"></strong> produk &amp; jasa
+                Menampilkan <strong class="text-slate-800" x-text="visibleItems.length"></strong>
+                <span x-show="filteredItems.length > visibleItems.length"
+                      x-text="' dari ' + filteredItems.length"></span>
+                produk &amp; jasa
                 <span x-show="liveItemsCount > 0"
                       class="text-emerald-700 font-semibold"
-                      x-text="'(' + liveItemsCount + ' dari ' + activeStoresCount + ' lapak warga)'"></span>
+                      x-text="'(' + liveItemsCount + ' item dari ' + activeStoresCount + ' lapak warga)'"></span>
             </span>
             <span class="hidden sm:inline text-slate-400">Urutan dirotasi bergantian antar-lapak setiap jam</span>
         </div>
@@ -111,10 +114,43 @@
         <!-- Grid Etalase Online Shop (2 Kolom HP, 3 Kolom Tablet, 4 Kolom Desktop) -->
         <section x-show="filteredItems.length > 0"
                  class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-            <template x-for="item in filteredItems" :key="item.id">
+            <template x-for="item in visibleItems" :key="item.id">
                 @include('komunitas.partials.pasar-tetangga.item-card')
             </template>
         </section>
+
+        <!-- Sentinel & Indikator Ekspansi Vertikal Bertahap -->
+        <div x-show="filteredItems.length > 0" class="pt-1 pb-4">
+            <!-- Sentinel Pemantau Scroll -->
+            <div x-ref="scrollSentinel" class="h-1 w-full" aria-hidden="true"></div>
+
+            <!-- Indikator Loading Batch Berikutnya -->
+            <div x-show="loadingMore"
+                 x-cloak
+                 class="flex items-center justify-center gap-2 py-4 text-xs font-semibold text-emerald-800">
+                <svg class="w-4 h-4 animate-spin text-emerald-600" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+                <span>Memuat produk &amp; jasa berikutnya...</span>
+            </div>
+
+            <!-- Tombol Fallback jika User Ingin Memuat Manual -->
+            <div x-show="hasMoreItems && !loadingMore"
+                 class="flex justify-center pt-2">
+                <button type="button"
+                        @click="loadNextPage()"
+                        class="px-4 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold shadow-2xs transition cursor-pointer">
+                    Tampilkan Lebih Banyak (<span x-text="remainingItemsCount"></span> tersisa)
+                </button>
+            </div>
+
+            <!-- Penanda Akhir Daftar -->
+            <div x-show="!hasMoreItems && filteredItems.length > pageSize"
+                 class="text-center text-[11px] text-slate-400 pt-2">
+                Semua <span x-text="filteredItems.length"></span> produk &amp; jasa telah ditampilkan
+            </div>
+        </div>
 
     </div>
 
@@ -283,6 +319,14 @@ function ppmtMarketplace() {
         selectedCategory: 'all',
         selectedAvailability: 'all',
         sortBy: 'featured',
+
+        // Konfigurasi Progressive Pagination (2 halaman awal: 1 terlihat + 1 siap di bawah)
+        pageSize: 12,
+        visibleCount: 24,
+        loadingMore: false,
+        sentinelObserver: null,
+        loadTimer: null,
+
         selectedItem: null,
         orderQty: 1,
         orderDelivery: 'Antar ke Kavling Saya',
@@ -409,6 +453,23 @@ function ppmtMarketplace() {
                 window.location.href = '/';
                 return;
             }
+
+            // Reset ke 2 halaman awal setiap kali filter/pencarian/urutan berubah
+            const resetPagination = () => {
+                if (this.loadTimer) {
+                    clearTimeout(this.loadTimer);
+                    this.loadTimer = null;
+                }
+                this.loadingMore = false;
+                this.visibleCount = this.pageSize * 2;
+                this.$nextTick(() => this.checkSentinelImmediate());
+            };
+
+            this.$watch('searchQuery', resetPagination);
+            this.$watch('selectedCategory', resetPagination);
+            this.$watch('selectedAvailability', resetPagination);
+            this.$watch('sortBy', resetPagination);
+
             try {
                 const [meRes, storesRes] = await Promise.all([
                     fetch('/api/v1/me', { headers: this.headers() }),
@@ -433,7 +494,50 @@ function ppmtMarketplace() {
                 window.location.href = '/';
             } finally {
                 this.loading = false;
+                this.$nextTick(() => this.setupScrollObserver());
             }
+        },
+
+        setupScrollObserver() {
+            const el = this.$refs.scrollSentinel;
+            if (!el || typeof IntersectionObserver === 'undefined') return;
+
+            if (this.sentinelObserver) {
+                this.sentinelObserver.disconnect();
+            }
+
+            this.sentinelObserver = new IntersectionObserver((entries) => {
+                if (entries.some(entry => entry.isIntersecting)) {
+                    this.loadNextPage();
+                }
+            }, {
+                root: null,
+                rootMargin: '250px 0px',
+                threshold: 0
+            });
+
+            this.sentinelObserver.observe(el);
+        },
+
+        checkSentinelImmediate() {
+            const el = this.$refs.scrollSentinel;
+            if (!el || !this.hasMoreItems) return;
+            const rect = el.getBoundingClientRect();
+            if (rect.top <= window.innerHeight + 250) {
+                this.loadNextPage();
+            }
+        },
+
+        loadNextPage() {
+            if (this.loadingMore || !this.hasMoreItems) return;
+            this.loadingMore = true;
+
+            this.loadTimer = setTimeout(() => {
+                this.visibleCount += this.pageSize;
+                this.loadingMore = false;
+                this.loadTimer = null;
+                this.$nextTick(() => this.checkSentinelImmediate());
+            }, 220);
         },
 
         headers() {
@@ -647,6 +751,18 @@ function ppmtMarketplace() {
                 ...this.interleaveByStore(outOfStock),
                 ...mockups,
             ];
+        },
+
+        get visibleItems() {
+            return this.filteredItems.slice(0, this.visibleCount);
+        },
+
+        get hasMoreItems() {
+            return this.visibleCount < this.filteredItems.length;
+        },
+
+        get remainingItemsCount() {
+            return Math.max(0, this.filteredItems.length - this.visibleCount);
         },
 
         formatRupiah(value) {
