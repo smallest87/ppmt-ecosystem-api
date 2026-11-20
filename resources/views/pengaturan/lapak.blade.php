@@ -88,11 +88,20 @@
                         </div>
 
                         <div>
-                            <label class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1">Deskripsi Singkat &amp; Jam Layanan</label>
+                            <label class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1">Jam Operasional <span class="font-normal text-slate-400">(Opsional)</span></label>
+                            <input type="text"
+                                   x-model="createForm.operating_hours"
+                                   maxlength="80"
+                                   placeholder="Contoh: 06.00 – 21.00 WIB (Minggu Libur)"
+                                   class="w-full rounded-xl border-slate-300 text-sm">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs sm:text-sm font-semibold text-slate-700 mb-1">Deskripsi Singkat Layanan</label>
                             <textarea x-model="createForm.description"
                                       rows="3"
                                       maxlength="500"
-                                      placeholder="Contoh: Melayani pesanan sarapan pagi setiap hari pukul 06.00 – 09.30 WIB, siap antar ke seluruh blok PPMT."
+                                      placeholder="Contoh: Melayani pesanan sarapan pagi & camilan rumahan, siap antar ke seluruh blok PPMT."
                                       class="w-full rounded-xl border-slate-300 text-sm"></textarea>
                         </div>
 
@@ -166,8 +175,9 @@
                             </div>
                             <p class="text-xs text-slate-500 leading-relaxed"
                                x-text="store.description || 'Lapak usaha warga internal PPMT.'"></p>
-                            <div class="text-[11px] text-slate-500 pt-0.5">
-                                WA Pesanan: <span class="font-mono font-semibold text-slate-700" x-text="store.whatsapp_number"></span>
+                            <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-slate-500 pt-0.5">
+                                <span>WA Pesanan: <span class="font-mono font-semibold text-slate-700" x-text="store.whatsapp_number"></span></span>
+                                <span x-show="store.operating_hours">&bull; Jam Layanan: <strong class="text-slate-700" x-text="store.operating_hours"></strong></span>
                             </div>
                         </div>
 
@@ -185,29 +195,29 @@
                         </div>
                     </div>
 
-                    <!-- Pemilih Status Operasional Lapak -->
-                    <div class="flex flex-wrap items-center justify-between gap-3">
-                        <span class="text-xs font-semibold text-slate-600">Status Operasional Saat Ini:</span>
-                        <div class="inline-flex rounded-xl bg-slate-100 p-1 gap-1">
-                            <button type="button"
-                                    @click="changeStatus('open')"
-                                    :class="store.status === 'open' ? 'bg-emerald-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'"
-                                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer">
-                                ● Buka
-                            </button>
-                            <button type="button"
-                                    @click="changeStatus('open_po')"
-                                    :class="store.status === 'open_po' ? 'bg-amber-500 text-slate-950 shadow-2xs' : 'text-slate-600 hover:text-slate-900'"
-                                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer">
-                                ◐ Open PO
-                            </button>
-                            <button type="button"
-                                    @click="changeStatus('closed')"
-                                    :class="store.status === 'closed' ? 'bg-slate-700 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'"
-                                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer">
-                                ○ Tutup
-                            </button>
+                    <!-- Pemilih Status Operasional Lapak (Buka vs Tutup / Istirahat) -->
+                    <div class="space-y-2">
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <span class="text-xs font-semibold text-slate-700">Status Operasional Saat Ini:</span>
+                            <div class="inline-flex rounded-xl bg-slate-100 p-1 gap-1">
+                                <button type="button"
+                                        @click="changeStatus('open')"
+                                        :class="store.status !== 'closed' ? 'bg-emerald-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'"
+                                        class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer">
+                                    ● Buka (Aktif Melayani)
+                                </button>
+                                <button type="button"
+                                        @click="changeStatus('closed')"
+                                        :class="store.status === 'closed' ? 'bg-slate-700 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'"
+                                        class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer">
+                                    ○ Tutup / Istirahat
+                                </button>
+                            </div>
                         </div>
+                        <p class="text-[11px] text-slate-500 leading-relaxed"
+                           x-text="store.status === 'closed'
+                               ? 'Lapak ditandai sedang tutup/istirahat. Tetangga tetap dapat melihat katalog Anda dan menitipkan pesan WhatsApp untuk diproses besok saat lapak buka kembali.'
+                               : 'Lapak sedang aktif melayani pesanan. Jika ada menu khusus yang perlu dipesan sebelumnya, atur pada pilihan Open PO di masing-masing item katalog.'"></p>
                     </div>
                 </section>
 
@@ -246,16 +256,22 @@
                                 <div class="flex items-start gap-3 min-w-0">
                                     <div class="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xl shrink-0 overflow-hidden">
                                         <img x-show="item.image_url"
-                                            :src="item.image_url"
-                                            :alt="item.name"
-                                            x-on:error="item.image_url = ''"
-                                            class="w-full h-full object-cover">
+                                             :src="item.image_url"
+                                             :alt="item.name"
+                                             x-on:error="item.image_url = ''"
+                                             class="w-full h-full object-cover">
                                         <span x-show="!item.image_url" x-text="categoryEmoji(item.category)"></span>
                                     </div>
                                     <div class="min-w-0 space-y-1">
                                         <div class="flex flex-wrap items-center gap-1.5">
                                             <span class="font-bold text-sm text-slate-900" x-text="item.name"></span>
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                            <span :class="{
+                                                    'bg-emerald-50 text-emerald-800 border-emerald-200': item.badge_type === 'ready',
+                                                    'bg-amber-50 text-amber-800 border-amber-200': item.badge_type === 'po',
+                                                    'bg-indigo-50 text-indigo-800 border-indigo-200': item.badge_type === 'service',
+                                                    'bg-teal-50 text-teal-800 border-teal-200': item.badge_type === 'loan'
+                                                  }"
+                                                  class="px-2 py-0.5 rounded text-[10px] font-bold border"
                                                   x-text="badgeLabel(item.badge_type)"></span>
                                             <span x-show="item.is_available === false"
                                                   class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
@@ -349,14 +365,16 @@
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Produk atau Jasa *</label>
                     <input type="text" x-model="itemForm.name" required maxlength="120"
-                           placeholder="Contoh: Nasi Pecel Madiun / Jasa Cuci AC"
+                           placeholder="Contoh: Pisang Krispi / Nasi Pecel / Jasa Cuci AC"
                            class="w-full rounded-xl border-slate-300 text-sm">
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Kategori *</label>
-                        <select x-model="itemForm.category" class="w-full rounded-xl border-slate-300 text-sm">
+                        <select x-model="itemForm.category"
+                                @change="onItemCategoryChange()"
+                                class="w-full rounded-xl border-slate-300 text-sm">
                             <option value="kuliner">Kuliner &amp; Minuman</option>
                             <option value="sembako">Sembako, Galon &amp; Gas</option>
                             <option value="jasa">Jasa &amp; Pertukangan</option>
@@ -365,10 +383,10 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Jenis Penawaran *</label>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Sifat Penawaran Item *</label>
                         <select x-model="itemForm.badge_type" class="w-full rounded-xl border-slate-300 text-sm">
-                            <option value="ready">Ready Stock</option>
-                            <option value="po">Open PO</option>
+                            <option value="ready">Ready Stock (Siap Hari Ini)</option>
+                            <option value="po">Open PO (Pesan Terjadwal)</option>
                             <option value="service">Layanan Jasa</option>
                             <option value="loan">Pinjam / Sewa Alat</option>
                         </select>
@@ -405,16 +423,16 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Info Pengantaran / Pengambilan</label>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Info Pengantaran / Jadwal PO</label>
                     <input type="text" x-model="itemForm.delivery_tag" maxlength="100"
-                           placeholder="Contoh: Gratis antar seluruh blok PPMT"
+                           placeholder="Contoh: Gratis antar blok PPMT / Ready tiap sore"
                            class="w-full rounded-xl border-slate-300 text-sm">
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Deskripsi Lengkap</label>
                     <textarea x-model="itemForm.description" rows="3" maxlength="500"
-                              placeholder="Tuliskan rincian menu, spesifikasi jasa, atau ketentuan peminjaman..."
+                              placeholder="Tuliskan rincian menu, jadwal PO, spesifikasi jasa, atau ketentuan peminjaman..."
                               class="w-full rounded-xl border-slate-300 text-sm"></textarea>
                 </div>
 
@@ -473,7 +491,14 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Deskripsi &amp; Jam Operasional</label>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Jam Operasional <span class="font-normal text-slate-400">(Opsional)</span></label>
+                    <input type="text" x-model="editStoreForm.operating_hours" maxlength="80"
+                           placeholder="Contoh: 06.00 – 21.00 WIB"
+                           class="w-full rounded-xl border-slate-300 text-sm">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Deskripsi Layanan</label>
                     <textarea x-model="editStoreForm.description" rows="3" maxlength="500"
                               class="w-full rounded-xl border-slate-300 text-sm"></textarea>
                 </div>
@@ -511,7 +536,6 @@ function ppmtMyLapakSettings() {
         showEditStoreModal: false,
         editingItemIndex: null,
 
-        // Daftar pilihan satuan (mudah ditambah di kemudian hari)
         unitOptions: [
             'Porsi',
             'Bungkus',
@@ -528,6 +552,7 @@ function ppmtMyLapakSettings() {
             store_name: '',
             category: 'kuliner',
             whatsapp_number: '',
+            operating_hours: '',
             description: ''
         },
 
@@ -535,6 +560,7 @@ function ppmtMyLapakSettings() {
             store_name: '',
             category: 'kuliner',
             whatsapp_number: '',
+            operating_hours: '',
             description: ''
         },
 
@@ -593,7 +619,6 @@ function ppmtMyLapakSettings() {
             return Array.isArray(this.store?.catalog_items) ? this.store.catalog_items : [];
         },
 
-        // Gabungkan opsi standar dengan nilai lama jika ada item lawas yang ditulis manual
         get availableUnitOptions() {
             const current = (this.itemForm.unit_note || '').trim();
             if (current && !this.unitOptions.includes(current)) {
@@ -604,6 +629,16 @@ function ppmtMyLapakSettings() {
 
         toggleUnitOption(unit) {
             this.itemForm.unit_note = this.itemForm.unit_note === unit ? '' : unit;
+        },
+
+        defaultBadgeByCategory(cat) {
+            if (cat === 'jasa') return 'service';
+            if (cat === 'pinjam_alat') return 'loan';
+            return 'ready';
+        },
+
+        onItemCategoryChange() {
+            this.itemForm.badge_type = this.defaultBadgeByCategory(this.itemForm.category);
         },
 
         formatRupiah(val) {
@@ -746,6 +781,7 @@ function ppmtMyLapakSettings() {
                 store_name: this.store.store_name,
                 category: this.store.category,
                 whatsapp_number: this.store.whatsapp_number,
+                operating_hours: this.store.operating_hours || '',
                 description: this.store.description || ''
             };
             this.showEditStoreModal = true;
@@ -776,7 +812,10 @@ function ppmtMyLapakSettings() {
         },
 
         async changeStatus(status) {
-            if (!this.store || this.store.status === status) return;
+            if (!this.store) return;
+            const currentNormalized = this.store.status === 'closed' ? 'closed' : 'open';
+            if (currentNormalized === status) return;
+
             const res = await fetch(`/api/v1/umkm/stores/${this.store.id}/status`, {
                 method: 'PATCH',
                 headers: this.headers(),
@@ -803,7 +842,7 @@ function ppmtMyLapakSettings() {
             this.itemForm = {
                 name: '',
                 category: cat,
-                badge_type: 'ready',
+                badge_type: this.defaultBadgeByCategory(cat),
                 price: 10000,
                 unit_note: defaultUnitByCat[cat] || 'Porsi',
                 delivery_tag: '',

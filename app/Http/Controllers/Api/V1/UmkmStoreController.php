@@ -40,11 +40,7 @@ class UmkmStoreController extends Controller
             ->when($request->query('status'), fn ($q, $status) => $q->where('status', $status))
             ->get()
             ->sortBy(function (UmkmStore $store) use ($hourlyWindow) {
-                $statusPriority = match ($store->status) {
-                    'open' => 1,
-                    'open_po' => 2,
-                    default => 3,
-                };
+                $statusPriority = $store->status === 'closed' ? 2 : 1;
 
                 $fairOrder = sprintf('%08u', crc32("ppmt-fair-{$hourlyWindow}-store-{$store->id}") % 100000000);
 
@@ -200,6 +196,7 @@ class UmkmStoreController extends Controller
             'store_name' => ['required', 'string', 'max:120'],
             'category' => ['required', Rule::in(['kuliner', 'sembako', 'jasa', 'pinjam_alat', 'lainnya'])],
             'description' => ['nullable', 'string', 'max:500'],
+            'operating_hours' => ['nullable', 'string', 'max:80'],
             'status' => ['nullable', Rule::in(['open', 'open_po', 'closed'])],
             'whatsapp_number' => ['nullable', 'string', 'max:20'],
             'catalog_items' => ['nullable', 'array', 'max:30'],
@@ -224,7 +221,10 @@ class UmkmStoreController extends Controller
             'store_name' => trim($validated['store_name']),
             'category' => $validated['category'],
             'description' => isset($validated['description']) ? trim($validated['description']) : null,
-            'status' => $validated['status'] ?? 'open',
+            'operating_hours' => isset($validated['operating_hours']) && trim($validated['operating_hours']) !== ''
+                ? trim($validated['operating_hours'])
+                : null,
+            'status' => ($validated['status'] ?? 'open') === 'closed' ? 'closed' : 'open',
             'whatsapp_number' => trim($validated['whatsapp_number'] ?? $user->profile?->phone ?? ''),
             'catalog_items' => $validated['catalog_items'] ?? [],
         ]);
@@ -245,6 +245,7 @@ class UmkmStoreController extends Controller
             'store_name' => ['sometimes', 'required', 'string', 'max:120'],
             'category' => ['sometimes', 'required', Rule::in(['kuliner', 'sembako', 'jasa', 'pinjam_alat', 'lainnya'])],
             'description' => ['nullable', 'string', 'max:500'],
+            'operating_hours' => ['nullable', 'string', 'max:80'],
             'status' => ['sometimes', 'required', Rule::in(['open', 'open_po', 'closed'])],
             'whatsapp_number' => ['sometimes', 'required', 'string', 'max:20'],
             'catalog_items' => ['sometimes', 'array', 'max:30'],
@@ -259,6 +260,10 @@ class UmkmStoreController extends Controller
             'catalog_items.*.image_url' => ['nullable', 'string', 'max:255'],
             'catalog_items.*.is_available' => ['sometimes', 'boolean'],
         ]);
+
+        if (array_key_exists('operating_hours', $validated)) {
+            $validated['operating_hours'] = trim((string) $validated['operating_hours']) ?: null;
+        }
 
         // Bersihkan file foto item yang sudah tidak dipakai (dihapus atau diganti foto baru)
         if (array_key_exists('catalog_items', $validated)) {
@@ -362,10 +367,13 @@ class UmkmStoreController extends Controller
             'status' => ['required', Rule::in(['open', 'open_po', 'closed'])],
         ]);
 
-        $store->update(['status' => $validated['status']]);
+        $normalizedStatus = $validated['status'] === 'closed' ? 'closed' : 'open';
+        $store->update(['status' => $normalizedStatus]);
 
         return response()->json([
-            'message' => "Status lapak '{$store->store_name}' diperbarui.",
+            'message' => $normalizedStatus === 'closed'
+                ? "Status lapak '{$store->store_name}' diubah ke Tutup / Istirahat (tetangga tetap dapat menitipkan pesan WA untuk besok)."
+                : "Lapak '{$store->store_name}' sekarang Buka & aktif melayani.",
             'data' => $store,
         ]);
     }

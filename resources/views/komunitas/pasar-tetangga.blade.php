@@ -53,9 +53,9 @@
                     <select x-model="selectedAvailability"
                             aria-label="Filter Ketersediaan"
                             class="flex-1 sm:flex-none rounded-xl border-slate-300 text-xs sm:text-sm font-medium text-slate-700 focus:border-emerald-600 focus:ring-emerald-600">
-                        <option value="all">Semua Status</option>
-                        <option value="ready">Ready / Buka Sekarang</option>
-                        <option value="po">Open PO</option>
+                        <option value="all">Semua Penawaran</option>
+                        <option value="ready">Ready Stock (Buka)</option>
+                        <option value="po">Open PO (Pre-Order)</option>
                         <option value="service">Jasa &amp; Pinjam Alat</option>
                     </select>
 
@@ -139,10 +139,10 @@
 
                 <div class="w-20 h-20 rounded-2xl bg-white/85 border border-white shadow-xs flex items-center justify-center text-4xl shrink-0 overflow-hidden">
                     <img x-show="selectedItem?.imageUrl"
-                        :src="selectedItem?.imageUrl"
-                        :alt="selectedItem?.name"
-                        x-on:error="if (selectedItem) selectedItem.imageUrl = ''"
-                        class="w-full h-full object-cover">
+                         :src="selectedItem?.imageUrl"
+                         :alt="selectedItem?.name"
+                         x-on:error="if (selectedItem) selectedItem.imageUrl = ''"
+                         class="w-full h-full object-cover">
                     <span x-show="!selectedItem?.imageUrl" x-text="selectedItem?.emoji"></span>
                 </div>
 
@@ -177,15 +177,26 @@
                     Ini adalah contoh katalog etalase. Anda dapat mendaftarkan produk atau jasa asli Anda melalui menu <a href="/pengaturan/lapak" class="font-bold underline">Pengaturan &rarr; Lapak Usaha</a>.
                 </div>
 
+                <!-- Banner Pemberitahuan jika Lapak Sedang Tutup / Jam Istirahat -->
+                <div x-show="selectedItem?.storeStatus === 'closed'"
+                     class="p-3 rounded-xl bg-slate-100 border border-slate-300/90 text-xs text-slate-800 space-y-1">
+                    <div class="font-bold text-slate-900">
+                        &#128337; Lapak Sedang Tutup / Di Luar Jam Operasional
+                    </div>
+                    <p class="leading-relaxed text-slate-600"
+                       x-text="(selectedItem?.operatingHours ? 'Jam layanan lapak: ' + selectedItem.operatingHours + '. ' : '') + 'Anda tetap dapat menitipkan pesan WhatsApp sekarang; pelapak akan memprosesnya saat lapak buka kembali.'"></p>
+                </div>
+
                 <!-- Info Lapak -->
                 <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-2 text-xs">
-                    <div>
-                        <div class="font-bold text-slate-900" x-text="selectedItem?.storeName"></div>
-                        <div class="text-slate-500" x-text="'Dikelola oleh ' + selectedItem?.ownerName + (selectedItem?.deliveryTag ? ' • ' + selectedItem.deliveryTag : '')"></div>
+                    <div class="min-w-0">
+                        <div class="font-bold text-slate-900 truncate" x-text="selectedItem?.storeName"></div>
+                        <div class="text-slate-500"
+                             x-text="'Dikelola oleh ' + selectedItem?.ownerName + (selectedItem?.operatingHours ? ' • Jam: ' + selectedItem.operatingHours : '')"></div>
                     </div>
-                    <span :class="selectedItem?.storeStatus === 'closed' ? 'bg-slate-200 text-slate-700' : (selectedItem?.storeStatus === 'open_po' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800')"
+                    <span :class="selectedItem?.storeStatus === 'closed' ? 'bg-slate-200 text-slate-700' : 'bg-emerald-100 text-emerald-800'"
                           class="px-2.5 py-1 rounded-full text-[11px] font-bold shrink-0"
-                          x-text="selectedItem?.storeStatus === 'closed' ? '○ Tutup' : (selectedItem?.storeStatus === 'open_po' ? '◐ Open PO' : '● Buka')">
+                          x-text="selectedItem?.storeStatus === 'closed' ? '○ Tutup' : '● Buka'">
                     </span>
                 </div>
 
@@ -233,7 +244,7 @@
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Catatan Tambahan (Opsional)</label>
                     <input type="text"
                            x-model="orderNote"
-                           placeholder="Contoh: Sambal dipisah, atau antar jam 4 sore..."
+                           :placeholder="selectedItem?.storeStatus === 'closed' ? 'Contoh: Untuk besok pagi jam 07.00 ya...' : 'Contoh: Sambal dipisah, atau antar jam 4 sore...'"
                            class="w-full rounded-xl border-slate-300 text-xs sm:text-sm">
                 </div>
             </div>
@@ -249,7 +260,7 @@
                 <a :href="buildOrderWhatsappUrl()"
                    target="_blank"
                    class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-sm transition inline-flex items-center gap-2 shrink-0">
-                    <span>Pesan via WhatsApp</span>
+                    <span x-text="selectedItem?.storeStatus === 'closed' ? 'Titip Pesan untuk Besok (WA)' : (selectedItem?.badgeType === 'po' ? 'Ikut PO via WhatsApp' : 'Pesan via WhatsApp')"></span>
                     <span>&rarr;</span>
                 </a>
             </div>
@@ -294,11 +305,12 @@ function ppmtMarketplace() {
                 isFeatured: false,
                 isAvailable: true,
                 storeStatus: 'open',
+                operatingHours: '07.00 – 20.00 WIB',
                 name: 'Galon Air Mineral & Isi Ulang RO Antar Depan Pintu',
                 category: 'sembako',
                 categoryLabel: 'Sembako, Galon & Gas',
                 badgeType: 'ready',
-                badgeLabel: 'Ready Antar',
+                badgeLabel: 'Ready Stock',
                 numericPrice: 6000,
                 priceLabel: 'Rp 6.000 – Rp 19.000',
                 unitNote: 'RO Rp 6rb • Aqua/Le Minerale Rp 19rb',
@@ -319,11 +331,12 @@ function ppmtMarketplace() {
                 isFeatured: false,
                 isAvailable: true,
                 storeStatus: 'open',
+                operatingHours: '06.00 – 09.30 WIB',
                 name: 'Nasi Pecel Madiun Komplit + Rempeyek Kacang',
                 category: 'kuliner',
                 categoryLabel: 'Kuliner & Minuman',
                 badgeType: 'ready',
-                badgeLabel: 'Buka Pagi',
+                badgeLabel: 'Ready Stock',
                 numericPrice: 10000,
                 priceLabel: 'Rp 10.000',
                 unitNote: 'Tambah telur / ayam +Rp 4.000',
@@ -344,6 +357,7 @@ function ppmtMarketplace() {
                 isFeatured: false,
                 isAvailable: true,
                 storeStatus: 'open',
+                operatingHours: '08.00 – 17.00 WIB',
                 name: 'Jasa Cuci & Servis AC Split (Semua Merk)',
                 category: 'jasa',
                 categoryLabel: 'Jasa & Pertukangan',
@@ -369,11 +383,12 @@ function ppmtMarketplace() {
                 isFeatured: false,
                 isAvailable: true,
                 storeStatus: 'open',
+                operatingHours: '07.00 – 21.00 WIB',
                 name: 'Pinjam / Sewa Tangga Lipat Aluminium 2,5 Meter',
                 category: 'pinjam_alat',
                 categoryLabel: 'Pinjam / Sewa Alat',
                 badgeType: 'loan',
-                badgeLabel: 'Pinjam Tetangga',
+                badgeLabel: 'Pinjam / Sewa',
                 numericPrice: 0,
                 priceLabel: 'Gratis (Khusus Warga)',
                 unitNote: 'Maksimal pinjam 1x24 jam',
@@ -473,6 +488,7 @@ function ppmtMarketplace() {
                 const wa = this.normalizeWhatsapp(store.whatsapp_number);
                 const storeKey = `store-${store.id}`;
                 const isFeatured = Boolean(store.is_currently_featured);
+                const normalizedStoreStatus = store.status === 'closed' ? 'closed' : 'open';
 
                 if (catalog.length > 0) {
                     catalog.forEach((prod, idx) => {
@@ -487,7 +503,8 @@ function ppmtMarketplace() {
                             isMockup: false,
                             isFeatured,
                             isAvailable: prod.is_available !== false,
-                            storeStatus: store.status || 'open',
+                            storeStatus: normalizedStoreStatus,
+                            operatingHours: store.operating_hours || '',
                             name: prod.name,
                             category: catCode,
                             categoryLabel: meta.label,
@@ -517,8 +534,9 @@ function ppmtMarketplace() {
                         storeKey,
                         isMockup: false,
                         isFeatured,
-                        isAvailable: store.status !== 'closed',
-                        storeStatus: store.status || 'open',
+                        isAvailable: true,
+                        storeStatus: normalizedStoreStatus,
+                        operatingHours: store.operating_hours || '',
                         name: store.store_name,
                         category: catCode,
                         categoryLabel: meta.label,
@@ -543,7 +561,6 @@ function ppmtMarketplace() {
             this.liveItems = flattened;
         },
 
-        // Menyusun item secara bergantian (1 item per lapak per putaran) agar tidak ada satu lapak mendominasi layar
         interleaveByStore(items) {
             const storeOrder = [];
             const buckets = new Map();
@@ -617,11 +634,6 @@ function ppmtMarketplace() {
                 return [...list].sort((a, b) => b.numericPrice - a.numericPrice);
             }
 
-            // Mode 'featured' (Etalase Merata / Default):
-            // 1. Sorotan Seksi Ekonomi (maksimal 3 lapak terpilih yang sedang buka & tersedia)
-            // 2. Seluruh lapak reguler yang sedang buka & tersedia (Round-Robin bergantian antar-lapak)
-            // 3. Lapak yang sedang tutup
-            // 4. Item yang stoknya sedang habis
             const featuredItems = list.filter(i => i.isFeatured && i.storeStatus !== 'closed' && i.isAvailable !== false && !i.isMockup);
             const activeAvailable = list.filter(i => !i.isFeatured && i.storeStatus !== 'closed' && i.isAvailable !== false && !i.isMockup);
             const closedStores = list.filter(i => i.storeStatus === 'closed' && !i.isMockup);
@@ -653,9 +665,17 @@ function ppmtMarketplace() {
             const item = this.selectedItem;
             const myName = this.user?.display_name || this.user?.name || 'Warga PPMT';
             const myUnit = this.user?.memberships?.[0]?.unit?.code || 'PPMT';
+            const isClosed = item.storeStatus === 'closed';
+
+            const introLine = isClosed
+                ? `Mohon maaf mengganggu waktu istirahatnya. Saya *${myName}* dari *Kavling ${myUnit}* ingin menitipkan pesanan untuk besok / saat lapak buka kembali:`
+                : (item.badgeType === 'po'
+                    ? `Saya *${myName}* dari *Kavling ${myUnit}* ingin ikut Pre-Order (PO) dari Pasar Tetangga PPMT:`
+                    : `Saya *${myName}* dari *Kavling ${myUnit}* ingin memesan dari Pasar Tetangga PPMT:`);
+
             const lines = [
                 `Halo *${item.storeName}* (Kav. ${item.unitCode}),`,
-                `Saya *${myName}* dari *Kavling ${myUnit}* ingin memesan dari Pasar Tetangga PPMT:`,
+                introLine,
                 ``,
                 `• *Item:* ${item.name}`,
                 `• *Jumlah:* ${this.orderQty}`,

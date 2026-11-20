@@ -19,16 +19,22 @@
             <div x-show="item.imageUrl"
                  class="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/25 pointer-events-none"></div>
 
-            <!-- Badge Status Kiri Atas -->
+            <!-- Badge Status Kiri Atas:
+                 - Jika stok habis: Stok Habis
+                 - Jika lapak tutup TAPI item bertipe Open PO: tetap Open PO (bisa ikut PO untuk jadwal berikutnya)
+                 - Jika lapak tutup & item Ready/Jasa/Pinjam: Sedang Tutup (bisa titip pesan WA untuk besok) -->
             <span :class="{
-                    'bg-rose-600 text-white': item.isAvailable === false || item.storeStatus === 'closed',
+                    'bg-rose-600 text-white': item.isAvailable === false,
+                    'bg-slate-700/95 text-white': item.isAvailable !== false && item.storeStatus === 'closed' && item.badgeType !== 'po',
                     'bg-emerald-600 text-white': item.isAvailable !== false && item.storeStatus !== 'closed' && item.badgeType === 'ready',
-                    'bg-amber-500 text-slate-950': item.isAvailable !== false && item.storeStatus !== 'closed' && item.badgeType === 'po',
+                    'bg-amber-500 text-slate-950': item.isAvailable !== false && item.badgeType === 'po',
                     'bg-indigo-600 text-white': item.isAvailable !== false && item.storeStatus !== 'closed' && item.badgeType === 'service',
                     'bg-teal-600 text-white': item.isAvailable !== false && item.storeStatus !== 'closed' && item.badgeType === 'loan'
                   }"
                   class="z-10 absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide shadow-sm"
-                  x-text="item.storeStatus === 'closed' ? 'Lapak Tutup' : (item.isAvailable === false ? 'Stok Habis' : item.badgeLabel)"></span>
+                  x-text="item.isAvailable === false
+                      ? 'Stok Habis'
+                      : (item.storeStatus === 'closed' && item.badgeType !== 'po' ? 'Sedang Tutup' : item.badgeLabel)"></span>
 
             <!-- Pita Sorotan Seksi Ekonomi -->
             <span x-show="item.isFeatured"
@@ -93,18 +99,18 @@
     <div class="px-3 sm:px-3.5 pb-3 sm:pb-3.5 pt-2 border-t border-slate-100 space-y-2.5">
         <div class="flex items-center justify-between gap-1.5 text-[11px] text-slate-500">
             <span class="truncate font-medium text-slate-700" x-text="item.storeName"></span>
-            <span :class="item.storeStatus === 'closed' ? 'text-slate-400' : (item.storeStatus === 'open_po' ? 'text-amber-700' : 'text-emerald-700')"
+            <span :class="item.storeStatus === 'closed' ? 'text-slate-500' : 'text-emerald-700'"
                   class="inline-flex items-center gap-1 shrink-0 text-[10px] font-bold">
-                <span :class="item.storeStatus === 'closed' ? 'bg-slate-400' : (item.storeStatus === 'open_po' ? 'bg-amber-500' : 'bg-emerald-500')"
+                <span :class="item.storeStatus === 'closed' ? 'bg-slate-400' : 'bg-emerald-500'"
                       class="w-1.5 h-1.5 rounded-full"></span>
-                <span x-text="item.storeStatus === 'closed' ? 'Tutup' : (item.storeStatus === 'open_po' ? 'PO' : 'Buka')"></span>
+                <span x-text="item.storeStatus === 'closed' ? 'Tutup' : 'Buka'"></span>
             </span>
         </div>
 
         <button type="button"
                 @click.stop="openItemDetail(item)"
-                class="w-full py-1.5 px-2.5 rounded-xl bg-emerald-50 group-hover:bg-emerald-700 text-emerald-800 group-hover:text-white border border-emerald-200 group-hover:border-emerald-700 text-[11px] font-bold transition cursor-pointer">
-            Lihat &amp; Pesan
+                class="w-full py-1.5 px-2.5 rounded-xl bg-emerald-50 group-hover:bg-emerald-700 text-emerald-800 group-hover:text-white border border-emerald-200 group-hover:border-emerald-700 text-[11px] font-bold transition cursor-pointer"
+                x-text="item.storeStatus === 'closed' && item.badgeType !== 'po' ? 'Titip Pesan Besok' : 'Lihat & Pesan'">
         </button>
     </div>
 </article>

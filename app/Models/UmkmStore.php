@@ -13,6 +13,7 @@ class UmkmStore extends Model
         'store_name',
         'category',
         'description',
+        'operating_hours',
         'status',
         'is_featured',
         'featured_until',
