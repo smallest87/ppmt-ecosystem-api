@@ -7,29 +7,48 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class ResidentDirectoryResource extends JsonResource
 {
-    protected static array $viewerAdminCache = [];
-
     public function toArray(Request $request): array
     {
         $viewer = $request->user();
         $profile = $this->profile;
         $privacy = $profile?->privacy_settings ?? [];
 
-        $isViewerAdmin = false;
+        $scopeInfo = ['is_central' => false, 'unit_ids' => []];
         if ($viewer) {
-            if (! array_key_exists($viewer->id, self::$viewerAdminCache)) {
-                self::$viewerAdminCache[$viewer->id] =
-                    (method_exists($viewer, 'isGlobalGovernor') && $viewer->isGlobalGovernor()) ||
-                    in_array($viewer->profile?->global_role, ['admin', 'koordinator_blok'], true);
+            $cacheKey = 'directory_viewer_scope_' . $viewer->id;
+            if (! $request->attributes->has($cacheKey)) {
+                $isCentral = (method_exists($viewer, 'hasCentralOccupancyAccess') && $viewer->hasCentralOccupancyAccess())
+                    || $viewer->profile?->global_role === 'admin';
+
+                $isTerritorial = ! $isCentral && (
+                    $viewer->profile?->global_role === 'koordinator_blok'
+                    || $viewer->governanceRoles()
+                        ->whereIn('role_code', ['koordinator_blok', 'koordinator_zona'])
+                        ->exists()
+                );
+
+                $request->attributes->set($cacheKey, [
+                    'is_central' => $isCentral,
+                    'unit_ids' => $isTerritorial
+                        ? $viewer->accessibleUnitsQuery()->pluck('id')->all()
+                        : [],
+                ]);
             }
-            $isViewerAdmin = self::$viewerAdminCache[$viewer->id];
+            $scopeInfo = $request->attributes->get($cacheKey);
         }
 
-        $isSelfOrAdmin = ($viewer && $viewer->id === $this->id) || $isViewerAdmin;
+        $approvedMemberships = $this->unitMemberships->where('is_approved', true);
+        $managedUnitIds = $scopeInfo['unit_ids'];
 
-        $canSeeFullName = $isSelfOrAdmin || ($privacy['show_full_name'] ?? false);
-        $canSeePhone = $isSelfOrAdmin || ($privacy['show_phone'] ?? false);
-        $canSeeOwnership = $isSelfOrAdmin || ($privacy['show_ownership'] ?? false);
+        // Koordinator berwenang melihat profil lengkap warga jika warga tersebut memiliki minimal satu unit di wilayah binaannya
+        $hasManagedUnit = $scopeInfo['is_central']
+            || (! empty($managedUnitIds) && $approvedMemberships->whereIn('unit_id', $managedUnitIds)->isNotEmpty());
+
+        $isSelf = $viewer && (int) $viewer->id === (int) $this->id;
+        $isSelfOrAuthorized = $isSelf || $hasManagedUnit;
+
+        $canSeeFullName = $isSelfOrAuthorized || ($privacy['show_full_name'] ?? false);
+        $canSeePhone = $isSelfOrAuthorized || ($privacy['show_phone'] ?? false);
 
         $publicName = $profile?->display_name ?: explode(' ', trim($this->name))[0];
 
@@ -49,13 +68,18 @@ class ResidentDirectoryResource extends JsonResource
             'display_name' => $publicName,
             'phone' => $canSeePhone ? $profile?->phone : null,
             'reputation_badge' => $profile?->reputation_badge,
-            'units' => $this->unitMemberships
-                ->where('is_approved', true)
-                ->map(function ($membership) use ($canSeeOwnership, $subRoleLabels) {
+            'units' => $approvedMemberships
+                ->map(function ($membership) use ($isSelf, $scopeInfo, $managedUnitIds, $privacy, $subRoleLabels) {
                     $isOwner = (bool) ($membership->is_owner ?? ($membership->entity_type === 'owner'));
                     $isOccupant = (bool) ($membership->is_occupant ?? true);
 
-                    $visibleOwner = $canSeeOwnership && $isOwner;
+                    // Privasi kepemilikan dibuka hanya jika pemilik akun, pengurus pusat, koordinator unit terkait, atau diizinkan publik
+                    $canSeeUnitOwnership = $isSelf
+                        || $scopeInfo['is_central']
+                        || in_array($membership->unit_id, $managedUnitIds, true)
+                        || ($privacy['show_ownership'] ?? false);
+
+                    $visibleOwner = $canSeeUnitOwnership && $isOwner;
 
                     $roleParts = [];
                     if ($visibleOwner) {

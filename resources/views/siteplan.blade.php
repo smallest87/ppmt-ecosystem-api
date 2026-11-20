@@ -121,7 +121,7 @@
                     Mode Wilayah Tugas
                 </span>
                 <span>
-                    Anda masuk sebagai koordinator wilayah (<strong x-text="(viewerContext?.active_scopes || []).join(', ')"></strong>). Hanya kavling di dalam wilayah cakupan Anda (serta kavling pribadi &amp; fasum) yang aktif dan dapat diinspeksi.
+                    Anda masuk sebagai koordinator wilayah (<strong x-text="(viewerContext?.active_scopes || []).join(', ')"></strong>). Anda tetap dapat melihat informasi publik seluruh kavling sebagai warga, sementara akses data privat dan wewenang pengesahan aktif khusus di wilayah tugas Anda.
                 </span>
             </div>
         </div>

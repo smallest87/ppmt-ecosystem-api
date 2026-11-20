@@ -93,7 +93,6 @@ class SiteplanController extends Controller
         $formattedUnits = $units->map(function (Unit $unit) use (
             $viewer,
             $isCentralAdmin,
-            $isScopedCoordinator,
             $accessibleUnitIds,
             $myUnitIds,
             $canViewTreasury,
@@ -104,94 +103,85 @@ class SiteplanController extends Controller
             $hasGovernanceScopeOnUnit = $isCentralAdmin || in_array($unit->id, $accessibleUnitIds, true);
             $canApproveUnit = $viewer->canVouchUnit($unit);
 
-            // Aturan Interaktivitas:
-            // Jika login sebagai Koordinator Wilayah (mis. Koordinator Blok A), hanya unit dalam cakupannya (+ unit sendiri / fasum) yang interaktif.
-            $isInteractive = $isScopedCoordinator
-                ? ($hasGovernanceScopeOnUnit || $isMyUnit || $unit->unit_type === 'fasum')
-                : true;
+            // Semua warga terverifikasi (termasuk koordinator wilayah) dapat menginspeksi seluruh kavling;
+            // hak buka privasi & aksi verifikasi tetap terkunci hanya pada wilayah tugasnya.
+            $isInteractive = true;
 
-            $visibleMembers = $isInteractive
-                ? $unit->memberships
-                    ->filter(function ($m) use ($hasGovernanceScopeOnUnit, $canApproveUnit, $isMyUnit) {
-                        if ($m->is_approved) {
-                            return true;
-                        }
-
-                        return $hasGovernanceScopeOnUnit || $canApproveUnit || $isMyUnit;
-                    })
-                    ->map(function ($m) use ($viewer, $hasGovernanceScopeOnUnit, $isMyUnit, $subRoleLabels) {
-                        $user = $m->user;
-                        $profile = $user?->profile;
-                        $privacy = $profile?->privacy_settings ?? [];
-
-                        $bypassPrivacy = $hasGovernanceScopeOnUnit
-                            || $isMyUnit
-                            || ($user && (int) $user->id === (int) $viewer->id);
-
-                        $canSeeFullName = $bypassPrivacy || ($privacy['show_full_name'] ?? false);
-                        $canSeePhone = $bypassPrivacy || ($privacy['show_phone'] ?? false);
-                        $canSeeOwnership = $bypassPrivacy || ($privacy['show_ownership'] ?? false);
-
-                        $fullName = $user?->name ?? 'Warga';
-                        $publicName = $profile?->display_name ?: explode(' ', trim($fullName))[0];
-
-                        $isOwner = (bool) ($m->is_owner ?? ($m->entity_type === 'owner'));
-                        $isOccupant = (bool) ($m->is_occupant ?? true);
-                        $visibleOwner = $canSeeOwnership && $isOwner;
-
-                        $ownershipStatus = $m->ownership_verification_status ?: ($isOwner ? 'unverified_claim' : 'none');
-                        $isVerifiedShm = $visibleOwner && $ownershipStatus === 'verified_shm';
-
-                        // Status hunian fisik selalu terbuka sebagai fakta sosial lingkungan;
-                        // hanya status kepemilikan rumah yang tunduk pada kontrol privasi.
-                        $roleParts = [];
-                        if ($visibleOwner) {
-                            $roleParts[] = $subRoleLabels[$m->owner_role ?: 'primary_owner'] ?? 'Pemilik';
-                        }
-                        if ($isOccupant) {
-                            $roleParts[] = $subRoleLabels[$m->resident_role ?: 'primary_resident'] ?? 'Penghuni';
-                        } elseif ($visibleOwner) {
-                            $roleParts[] = 'Tidak Menghuni';
-                        } else {
-                            $roleParts[] = 'Warga Terhubung (Kepemilikan Diprivasi)';
-                        }
-
-                        return [
-                            'membership_id' => $m->id,
-                            'user_id' => $m->user_id,
-                            'name' => $canSeeFullName ? $fullName : $publicName,
-                            'phone' => $canSeePhone ? $profile?->phone : null,
-                            'is_owner' => $visibleOwner,
-                            'is_occupant' => $isOccupant,
-                            'ownership_verification_status' => $visibleOwner ? $ownershipStatus : 'none',
-                            'is_verified_shm' => $isVerifiedShm,
-                            'endorsement_count' => $isVerifiedShm ? $m->ownershipVerifications->count() : 0,
-                            'endorsed_by_sentence' => $isVerifiedShm ? $m->endorsed_by_sentence : null,
-                            'entity_type' => $visibleOwner ? 'owner' : ($isOccupant ? 'resident' : 'member'),
-                            'sub_role' => $visibleOwner ? ($m->owner_role ?: 'primary_owner') : ($isOccupant ? ($m->resident_role ?: 'primary_resident') : null),
-                            'sub_role_label' => implode(' • ', $roleParts),
-                            'is_approved' => (bool) $m->is_approved,
-                            'is_primary_contact' => (bool) $m->is_primary_contact,
-                        ];
-                    })
-                    ->values()
-                : collect();
-
-            // Ringkasan status bukti kepemilikan NIB SHM untuk ikon pada peta kavling (mematuhi privasi pemilik)
-            $publicApprovedOwners = $isInteractive
-                ? $unit->memberships->filter(function ($m) use ($viewer, $hasGovernanceScopeOnUnit, $isMyUnit) {
-                    if (! $m->is_approved || ! (bool) ($m->is_owner ?? ($m->entity_type === 'owner'))) {
-                        return false;
+            $visibleMembers = $unit->memberships
+                ->filter(function ($m) use ($hasGovernanceScopeOnUnit, $canApproveUnit, $isMyUnit) {
+                    if ($m->is_approved) {
+                        return true;
                     }
+
+                    return $hasGovernanceScopeOnUnit || $canApproveUnit || $isMyUnit;
+                })
+                ->map(function ($m) use ($viewer, $hasGovernanceScopeOnUnit, $isMyUnit, $subRoleLabels) {
                     $user = $m->user;
-                    $privacy = $user?->profile?->privacy_settings ?? [];
+                    $profile = $user?->profile;
+                    $privacy = $profile?->privacy_settings ?? [];
+
                     $bypassPrivacy = $hasGovernanceScopeOnUnit
                         || $isMyUnit
                         || ($user && (int) $user->id === (int) $viewer->id);
 
-                    return $bypassPrivacy || ($privacy['show_ownership'] ?? false);
+                    $canSeeFullName = $bypassPrivacy || ($privacy['show_full_name'] ?? false);
+                    $canSeePhone = $bypassPrivacy || ($privacy['show_phone'] ?? false);
+                    $canSeeOwnership = $bypassPrivacy || ($privacy['show_ownership'] ?? false);
+
+                    $fullName = $user?->name ?? 'Warga';
+                    $publicName = $profile?->display_name ?: explode(' ', trim($fullName))[0];
+
+                    $isOwner = (bool) ($m->is_owner ?? ($m->entity_type === 'owner'));
+                    $isOccupant = (bool) ($m->is_occupant ?? true);
+                    $visibleOwner = $canSeeOwnership && $isOwner;
+
+                    $ownershipStatus = $m->ownership_verification_status ?: ($isOwner ? 'unverified_claim' : 'none');
+                    $isVerifiedShm = $visibleOwner && $ownershipStatus === 'verified_shm';
+
+                    $roleParts = [];
+                    if ($visibleOwner) {
+                        $roleParts[] = $subRoleLabels[$m->owner_role ?: 'primary_owner'] ?? 'Pemilik';
+                    }
+                    if ($isOccupant) {
+                        $roleParts[] = $subRoleLabels[$m->resident_role ?: 'primary_resident'] ?? 'Penghuni';
+                    } elseif ($visibleOwner) {
+                        $roleParts[] = 'Tidak Menghuni';
+                    } else {
+                        $roleParts[] = 'Warga Terhubung (Kepemilikan Diprivasi)';
+                    }
+
+                    return [
+                        'membership_id' => $m->id,
+                        'user_id' => $m->user_id,
+                        'name' => $canSeeFullName ? $fullName : $publicName,
+                        'phone' => $canSeePhone ? $profile?->phone : null,
+                        'is_owner' => $visibleOwner,
+                        'is_occupant' => $isOccupant,
+                        'ownership_verification_status' => $visibleOwner ? $ownershipStatus : 'none',
+                        'is_verified_shm' => $isVerifiedShm,
+                        'endorsement_count' => $isVerifiedShm ? $m->ownershipVerifications->count() : 0,
+                        'endorsed_by_sentence' => $isVerifiedShm ? $m->endorsed_by_sentence : null,
+                        'entity_type' => $visibleOwner ? 'owner' : ($isOccupant ? 'resident' : 'member'),
+                        'sub_role' => $visibleOwner ? ($m->owner_role ?: 'primary_owner') : ($isOccupant ? ($m->resident_role ?: 'primary_resident') : null),
+                        'sub_role_label' => implode(' • ', $roleParts),
+                        'is_approved' => (bool) $m->is_approved,
+                        'is_primary_contact' => (bool) $m->is_primary_contact,
+                    ];
                 })
-                : collect();
+                ->values();
+
+            $publicApprovedOwners = $unit->memberships->filter(function ($m) use ($viewer, $hasGovernanceScopeOnUnit, $isMyUnit) {
+                if (! $m->is_approved || ! (bool) ($m->is_owner ?? ($m->entity_type === 'owner'))) {
+                    return false;
+                }
+                $user = $m->user;
+                $privacy = $user?->profile?->privacy_settings ?? [];
+                $bypassPrivacy = $hasGovernanceScopeOnUnit
+                    || $isMyUnit
+                    || ($user && (int) $user->id === (int) $viewer->id);
+
+                return $bypassPrivacy || ($privacy['show_ownership'] ?? false);
+            });
 
             $hasVerifiedShm = $publicApprovedOwners->contains(
                 fn ($m) => ($m->ownership_verification_status ?: 'unverified_claim') === 'verified_shm'
@@ -222,14 +212,12 @@ class SiteplanController extends Controller
                 ];
             })->values();
 
-            $activeStores = $isInteractive
-                ? $unit->umkmStores->map(fn ($store) => [
-                    'id' => $store->id,
-                    'store_name' => $store->store_name,
-                    'category' => $store->category,
-                    'status' => $store->status,
-                ])->values()
-                : collect();
+            $activeStores = $unit->umkmStores->map(fn ($store) => [
+                'id' => $store->id,
+                'store_name' => $store->store_name,
+                'category' => $store->category,
+                'status' => $store->status,
+            ])->values();
 
             $payload = [
                 'id' => $unit->id,
@@ -238,16 +226,16 @@ class SiteplanController extends Controller
                 'number' => $unit->number,
                 'unit_type' => $unit->unit_type,
                 'zone' => $unit->zone,
-                'occupancy_status' => $isInteractive ? $unit->occupancy_status : 'restricted',
+                'occupancy_status' => $unit->occupancy_status,
                 'map_coordinates' => $unit->map_coordinates,
                 'is_my_unit' => $isMyUnit,
                 'is_interactive' => $isInteractive,
-                'can_manage_unit' => $isInteractive && ($hasGovernanceScopeOnUnit || $canApproveUnit),
+                'can_manage_unit' => $hasGovernanceScopeOnUnit || $canApproveUnit,
                 'has_owner_claim' => $publicApprovedOwners->isNotEmpty(),
                 'has_verified_shm' => $hasVerifiedShm,
                 'has_unverified_claim' => $hasUnverifiedClaim,
                 'owners' => $ownersSummary,
-                'pending_count' => $isInteractive ? $unit->memberships->where('is_approved', false)->count() : 0,
+                'pending_count' => $unit->memberships->where('is_approved', false)->count(),
                 'active_stores_count' => $activeStores->count(),
                 'active_stores' => $activeStores,
                 'members' => $visibleMembers,

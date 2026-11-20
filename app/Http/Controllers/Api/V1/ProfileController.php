@@ -319,12 +319,17 @@ class ProfileController extends Controller
         ]);
     }
 
-    public function directory(): AnonymousResourceCollection
+    public function directory(Request $request): AnonymousResourceCollection
     {
-        $residents = User::query()
+        $query = User::query()
             ->whereHas('profile', fn ($q) => $q->where('is_verified', true))
-            ->with(['profile', 'unitMemberships.unit'])
-            ->get();
+            ->whereHas('unitMemberships', fn ($q) => $q->where('is_approved', true))
+            ->with([
+                'profile',
+                'unitMemberships' => fn ($q) => $q->where('is_approved', true)->with('unit'),
+            ]);
+
+        $residents = $query->orderBy('name')->get();
 
         return ResidentDirectoryResource::collection($residents);
     }
