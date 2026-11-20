@@ -85,20 +85,20 @@ class PpmtMapCoordinatesSeeder extends Seeder
             ];
         }
 
-        // 4. Blok B Klaster Timur Atas (B-1 turun 1px ke y=28; B-2..B-4 menyesuaikan ke y=30)
-        $map['B-1'] = ['x' => 22, 'y' => 28, 'w' => 6, 'h' => 2, 'orientation' => 'west'];
+        // 4. Blok B Klaster Timur Atas (B-1 turun 1px ke y=28; B-2..B-3 2x3, B-4 hook 3x3)
+        $map['B-1'] = ['x' => 22, 'y' => 27, 'w' => 7, 'h' => 3, 'orientation' => 'west'];
         $map['B-2'] = ['x' => 22, 'y' => 30, 'w' => 2, 'h' => 3, 'orientation' => 'south'];
         $map['B-3'] = ['x' => 24, 'y' => 30, 'w' => 2, 'h' => 3, 'orientation' => 'south'];
-        $map['B-4'] = ['x' => 26, 'y' => 30, 'w' => 2, 'h' => 3, 'orientation' => 'south'];
+        $map['B-4'] = ['x' => 26, 'y' => 30, 'w' => 3, 'h' => 3, 'orientation' => 'south'];
 
-        // 5. Blok B Klaster Timur Tengah (B-5 s/d B-10 -> masing-masing 2x3)
+        // 5. Blok B Klaster Timur Tengah (B-6..B-9 2x3, B-5 & B-10 hook 3x3)
         $map['B-7'] = ['x' => 22, 'y' => 36, 'w' => 2, 'h' => 3, 'orientation' => 'north'];
         $map['B-6'] = ['x' => 24, 'y' => 36, 'w' => 2, 'h' => 3, 'orientation' => 'north'];
-        $map['B-5'] = ['x' => 26, 'y' => 36, 'w' => 2, 'h' => 3, 'orientation' => 'north'];
+        $map['B-5'] = ['x' => 26, 'y' => 36, 'w' => 3, 'h' => 3, 'orientation' => 'north'];
 
         $map['B-8'] = ['x' => 22, 'y' => 39, 'w' => 2, 'h' => 3, 'orientation' => 'south'];
         $map['B-9'] = ['x' => 24, 'y' => 39, 'w' => 2, 'h' => 3, 'orientation' => 'south'];
-        $map['B-10'] = ['x' => 26, 'y' => 39, 'w' => 2, 'h' => 3, 'orientation' => 'south'];
+        $map['B-10'] = ['x' => 26, 'y' => 39, 'w' => 3, 'h' => 3, 'orientation' => 'south'];
 
         // 6. Pulau Tengah:
         //    - Blok B (B-24..B-11) digeser 1px ke kiri (x = 4..30) agar dinding B-24 sejajar taman x=4

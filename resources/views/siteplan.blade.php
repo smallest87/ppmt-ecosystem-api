@@ -616,7 +616,7 @@ function ppmtSiteplan() {
             // Koridor Jalan Lingkungan Utama (Cyan)
             { x: 16, y: 0, w: 6, h: 3, className: 'bg-sky-400/25 border-b border-dashed border-emerald-400/60', label: 'Gerbang Utara (Jl. Pandowo)' },
             { x: 19, y: 3, w: 3, h: 42, className: 'bg-sky-400/25', label: 'Jalan Utama ROW 6' },
-            { x: 22, y: 33, w: 6, h: 3, className: 'bg-sky-400/25', label: 'Jalan Blok B' },
+            { x: 22, y: 33, w: 7, h: 3, className: 'bg-sky-400/25', label: 'Jalan Blok B' },
             { x: 1, y: 42, w: 18, h: 3, className: 'bg-sky-400/25', label: 'Jalan ROW 6 Tengah Utara 1' },
             { x: 22, y: 42, w: 14, h: 3, className: 'bg-sky-400/25', label: 'Jalan ROW 6 Tengah Utara 2' },
             { x: 1, y: 45, w: 3, h: 6, className: 'bg-sky-400/25', label: 'Jalan ROW 6 Barat' },
@@ -631,10 +631,10 @@ function ppmtSiteplan() {
             { x: 22, y: 66, w: 3, h: 4, className: 'bg-sky-400/25', label: 'Jalan ROW 6 Blok D-16/D-17' },
 
             // Pos Satpam (Sisi kanan R2)
-            { x: 18, y: 3, w: 1, h: 2, className: 'bg-rose-600 border border-rose-400/60', label: 'Pos Satpam Gerbang Utama' },
+            { x: 18, y: 3, w: 1, h: 1, className: 'bg-rose-600 border border-rose-400/60', label: 'Pos Satpam Gerbang Utama' },
 
             // Fasum Taman (Hijau)
-            { x: 18, y: 5, w: 1, h: 2, className: 'bg-emerald-600', label: 'Taman Samping Pos Satpam' },
+            { x: 18, y: 4, w: 1, h: 3, className: 'bg-emerald-600', label: 'Taman Samping Pos Satpam' },
             { x: 15, y: 0, w: 1, h: 39, className: 'bg-emerald-600/85', label: 'Jalur Hijau Barat Utara' },
             { x: 0, y: 38, w: 15, h: 1, className: 'bg-emerald-600/85', label: 'Jalur Hijau Utara Blok A' },
             { x: 0, y: 39, w: 1, h: 15, className: 'bg-emerald-600/85', label: 'Jalur Hijau Barat' },
