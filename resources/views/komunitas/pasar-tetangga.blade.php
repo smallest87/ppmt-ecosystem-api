@@ -1,21 +1,166 @@
 @extends('layouts.app')
 
-@section('title', 'Pasar Tetangga PPMT — Katalog Produk & Jasa Warga')
+@php
+    $sharedItem = $sharedItem ?? null;
+    $ogTitle = $sharedItem
+        ? ($sharedItem['name'] . ' — ' . $sharedItem['storeName'] . ' (Pasar Tetangga PPMT)')
+        : 'Pasar Tetangga PPMT — Katalog Produk & Jasa Warga';
+    $ogPrice = $sharedItem
+        ? (($sharedItem['numericPrice'] ?? 0) > 0
+            ? 'Rp ' . number_format($sharedItem['numericPrice'], 0, ',', '.')
+            : 'Gratis / Pinjam')
+        : '';
+    $ogDesc = $sharedItem
+        ? trim($ogPrice . ($sharedItem['unitNote'] ? ' (' . $sharedItem['unitNote'] . ')' : '') . ' • Kav. ' . $sharedItem['unitCode'] . ($sharedItem['description'] ? ' — ' . \Illuminate\Support\Str::limit($sharedItem['description'], 130) : ''))
+        : 'Belanja, pesan jasa, dan pinjam alat langsung dari tetangga di Perumahan Pesona Mandiri Turen.';
+    $ogImage = (!empty($sharedItem['imageUrl'])) ? url($sharedItem['imageUrl']) : null;
+@endphp
+
+@section('title', $ogTitle)
 @section('subpage_title', 'Pasar Tetangga PPMT')
 @section('subpage_back_url', '/komunitas')
+
+@push('meta')
+    <meta property="og:type" content="product">
+    <meta property="og:site_name" content="PPMT Digital — Pasar Tetangga">
+    <meta property="og:title" content="{{ $ogTitle }}">
+    <meta property="og:description" content="{{ $ogDesc }}">
+    <meta property="og:url" content="{{ url()->current() }}">
+    @if($ogImage)
+        <meta property="og:image" content="{{ $ogImage }}">
+    @endif
+    <meta name="twitter:card" content="{{ $ogImage ? 'summary_large_image' : 'summary' }}">
+    <meta name="twitter:title" content="{{ $ogTitle }}">
+    <meta name="twitter:description" content="{{ $ogDesc }}">
+    @if($ogImage)
+        <meta name="twitter:image" content="{{ $ogImage }}">
+    @endif
+@endpush
 
 @section('content')
 <div x-data="ppmtMarketplace()"
      x-init="init()"
-     @keydown.escape.window="selectedItem = null"
-     class="max-w-6xl mx-auto px-2 py-4 sm:py-8 space-y-5">
+     @keydown.escape.window="closeItemDetail()"
+     class="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-5">
 
     <!-- Loading State -->
     <div x-show="loading" class="bg-white rounded-2xl p-12 text-center text-sm text-slate-500 border border-slate-200">
         Memuat etalase Pasar Tetangga PPMT...
     </div>
 
-    <div x-show="!loading && user" x-cloak class="space-y-5">
+    <!-- ===================================================================== -->
+    <!-- TAMPILAN TAMU (BELUM LOGIN / BELUM TERVERIFIKASI)                     -->
+    <!-- ===================================================================== -->
+    <div x-show="!loading && !isVerifiedCitizen" x-cloak class="space-y-5">
+
+        <!-- Kondisi 1: Tamu Membuka Link Item yang Dibagikan -->
+        <template x-if="guestSharedItem">
+            <div class="max-w-lg mx-auto bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+                <!-- Banner Info Pratinjau -->
+                <div class="px-4 py-2.5 bg-emerald-950 text-emerald-100 text-[11px] font-semibold flex items-center justify-between gap-2">
+                    <span>Pasar Tetangga PPMT &bull; Pratinjau Produk Warga</span>
+                    <span class="px-2 py-0.5 rounded bg-white/10 font-mono text-amber-300"
+                          x-text="'Kav. ' + guestSharedItem.unitCode"></span>
+                </div>
+
+                <!-- Foto / Ilustrasi Produk -->
+                <div :class="guestSharedItem.coverGradient"
+                     class="relative aspect-square max-h-80 w-full flex items-center justify-center overflow-hidden border-b border-slate-200/80">
+                    <img x-show="guestSharedItem.imageUrl"
+                         :src="guestSharedItem.imageUrl"
+                         :alt="guestSharedItem.name"
+                         x-on:error="guestSharedItem.imageUrl = ''"
+                         class="w-full h-full object-cover">
+                    <div x-show="!guestSharedItem.imageUrl"
+                         class="text-7xl select-none"
+                         x-text="guestSharedItem.emoji"></div>
+
+                    <span :class="{
+                            'bg-rose-600 text-white': guestSharedItem.isAvailable === false,
+                            'bg-slate-700/95 text-white': guestSharedItem.isAvailable !== false && guestSharedItem.storeStatus === 'closed' && guestSharedItem.badgeType !== 'po',
+                            'bg-emerald-600 text-white': guestSharedItem.isAvailable !== false && guestSharedItem.storeStatus !== 'closed' && guestSharedItem.badgeType === 'ready',
+                            'bg-amber-500 text-slate-950': guestSharedItem.isAvailable !== false && guestSharedItem.badgeType === 'po',
+                            'bg-indigo-600 text-white': guestSharedItem.isAvailable !== false && guestSharedItem.storeStatus !== 'closed' && guestSharedItem.badgeType === 'service',
+                            'bg-teal-600 text-white': guestSharedItem.isAvailable !== false && guestSharedItem.storeStatus !== 'closed' && guestSharedItem.badgeType === 'loan'
+                          }"
+                          class="absolute top-3 left-3 px-2.5 py-1 rounded-lg text-[11px] font-extrabold uppercase tracking-wide shadow-sm"
+                          x-text="guestSharedItem.isAvailable === false
+                              ? 'Stok Habis'
+                              : (guestSharedItem.storeStatus === 'closed' && guestSharedItem.badgeType !== 'po' ? 'Sedang Tutup' : guestSharedItem.badgeLabel)"></span>
+                </div>
+
+                <!-- Detail Harga, Lapak & Deskripsi -->
+                <div class="p-5 space-y-4">
+                    <div class="space-y-1">
+                        <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-700"
+                             x-text="guestSharedItem.categoryLabel"></div>
+                        <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 leading-snug"
+                            x-text="guestSharedItem.name"></h2>
+                        <div class="flex flex-wrap items-baseline text-emerald-800 pt-0.5">
+                            <span class="text-xl font-extrabold"
+                                  x-text="guestSharedItem.priceLabel"></span>
+                            <span x-show="guestSharedItem.numericPrice > 0 && guestSharedItem.unitNote"
+                                  class="text-xs font-medium text-slate-500 ml-1.5"
+                                  x-text="'/ ' + String(guestSharedItem.unitNote || '').replace(/^(\/\s*|per\s+)/i, '')"></span>
+                        </div>
+                    </div>
+
+                    <!-- Info Lapak -->
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-2 text-xs">
+                        <div class="min-w-0">
+                            <div class="font-bold text-slate-900 truncate" x-text="guestSharedItem.storeName"></div>
+                            <div class="text-slate-500"
+                                 x-text="'Kavling ' + guestSharedItem.unitCode + (guestSharedItem.operatingHours ? ' • Jam: ' + guestSharedItem.operatingHours : '')"></div>
+                        </div>
+                        <span :class="guestSharedItem.storeStatus === 'closed' ? 'bg-slate-200 text-slate-700' : 'bg-emerald-100 text-emerald-800'"
+                              class="px-2.5 py-1 rounded-full text-[11px] font-bold shrink-0"
+                              x-text="guestSharedItem.storeStatus === 'closed' ? '○ Tutup' : '● Buka'">
+                        </span>
+                    </div>
+
+                    <!-- Deskripsi -->
+                    <div x-show="guestSharedItem.description" class="space-y-1">
+                        <div class="text-xs font-bold text-slate-700">Deskripsi &amp; Ketentuan</div>
+                        <p class="text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line"
+                           x-text="guestSharedItem.description"></p>
+                    </div>
+
+                    <!-- Pengganti Form & Tombol Pesan: Login jika ingin memesan -->
+                    <div class="pt-3 border-t border-slate-100 space-y-2.5">
+                        <p class="text-[11px] text-slate-500 text-center leading-relaxed">
+                            Pemesanan dan kontak WhatsApp pelapak hanya tersedia bagi warga terverifikasi Perumahan Pesona Mandiri Turen.
+                        </p>
+                        <button type="button"
+                                @click="redirectToLoginForOrder()"
+                                class="w-full py-3 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs sm:text-sm font-extrabold shadow-sm transition cursor-pointer">
+                            <span x-text="user && !user.is_verified ? 'Menunggu Verifikasi Akun Warga' : 'Login jika ingin memesan →'"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Kondisi 2: Tamu Membuka Link Item yang Sudah Tidak Tersedia / Dihapus -->
+        <template x-if="!guestSharedItem">
+            <div class="max-w-md mx-auto bg-white rounded-2xl p-8 text-center border border-slate-200 shadow-sm space-y-3">
+                <div class="text-3xl">🏪</div>
+                <h2 class="text-base font-extrabold text-slate-900">Produk Tidak Ditemukan atau Etalase Khusus Warga</h2>
+                <p class="text-xs text-slate-600 leading-relaxed">
+                    Item yang Anda cari mungkin sudah dihapus oleh pelapak atau tautannya tidak valid. Silakan masuk sebagai warga PPMT untuk melihat seluruh katalog Pasar Tetangga.
+                </p>
+                <button type="button"
+                        @click="redirectToLoginForOrder()"
+                        class="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs sm:text-sm font-bold shadow-sm transition cursor-pointer">
+                    Login ke Portal Warga &rarr;
+                </button>
+            </div>
+        </template>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- TAMPILAN PENUH WARGA TERVERIFIKASI                                    -->
+    <!-- ===================================================================== -->
+    <div x-show="!loading && isVerifiedCitizen" x-cloak class="space-y-5">
 
         <!-- Banner Storefront -->
         <section class="bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-900 text-white rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -121,10 +266,8 @@
 
         <!-- Sentinel & Indikator Ekspansi Vertikal Bertahap -->
         <div x-show="filteredItems.length > 0" class="pt-1 pb-4">
-            <!-- Sentinel Pemantau Scroll -->
             <div x-ref="scrollSentinel" class="h-1 w-full" aria-hidden="true"></div>
 
-            <!-- Indikator Loading Batch Berikutnya -->
             <div x-show="loadingMore"
                  x-cloak
                  class="flex items-center justify-center gap-2 py-4 text-xs font-semibold text-emerald-800">
@@ -135,7 +278,6 @@
                 <span>Memuat produk &amp; jasa berikutnya...</span>
             </div>
 
-            <!-- Tombol Fallback jika User Ingin Memuat Manual -->
             <div x-show="hasMoreItems && !loadingMore"
                  class="flex justify-center pt-2">
                 <button type="button"
@@ -145,7 +287,6 @@
                 </button>
             </div>
 
-            <!-- Penanda Akhir Daftar -->
             <div x-show="!hasMoreItems && filteredItems.length > pageSize"
                  class="text-center text-[11px] text-slate-400 pt-2">
                 Semua <span x-text="filteredItems.length"></span> produk &amp; jasa telah ditampilkan
@@ -155,23 +296,37 @@
     </div>
 
     <!-- ===================================================================== -->
-    <!-- MODAL DETAIL PRODUK / JASA & CHECKOUT WHATSAPP                        -->
+    <!-- MODAL DETAIL PRODUK / JASA & CHECKOUT WHATSAPP (WARGA TERVERIFIKASI)  -->
     <!-- ===================================================================== -->
-    <div x-show="selectedItem !== null"
+    <div x-show="selectedItem !== null && isVerifiedCitizen"
          x-cloak
          class="fixed inset-0 z-50 !mt-0 flex items-center justify-center p-3 sm:p-4 bg-slate-900/55 backdrop-blur-[1px] overflow-y-auto">
-        <div @click.away="selectedItem = null"
+        <div @click.away="closeItemDetail()"
              class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-[calc(100vw-1.5rem)] sm:max-w-lg max-h-[90dvh] flex flex-col overflow-hidden my-auto">
 
             <!-- Header Visual Produk -->
             <div :class="selectedItem?.coverGradient || 'bg-emerald-50'"
                  class="relative px-5 py-6 flex items-center gap-4 border-b border-slate-200/80 shrink-0">
-                <button type="button"
-                        @click="selectedItem = null"
-                        aria-label="Tutup"
-                        class="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-slate-700 flex items-center justify-center text-sm font-bold shadow-2xs cursor-pointer">
-                    ✕
-                </button>
+                <!-- Tombol Bagikan & Tutup -->
+                <div class="absolute top-3 right-3 flex items-center gap-1.5">
+                    <button x-show="selectedItem && !selectedItem.isMockup"
+                            type="button"
+                            @click="shareCurrentItem()"
+                            title="Bagikan link produk ini"
+                            class="h-8 px-2.5 rounded-full bg-white/95 hover:bg-white text-emerald-800 border border-emerald-200/80 flex items-center gap-1 text-[11px] font-bold shadow-2xs cursor-pointer transition">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
+                        </svg>
+                        <span x-text="shareCopied ? 'Link Tersalin!' : 'Bagikan'"></span>
+                    </button>
+
+                    <button type="button"
+                            @click="closeItemDetail()"
+                            aria-label="Tutup"
+                            class="w-8 h-8 rounded-full bg-white/90 hover:bg-white text-slate-700 flex items-center justify-center text-sm font-bold shadow-2xs cursor-pointer">
+                        ✕
+                    </button>
+                </div>
 
                 <div class="w-20 h-20 rounded-2xl bg-white/85 border border-white shadow-xs flex items-center justify-center text-4xl shrink-0 overflow-hidden">
                     <img x-show="selectedItem?.imageUrl"
@@ -182,7 +337,7 @@
                     <span x-show="!selectedItem?.imageUrl" x-text="selectedItem?.emoji"></span>
                 </div>
 
-                <div class="min-w-0 flex-1 pr-6 space-y-1">
+                <div class="min-w-0 flex-1 pr-20 space-y-1">
                     <div class="flex flex-wrap items-center gap-1.5">
                         <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-white/90 text-slate-800"
                               x-text="selectedItem?.badgeLabel"></span>
@@ -308,6 +463,8 @@
 
 @push('scripts')
 <script>
+const PPMT_INITIAL_SHARED_ITEM = @json($sharedItem);
+
 function ppmtMarketplace() {
     return {
         token: localStorage.getItem('ppmt_token'),
@@ -320,7 +477,7 @@ function ppmtMarketplace() {
         selectedAvailability: 'all',
         sortBy: 'featured',
 
-        // Konfigurasi Progressive Pagination (2 halaman awal: 1 terlihat + 1 siap di bawah)
+        // Progressive Pagination (2 halaman awal: 1 terlihat + 1 siap di bawah)
         pageSize: 12,
         visibleCount: 24,
         loadingMore: false,
@@ -328,6 +485,8 @@ function ppmtMarketplace() {
         loadTimer: null,
 
         selectedItem: null,
+        guestSharedItem: null,
+        shareCopied: false,
         orderQty: 1,
         orderDelivery: 'Antar ke Kavling Saya',
         orderNote: '',
@@ -344,6 +503,8 @@ function ppmtMarketplace() {
         mockupItems: [
             {
                 id: 'mock-1',
+                storeId: null,
+                itemKey: null,
                 storeKey: 'mock-store-1',
                 isMockup: true,
                 isFeatured: false,
@@ -370,6 +531,8 @@ function ppmtMarketplace() {
             },
             {
                 id: 'mock-2',
+                storeId: null,
+                itemKey: null,
                 storeKey: 'mock-store-2',
                 isMockup: true,
                 isFeatured: false,
@@ -396,6 +559,8 @@ function ppmtMarketplace() {
             },
             {
                 id: 'mock-3',
+                storeId: null,
+                itemKey: null,
                 storeKey: 'mock-store-3',
                 isMockup: true,
                 isFeatured: false,
@@ -422,6 +587,8 @@ function ppmtMarketplace() {
             },
             {
                 id: 'mock-4',
+                storeId: null,
+                itemKey: null,
                 storeKey: 'mock-store-4',
                 isMockup: true,
                 isFeatured: false,
@@ -448,13 +615,40 @@ function ppmtMarketplace() {
             }
         ],
 
+        get isVerifiedCitizen() {
+            return Boolean(this.user && this.user.is_verified);
+        },
+
+        formatSharedItemForGuest(raw) {
+            if (!raw) return null;
+            const catCode = raw.category || 'lainnya';
+            const meta = this.categoryMeta(catCode);
+            const priceNum = Number(raw.numericPrice || 0);
+            const badgeType = raw.badgeType || 'ready';
+
+            return {
+                ...raw,
+                category: catCode,
+                categoryLabel: meta.label,
+                badgeType,
+                badgeLabel: this.badgeLabelFor(badgeType),
+                numericPrice: priceNum,
+                priceLabel: priceNum > 0 ? this.formatRupiah(priceNum) : (raw.itemKey === 'store' ? 'Tanya Harga via WA' : 'Gratis / Pinjam'),
+                emoji: meta.emoji,
+                coverGradient: meta.grad,
+            };
+        },
+
         async init() {
-            if (!this.token) {
-                window.location.href = '/';
+            this.guestSharedItem = this.formatSharedItemForGuest(PPMT_INITIAL_SHARED_ITEM);
+
+            // Jika tamu membuka katalog utama tanpa memilih item, arahkan ke halaman login
+            if (!this.token && !this.guestSharedItem) {
+                localStorage.setItem('ppmt_intended_url', window.location.pathname);
+                window.location.href = '/?login=1';
                 return;
             }
 
-            // Reset ke 2 halaman awal setiap kali filter/pencarian/urutan berubah
             const resetPagination = () => {
                 if (this.loadTimer) {
                     clearTimeout(this.loadTimer);
@@ -470,32 +664,76 @@ function ppmtMarketplace() {
             this.$watch('selectedAvailability', resetPagination);
             this.$watch('sortBy', resetPagination);
 
+            if (!this.token) {
+                // Mode Tamu: tampilkan kartu pratinjau item tanpa membocorkan nomor WA & etalase penuh
+                this.loading = false;
+                return;
+            }
+
             try {
                 const [meRes, storesRes] = await Promise.all([
                     fetch('/api/v1/me', { headers: this.headers() }),
                     fetch('/api/v1/umkm/stores', { headers: this.headers() }),
                 ]);
 
-                if (!meRes.ok) throw new Error('Unauthorized');
+                if (!meRes.ok) {
+                    localStorage.removeItem('ppmt_token');
+                    this.token = null;
+                    if (!this.guestSharedItem) {
+                        localStorage.setItem('ppmt_intended_url', window.location.pathname);
+                        window.location.href = '/?login=1';
+                        return;
+                    }
+                    this.loading = false;
+                    return;
+                }
+
                 const meJson = await meRes.json();
                 this.user = meJson.data;
 
                 if (!this.user?.is_verified) {
-                    window.location.href = '/dashboard';
+                    if (!this.guestSharedItem) {
+                        window.location.href = '/dashboard';
+                        return;
+                    }
+                    this.loading = false;
                     return;
                 }
 
                 if (storesRes.ok) {
                     const storesJson = await storesRes.json();
                     this.hydrateStoresCatalog(storesJson.data || []);
+
+                    // Jika dibuka via deep link produk, otomatis buka modal pemesanan lengkap
+                    if (this.guestSharedItem) {
+                        const matched = this.liveItems.find(i => i.id === this.guestSharedItem.id);
+                        if (matched) {
+                            this.openItemDetail(matched, false);
+                        }
+                    }
                 }
             } catch (e) {
                 localStorage.removeItem('ppmt_token');
-                window.location.href = '/';
+                this.token = null;
+                if (!this.guestSharedItem) {
+                    window.location.href = '/?login=1';
+                    return;
+                }
             } finally {
                 this.loading = false;
-                this.$nextTick(() => this.setupScrollObserver());
+                if (this.isVerifiedCitizen) {
+                    this.$nextTick(() => this.setupScrollObserver());
+                }
             }
+        },
+
+        redirectToLoginForOrder() {
+            if (this.user && !this.user.is_verified) {
+                window.location.href = '/dashboard';
+                return;
+            }
+            localStorage.setItem('ppmt_intended_url', window.location.pathname);
+            window.location.href = '/?login=1';
         },
 
         setupScrollObserver() {
@@ -600,9 +838,12 @@ function ppmtMarketplace() {
                         const meta = this.categoryMeta(catCode);
                         const badgeType = prod.badge_type || (store.status === 'open_po' ? 'po' : 'ready');
                         const priceNum = Number(prod.price || 0);
+                        const itemKey = String(prod.id ?? idx);
 
                         flattened.push({
-                            id: `live-${store.id}-${prod.id || idx}`,
+                            id: `live-${store.id}-${itemKey}`,
+                            storeId: store.id,
+                            itemKey,
                             storeKey,
                             isMockup: false,
                             isFeatured,
@@ -635,6 +876,8 @@ function ppmtMarketplace() {
 
                     flattened.push({
                         id: `store-${store.id}`,
+                        storeId: store.id,
+                        itemKey: 'store',
                         storeKey,
                         isMockup: false,
                         isFeatured,
@@ -769,11 +1012,66 @@ function ppmtMarketplace() {
             return 'Rp ' + Number(value || 0).toLocaleString('id-ID');
         },
 
-        openItemDetail(item) {
+        getShareablePath(item) {
+            if (!item || item.isMockup || !item.storeId) {
+                return '/komunitas/pasar-tetangga';
+            }
+            const itemKey = item.itemKey || 'store';
+            return `/komunitas/pasar-tetangga/p/${item.storeId}/${encodeURIComponent(itemKey)}`;
+        },
+
+        openItemDetail(item, syncUrl = true) {
             this.selectedItem = item;
+            this.shareCopied = false;
             this.orderQty = 1;
             this.orderDelivery = 'Antar ke Kavling Saya';
             this.orderNote = '';
+
+            if (syncUrl && window.history && typeof window.history.replaceState === 'function') {
+                const targetPath = this.getShareablePath(item);
+                if (window.location.pathname !== targetPath) {
+                    window.history.replaceState({ itemId: item.id }, '', targetPath);
+                }
+            }
+        },
+
+        closeItemDetail() {
+            if (!this.selectedItem) return;
+            this.selectedItem = null;
+            this.shareCopied = false;
+
+            if (window.history && typeof window.history.replaceState === 'function') {
+                if (window.location.pathname !== '/komunitas/pasar-tetangga') {
+                    window.history.replaceState({}, '', '/komunitas/pasar-tetangga');
+                }
+            }
+        },
+
+        async shareCurrentItem() {
+            if (!this.selectedItem) return;
+            const shareUrl = window.location.origin + this.getShareablePath(this.selectedItem);
+            const shareText = `${this.selectedItem.name} (${this.selectedItem.priceLabel}) di ${this.selectedItem.storeName} — Pasar Tetangga PPMT`;
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: this.selectedItem.name,
+                        text: shareText,
+                        url: shareUrl
+                    });
+                    return;
+                } catch (e) {
+                    // User membatalkan dialog share atau browser menolak; lanjut fallback salin
+                }
+            }
+
+            try {
+                await navigator.clipboard.writeText(shareUrl);
+                this.shareCopied = true;
+                setTimeout(() => { this.shareCopied = false; }, 2500);
+            } catch (e) {
+                window.prompt('Salin tautan produk berikut:', shareUrl);
+            }
         },
 
         buildOrderWhatsappUrl() {

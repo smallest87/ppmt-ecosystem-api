@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Paguyuban Warga PPMT — Perumahan Pesona Mandiri Turen')</title>
+    @stack('meta')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
@@ -88,7 +89,7 @@
         <header class="bg-white text-slate-900 border-b border-slate-200 sticky top-0 z-40">
             <div class="max-w-6xl mx-auto px-4 h-14 flex items-center gap-3">
                 <button type="button"
-                        onclick="if (document.referrer && document.referrer.indexOf(window.location.origin) === 0) { window.history.back(); } else { window.location.href = '{{ View::yieldContent('subpage_back_url', '/dashboard') }}'; }"
+                        onclick="if (document.referrer && document.referrer.indexOf(window.location.origin) === 0) { window.history.back(); } else if (!localStorage.getItem('ppmt_token')) { window.location.href = '/'; } else { window.location.href = '{{ View::yieldContent('subpage_back_url', '/dashboard') }}'; }"
                         aria-label="Kembali"
                         title="Kembali"
                         class="w-9 h-9 -ml-1.5 rounded-xl flex items-center justify-center text-slate-700 hover:bg-slate-100 active:bg-slate-200 transition cursor-pointer shrink-0">

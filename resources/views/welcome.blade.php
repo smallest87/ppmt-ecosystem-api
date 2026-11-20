@@ -428,6 +428,15 @@ function ppmtPublicHome() {
             }
         },
 
+        resolvePostLoginRedirect() {
+            const intended = localStorage.getItem('ppmt_intended_url');
+            localStorage.removeItem('ppmt_intended_url');
+            if (intended && intended.startsWith('/') && !intended.startsWith('//')) {
+                return intended;
+            }
+            return '/dashboard';
+        },
+
         handleExternalModalEvent(detail) {
             if (detail === 'register') {
                 window.location.href = '/register';
@@ -438,7 +447,7 @@ function ppmtPublicHome() {
 
         openLoginModal() {
             if (this.hasToken) {
-                window.location.href = '/dashboard';
+                window.location.href = this.resolvePostLoginRedirect();
                 return;
             }
             this.modalMode = 'login';
@@ -475,7 +484,7 @@ function ppmtPublicHome() {
                 sessionStorage.removeItem('ppmt_admin_restore_token');
                 sessionStorage.removeItem('ppmt_nav_profile');
                 localStorage.setItem('ppmt_token', json.token);
-                window.location.href = '/dashboard';
+                window.location.href = this.resolvePostLoginRedirect();
             } catch (e) {
                 this.alertType = 'error';
                 this.alertMessage = 'Terjadi gangguan koneksi ke server.';
@@ -537,7 +546,7 @@ function ppmtPublicHome() {
                 sessionStorage.removeItem('ppmt_admin_restore_token');
                 sessionStorage.removeItem('ppmt_nav_profile');
                 localStorage.setItem('ppmt_token', json.token);
-                window.location.href = '/dashboard';
+                window.location.href = this.resolvePostLoginRedirect();
             } catch (e) {
                 this.alertType = 'error';
                 this.alertMessage = 'Terjadi gangguan koneksi ke server.';
