@@ -1,12 +1,14 @@
 <?php
 
 use App\Models\UmkmStore;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+// Halaman Publik & Beranda Utama
 Route::view('/', 'welcome')->name('home');
 Route::view('/register', 'register')->name('register');
 Route::view('/dashboard', 'dashboard')->name('dashboard');
-Route::view('/agenda', 'agenda.index')->name('agenda.index');
+Route::view('/peta-kavling', 'siteplan')->name('siteplan');
 
 // Pengaturan Modular (Hub + Sub-halaman Terfokus)
 Route::prefix('pengaturan')->name('pengaturan.')->group(function () {
@@ -28,98 +30,105 @@ Route::prefix('pengurus')->name('pengurus.')->group(function () {
 });
 Route::redirect('/admin', '/pengurus');
 
-// Komunitas & Pasar Tetangga
-Route::view('/komunitas', 'komunitas')->name('komunitas');
-Route::view('/komunitas/pasar-tetangga', 'komunitas.pasar-tetangga')->name('komunitas.pasar-tetangga');
+// Komunitas, Agenda & Pasar Tetangga
+Route::prefix('komunitas')->group(function () {
+    Route::view('/', 'komunitas')->name('komunitas');
+    Route::view('/agenda', 'komunitas.agenda')->name('komunitas.agenda');
+    Route::view('/pasar-tetangga', 'komunitas.pasar-tetangga')->name('komunitas.pasar-tetangga');
 
-// Sharable Deep Link Produk / Jasa Pasar Tetangga (dengan Open Graph Preview WhatsApp)
-Route::get('/komunitas/pasar-tetangga/p/{store}/{itemId}', function (int $store, string $itemId) {
-    $storeModel = UmkmStore::query()
-        ->with(['unit:id,code', 'owner:id,name', 'owner.profile:user_id,display_name,privacy_settings'])
-        ->where('id', $store)
-        ->where('is_suspended', false)
-        ->first();
+    // Sharable Deep Link Produk / Jasa Pasar Tetangga (dengan Open Graph Preview WhatsApp)
+    Route::get('/pasar-tetangga/p/{store}/{itemId}', function (int $store, string $itemId) {
+        $storeModel = UmkmStore::query()
+            ->with(['unit:id,code', 'owner:id,name', 'owner.profile:user_id,display_name,privacy_settings'])
+            ->where('id', $store)
+            ->where('is_suspended', false)
+            ->first();
 
-    $sharedItem = null;
+        $sharedItem = null;
 
-    if ($storeModel) {
-        $ownerProfile = $storeModel->owner?->profile;
-        $privacy = $ownerProfile?->privacy_settings ?? [];
-        $showFullName = (bool) ($privacy['show_full_name'] ?? false);
-        $publicOwnerName = $ownerProfile?->display_name
-            ?: ($showFullName ? $storeModel->owner?->name : explode(' ', trim((string) $storeModel->owner?->name))[0]);
+        if ($storeModel) {
+            $ownerProfile = $storeModel->owner?->profile;
+            $privacy = $ownerProfile?->privacy_settings ?? [];
+            $showFullName = (bool) ($privacy['show_full_name'] ?? false);
+            $publicOwnerName = $ownerProfile?->display_name
+                ?: ($showFullName ? $storeModel->owner?->name : explode(' ', trim((string) $storeModel->owner?->name))[0]);
 
-        $catalog = is_array($storeModel->catalog_items) ? $storeModel->catalog_items : [];
-        $foundProduct = null;
-        $foundKey = $itemId;
+            $catalog = is_array($storeModel->catalog_items) ? $storeModel->catalog_items : [];
+            $foundProduct = null;
+            $foundKey = $itemId;
 
-        if ($itemId !== 'store') {
-            foreach ($catalog as $idx => $prod) {
-                $currentKey = (string) ($prod['id'] ?? $idx);
-                if ($currentKey === $itemId) {
-                    $foundProduct = $prod;
-                    $foundKey = $currentKey;
-                    break;
+            if ($itemId !== 'store') {
+                foreach ($catalog as $idx => $prod) {
+                    $currentKey = (string) ($prod['id'] ?? $idx);
+                    if ($currentKey === $itemId) {
+                        $foundProduct = $prod;
+                        $foundKey = $currentKey;
+                        break;
+                    }
                 }
+            }
+
+            if ($foundProduct) {
+                $priceNum = (float) ($foundProduct['price'] ?? 0);
+                $sharedItem = [
+                    'id' => "live-{$storeModel->id}-{$foundKey}",
+                    'storeId' => $storeModel->id,
+                    'itemKey' => $foundKey,
+                    'name' => $foundProduct['name'] ?? $storeModel->store_name,
+                    'category' => $foundProduct['category'] ?? $storeModel->category ?? 'lainnya',
+                    'badgeType' => $foundProduct['badge_type'] ?? ($storeModel->status === 'open_po' ? 'po' : 'ready'),
+                    'numericPrice' => $priceNum,
+                    'unitNote' => $foundProduct['unit_note'] ?? '',
+                    'unitCode' => $storeModel->unit?->code ?? 'PPMT',
+                    'storeName' => $storeModel->store_name,
+                    'ownerName' => $publicOwnerName ?: 'Warga PPMT',
+                    'storeStatus' => $storeModel->status === 'closed' ? 'closed' : 'open',
+                    'operatingHours' => $storeModel->operating_hours ?? '',
+                    'isFeatured' => (bool) $storeModel->is_currently_featured,
+                    'isAvailable' => ($foundProduct['is_available'] ?? true) !== false,
+                    'deliveryTag' => $foundProduct['delivery_tag'] ?? '',
+                    'imageUrl' => $foundProduct['image_url'] ?? '',
+                    'description' => $foundProduct['description'] ?? $storeModel->description ?? '',
+                ];
+            } elseif ($itemId === 'store' || empty($catalog)) {
+                $catCode = $storeModel->category ?? 'lainnya';
+                $sharedItem = [
+                    'id' => "store-{$storeModel->id}",
+                    'storeId' => $storeModel->id,
+                    'itemKey' => 'store',
+                    'name' => $storeModel->store_name,
+                    'category' => $catCode,
+                    'badgeType' => $storeModel->status === 'open_po' ? 'po' : ($catCode === 'jasa' ? 'service' : ($catCode === 'pinjam_alat' ? 'loan' : 'ready')),
+                    'numericPrice' => 0,
+                    'unitNote' => 'Lapak Usaha Warga',
+                    'unitCode' => $storeModel->unit?->code ?? 'PPMT',
+                    'storeName' => $storeModel->store_name,
+                    'ownerName' => $publicOwnerName ?: 'Warga PPMT',
+                    'storeStatus' => $storeModel->status === 'closed' ? 'closed' : 'open',
+                    'operatingHours' => $storeModel->operating_hours ?? '',
+                    'isFeatured' => (bool) $storeModel->is_currently_featured,
+                    'isAvailable' => true,
+                    'deliveryTag' => '',
+                    'imageUrl' => '',
+                    'description' => $storeModel->description ?? '',
+                ];
             }
         }
 
-        if ($foundProduct) {
-            $priceNum = (float) ($foundProduct['price'] ?? 0);
-            $sharedItem = [
-                'id' => "live-{$storeModel->id}-{$foundKey}",
-                'storeId' => $storeModel->id,
-                'itemKey' => $foundKey,
-                'name' => $foundProduct['name'] ?? $storeModel->store_name,
-                'category' => $foundProduct['category'] ?? $storeModel->category ?? 'lainnya',
-                'badgeType' => $foundProduct['badge_type'] ?? ($storeModel->status === 'open_po' ? 'po' : 'ready'),
-                'numericPrice' => $priceNum,
-                'unitNote' => $foundProduct['unit_note'] ?? '',
-                'unitCode' => $storeModel->unit?->code ?? 'PPMT',
-                'storeName' => $storeModel->store_name,
-                'ownerName' => $publicOwnerName ?: 'Warga PPMT',
-                'storeStatus' => $storeModel->status === 'closed' ? 'closed' : 'open',
-                'operatingHours' => $storeModel->operating_hours ?? '',
-                'isFeatured' => (bool) $storeModel->is_currently_featured,
-                'isAvailable' => ($foundProduct['is_available'] ?? true) !== false,
-                'deliveryTag' => $foundProduct['delivery_tag'] ?? '',
-                'imageUrl' => $foundProduct['image_url'] ?? '',
-                'description' => $foundProduct['description'] ?? $storeModel->description ?? '',
-            ];
-        } elseif ($itemId === 'store' || empty($catalog)) {
-            $catCode = $storeModel->category ?? 'lainnya';
-            $sharedItem = [
-                'id' => "store-{$storeModel->id}",
-                'storeId' => $storeModel->id,
-                'itemKey' => 'store',
-                'name' => $storeModel->store_name,
-                'category' => $catCode,
-                'badgeType' => $storeModel->status === 'open_po' ? 'po' : ($catCode === 'jasa' ? 'service' : ($catCode === 'pinjam_alat' ? 'loan' : 'ready')),
-                'numericPrice' => 0,
-                'unitNote' => 'Lapak Usaha Warga',
-                'unitCode' => $storeModel->unit?->code ?? 'PPMT',
-                'storeName' => $storeModel->store_name,
-                'ownerName' => $publicOwnerName ?: 'Warga PPMT',
-                'storeStatus' => $storeModel->status === 'closed' ? 'closed' : 'open',
-                'operatingHours' => $storeModel->operating_hours ?? '',
-                'isFeatured' => (bool) $storeModel->is_currently_featured,
-                'isAvailable' => true,
-                'deliveryTag' => '',
-                'imageUrl' => '',
-                'description' => $storeModel->description ?? '',
-            ];
-        }
-    }
+        return view('komunitas.pasar-tetangga', [
+            'sharedItem' => $sharedItem,
+        ]);
+    })->where([
+        'store' => '[0-9]+',
+        'itemId' => '[A-Za-z0-9\-_]+',
+    ])->name('komunitas.pasar-tetangga.item');
+});
 
-    return view('komunitas.pasar-tetangga', [
-        'sharedItem' => $sharedItem,
-    ]);
-})->where([
-    'store' => '[0-9]+',
-    'itemId' => '[A-Za-z0-9\-_]+',
-])->name('komunitas.pasar-tetangga.item');
-
-Route::view('/peta-kavling', 'siteplan')->name('siteplan');
+// Redirect permanen rute lama /agenda ke /komunitas/agenda (meneruskan query string)
+Route::get('/agenda', function (Request $request) {
+    $query = $request->getQueryString();
+    return redirect('/komunitas/agenda' . ($query ? '?' . $query : ''), 301);
+});
 
 // Permalink Berita Warga: /berita/2026/11/17/judul-berita-slug
 Route::get('/berita/{year}/{month}/{day}/{slug}', function ($year, $month, $day, $slug) {

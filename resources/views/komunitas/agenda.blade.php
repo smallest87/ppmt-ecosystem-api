@@ -2,7 +2,7 @@
 
 @section('title', 'Agenda Warga — PPMT Digital')
 @section('subpage_title', 'Agenda & Jadwal Warga')
-@section('subpage_back_url', '/dashboard')
+@section('subpage_back_url', '/komunitas')
 
 @section('content')
 <div x-data="ppmtAgendaDirectory()"

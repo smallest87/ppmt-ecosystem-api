@@ -5,21 +5,26 @@
 @section('content')
 <div x-data="ppmtCommunity()" x-init="init()" @keydown.escape.window="selectedMinute = null; signModalAspiration = null; reviewModalAspiration = null" class="max-w-6xl mx-auto px-4 py-8 space-y-6">
 
-    <!-- Tab Switcher Utama (4 Tab Internal + 2 Tautan Halaman Mandiri) -->
+    <!-- Tab Switcher Utama (4 Tab Internal + 3 Tautan Halaman Mandiri) -->
     <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
         <div>
             <h1 class="text-xl font-extrabold text-slate-900">Komunitas &amp; Peta Lingkungan PPMT</h1>
             <p class="text-xs text-slate-500">Eksklusif bagi warga terverifikasi &bull; Aspirasi kolektif, transparansi kas, arsip musyawarah &amp; ekonomi tetangga.</p>
         </div>
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 bg-slate-100 p-1 rounded-xl text-xs font-bold shrink-0 gap-1">
+        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 bg-slate-100 p-1 rounded-xl text-xs font-bold shrink-0 gap-1">
             <a href="/komunitas/pasar-tetangga"
-               class="px-3 py-2 rounded-lg transition text-center text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 flex items-center justify-center gap-1">
+               class="px-2.5 py-2 rounded-lg transition text-center text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 flex items-center justify-center gap-1">
                 <span>Pasar Tetangga</span>
+                <span class="text-[10px]">&nearr;</span>
+            </a>
+            <a href="/komunitas/agenda"
+               class="px-2.5 py-2 rounded-lg transition text-center text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 flex items-center justify-center gap-1">
+                <span>Agenda</span>
                 <span class="text-[10px]">&nearr;</span>
             </a>
             <button type="button" @click="setTab('aspirasi')"
                     :class="tab === 'aspirasi' ? 'bg-emerald-700 text-white shadow' : 'text-slate-600 hover:text-slate-900'"
-                    class="px-3 py-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5">
+                    class="px-2.5 py-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5">
                 <span>Aspirasi</span>
                 <span x-show="openAspirationsCount > 0"
                       :class="tab === 'aspirasi' ? 'bg-amber-400 text-slate-950' : 'bg-emerald-100 text-emerald-800'"
@@ -28,21 +33,21 @@
             </button>
             <button type="button" @click="setTab('kas')"
                     :class="tab === 'kas' ? 'bg-emerald-700 text-white shadow' : 'text-slate-600 hover:text-slate-900'"
-                    class="px-3 py-2 rounded-lg transition cursor-pointer">
+                    class="px-2.5 py-2 rounded-lg transition cursor-pointer">
                 Kas &amp; Iuran
             </button>
             <button type="button" @click="setTab('directory')"
                     :class="tab === 'directory' ? 'bg-emerald-700 text-white shadow' : 'text-slate-600 hover:text-slate-900'"
-                    class="px-3 py-2 rounded-lg transition cursor-pointer">
+                    class="px-2.5 py-2 rounded-lg transition cursor-pointer">
                 Direktori Warga
             </button>
             <button type="button" @click="setTab('minutes')"
                     :class="tab === 'minutes' ? 'bg-emerald-700 text-white shadow' : 'text-slate-600 hover:text-slate-900'"
-                    class="px-3 py-2 rounded-lg transition cursor-pointer">
+                    class="px-2.5 py-2 rounded-lg transition cursor-pointer">
                 Notulensi &amp; Tatib
             </button>
             <a href="/peta-kavling"
-               class="px-3 py-2 rounded-lg transition text-center text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 flex items-center justify-center gap-1">
+               class="px-2.5 py-2 rounded-lg transition text-center text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 flex items-center justify-center gap-1">
                 <span>Peta 91 Kavling</span>
                 <span class="text-[10px]">&nearr;</span>
             </a>
@@ -500,7 +505,12 @@
                 <h2 class="text-lg font-bold text-slate-900">Arsip Notulensi Rapat &amp; Tata Tertib Lingkungan</h2>
                 <p class="text-xs text-slate-500">Dokumen kesepakatan musyawarah warga dan tata tertib yang berlaku di Perumahan Pesona Mandiri Turen.</p>
             </div>
-            <div class="flex items-center gap-2 shrink-0">
+            <div class="flex flex-wrap items-center gap-2 shrink-0">
+                <a href="/komunitas/agenda"
+                   class="px-3 py-2 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 text-xs font-bold transition flex items-center gap-1">
+                    <span>Jadwal &amp; Agenda</span>
+                    <span class="text-[10px]">&nearr;</span>
+                </a>
                 <select x-model="filterMinuteCategory" class="rounded-xl border-slate-300 text-xs">
                     <option value="">Semua Dokumen</option>
                     <option value="musyawarah_warga">Musyawarah Warga</option>
@@ -706,6 +716,8 @@ function ppmtCommunity() {
 
     if (requestedTab === 'umkm') {
         window.location.replace('/komunitas/pasar-tetangga');
+    } else if (requestedTab === 'agenda') {
+        window.location.replace('/komunitas/agenda');
     } else if (requestedTab === 'siteplan') {
         window.location.replace('/peta-kavling');
     }

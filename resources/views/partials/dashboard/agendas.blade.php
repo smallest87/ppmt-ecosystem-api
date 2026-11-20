@@ -24,14 +24,14 @@
             <!-- Teks Notifikasi -->
             <p class="text-sm text-slate-800 leading-snug min-w-0 flex-1">
                 <span>Ada </span>
-                <a :href="'/agenda?visibility=' + encodeURIComponent(grp.visibility)"
-                   :class="grp.visibility === 'invite_only'
-                        ? 'text-purple-800 decoration-purple-500/70 hover:text-purple-950'
-                        : (grp.visibility === 'block'
-                            ? 'text-amber-900 decoration-amber-500/70 hover:text-amber-950'
-                            : 'text-emerald-800 decoration-emerald-500/70 hover:text-emerald-950')"
-                   class="font-extrabold underline underline-offset-2 transition"
-                   x-text="grp.count + ' Agenda,'"></a>
+                <a :href="'/komunitas/agenda?visibility=' + encodeURIComponent(grp.visibility)"
+                    :class="grp.visibility === 'invite_only'
+                            ? 'text-purple-800 decoration-purple-500/70 hover:text-purple-950'
+                            : (grp.visibility === 'block'
+                                ? 'text-amber-900 decoration-amber-500/70 hover:text-amber-950'
+                                : 'text-emerald-800 decoration-emerald-500/70 hover:text-emerald-950')"
+                    class="font-extrabold underline underline-offset-2 transition"
+                    x-text="grp.count + ' Agenda,'"></a>
                 <span>cek sekarang juga!</span>
             </p>
 
@@ -42,9 +42,9 @@
                    class="hidden sm:inline-flex px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white text-indigo-700 border border-indigo-200 hover:bg-indigo-50 transition">
                     + Kelola
                 </a>
-                <a :href="'/agenda?visibility=' + encodeURIComponent(grp.visibility)"
-                   aria-label="Lihat detail agenda"
-                   class="text-slate-600 hover:text-slate-900 font-bold text-lg leading-none px-1 transition">
+                <a :href="'/komunitas/agenda?visibility=' + encodeURIComponent(grp.visibility)"
+                aria-label="Lihat detail agenda"
+                class="text-slate-600 hover:text-slate-900 font-bold text-lg leading-none px-1 transition">
                     &rsaquo;
                 </a>
             </div>
