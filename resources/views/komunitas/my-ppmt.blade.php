@@ -109,17 +109,33 @@
          class="hidden fixed top-16 left-1/2 -translate-x-1/2 z-40 retro-panel px-4 py-2 rounded-lg text-xs sm:text-sm font-bold text-[#141824] pointer-events-none">
     </div>
 
-    <!-- Radar Minimap Kiri Bawah -->
-    <div class="fixed bottom-3 left-3 z-20 retro-panel p-2 rounded-xl pointer-events-auto">
-        <div class="flex items-center justify-between text-[10px] font-bold text-slate-600 mb-1 px-0.5">
-            <span>RADAR</span>
-            <span id="radarCompassText">U ▲</span>
-        </div>
-        <canvas id="minimapCanvas" width="112" height="156" class="block rounded border border-[#141824] bg-[#e9e4c8] cursor-pointer"></canvas>
-    </div>
-
-    <!-- Kontrol Kamera & Uji Kanan Bawah -->
+    <!-- Radar Minimap & Kontrol Kamera Kanan Bawah -->
     <div class="fixed bottom-3 right-3 z-20 flex flex-col items-end gap-2 pointer-events-auto">
+        <!-- Drawer Minimap Menempel di Sisi Kanan Frame -->
+        <div class="flex items-stretch justify-end">
+            <!-- Tombol Buka Minimap (Tampil Saat Tersembunyi) -->
+            <button id="btnOpenMinimap" type="button" title="Tampilkan minimap" aria-label="Tampilkan minimap"
+                    class="retro-btn px-2.5 py-2 rounded-lg bg-[#f4f1de] hover:bg-[#e9e4c8] text-[#141824] text-xs font-extrabold cursor-pointer flex items-center gap-1">
+                <span>◀</span>
+                <span class="hidden sm:inline">RADAR</span>
+            </button>
+
+            <!-- Panel Minimap Terbuka ke Kiri (Menempel di Kanan Frame) -->
+            <div id="minimapDrawer" class="hidden retro-panel p-2 rounded-xl flex items-stretch gap-2">
+                <div>
+                    <div class="flex items-center justify-between text-[10px] font-bold text-slate-600 mb-1 px-0.5">
+                        <span>RADAR</span>
+                        <span id="radarCompassText">U ▲</span>
+                    </div>
+                    <canvas id="minimapCanvas" width="112" height="156" class="block rounded border border-[#141824] bg-[#e9e4c8] cursor-pointer"></canvas>
+                </div>
+                <button id="btnHideMinimap" type="button" title="Sembunyikan minimap" aria-label="Sembunyikan minimap"
+                        class="retro-btn px-1.5 rounded-lg bg-[#29324a] hover:bg-[#384463] text-[#f4f1de] text-xs font-extrabold cursor-pointer flex items-center justify-center self-stretch">
+                    ▶
+                </button>
+            </div>
+        </div>
+
         <div class="flex items-center gap-1.5">
             <button id="btnToggleBgm" type="button" title="Musik Latar"
                     class="retro-btn px-2.5 py-1.5 rounded-lg bg-[#29324a] hover:bg-[#384463] text-[#f4f1de] text-xs font-extrabold cursor-pointer">

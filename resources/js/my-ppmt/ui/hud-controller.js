@@ -19,6 +19,23 @@ function mount({ canvas, minimapCanvas, units, state, apiClient, onCacheDirty, o
         const contextMenu = document.getElementById('contextMenu');
         const inspectorModal = document.getElementById('inspectorModal');
 
+        const btnOpenMinimap = document.getElementById('btnOpenMinimap');
+        const btnHideMinimap = document.getElementById('btnHideMinimap');
+        const minimapDrawer = document.getElementById('minimapDrawer');
+
+        function setMinimapOpen(isOpen) {
+            if (!minimapDrawer || !btnOpenMinimap) return;
+            minimapDrawer.classList.toggle('hidden', !isOpen);
+            btnOpenMinimap.classList.toggle('hidden', isOpen);
+        }
+
+        if (btnOpenMinimap) {
+            btnOpenMinimap.addEventListener('click', () => setMinimapOpen(true));
+        }
+        if (btnHideMinimap) {
+            btnHideMinimap.addEventListener('click', () => setMinimapOpen(false));
+        }
+
         function getCode(u) {
             return u.code || u.unit_code || 'UNIT';
         }
