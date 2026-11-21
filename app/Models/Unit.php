@@ -13,6 +13,7 @@ class Unit extends Model
         'number',
         'sort_order',
         'unit_type',
+        'carport_side',
         'zone',
         'occupancy_status',
         'map_coordinates',

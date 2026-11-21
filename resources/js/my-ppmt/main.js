@@ -57,6 +57,11 @@
         }
 
         const staticCache = EnvRenderer.createStaticCacheManager(2.0);
+        
+        window.addEventListener('my-ppmt:sprite-loaded', () => {
+            staticCache.dirty = true;
+        });
+
         let hud = null;
 
         async function refreshWorldFromApi() {

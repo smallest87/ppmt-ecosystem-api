@@ -90,6 +90,7 @@ window.MyPpmtModules.MapLayout = (() => {
 
         const addUnit = (code, block, zone, type, x, y, w, h, orientation) => {
             const ov = overrides[code] || null;
+            const carport_side = ov?.carport_side === 'right' ? 'right' : 'left';
             const isOccupiedDefault = idCounter % 4 !== 0;
 
             const occupancy_status = ov
@@ -123,6 +124,7 @@ window.MyPpmtModules.MapLayout = (() => {
                 block,
                 zone_code: zone,
                 unit_type: type,
+                carport_side,
                 coord_x: x,
                 coord_y: y,
                 width: w,

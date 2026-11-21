@@ -14,12 +14,33 @@ window.MyPpmtModules.BuildingRenderer = (() => {
 
     const customSprites = new Map();
 
-    // Anchor pixel pada gambar PNG 240x280: x = 120, y = 264
+    // Anchor pixel pada gambar PNG 480x560 (acuan awal 240x280 dikalikan 2x)
     const SPRITE_SPECS = {
-        '2x3-fl': {
-            url: '/images/my-ppmt/house-2x3-fl.png',
-            anchorX: 240, // Titik tengah bawah carport (sesuaikan ±5px jika perlu)
-            anchorY: 528, // Titik paling bawah carport pada kanvas 480x560
+        '2x3-fl-left': {
+            url: '/images/my-ppmt/house-2x3-fl-left.png',
+            anchorX: 240,
+            anchorY: 528,
+            leftX: 76,
+            rightX: 480
+        },
+        '2x3-fl-right': {
+            url: '/images/my-ppmt/house-2x3-fl-right.png',
+            anchorX: 240,
+            anchorY: 528,
+            leftX: 76,
+            rightX: 480
+        },
+        '2x3-fr-left': {
+            url: '/images/my-ppmt/house-2x3-fr-left.png',
+            anchorX: 240,
+            anchorY: 528,
+            leftX: 76,
+            rightX: 480
+        },
+        '2x3-fr-right': {
+            url: '/images/my-ppmt/house-2x3-fr-right.png',
+            anchorX: 240,
+            anchorY: 528,
             leftX: 76,
             rightX: 480
         }
@@ -55,20 +76,53 @@ window.MyPpmtModules.BuildingRenderer = (() => {
 
     initSpriteLoader();
 
+    function getCarportSide(u) {
+        if (u.carport_side === 'left' || u.carport_side === 'right') {
+            return u.carport_side;
+        }
+        // Fallback sementara sebelum seluruh kavling diperiksa manual
+        const numMatch = String(u.code || u.unit_code || '').match(/(\d+)/);
+        if (numMatch) {
+            return parseInt(numMatch[1], 10) % 2 === 1 ? 'left' : 'right';
+        }
+        return 'left';
+    }
+
+    function pickLoadedSprite(candidates) {
+        for (const key of candidates) {
+            const entry = customSprites.get(key);
+            if (entry && entry.loaded && entry.image.naturalWidth > 0) {
+                return entry;
+            }
+        }
+        return null;
+    }
+
     function resolveHouseSprite(u, gw, gh, effectiveFacing) {
         const is2x3 = (u.width === 2 && u.height === 3) || (u.width === 3 && u.height === 2);
         if (!is2x3) return null;
 
-        const entry = customSprites.get('2x3-fl');
-        if (!entry || !entry.loaded || entry.image.naturalWidth <= 0) return null;
+        const carportSide = getCarportSide(u);
 
-        // effectiveFacing === 1: pintu hadap kiri-bawah (sesuai house-2x3-fl.png)
+        // effectiveFacing === 1: tampak depan kiri-bawah ('fl')
         if (effectiveFacing === 1) {
-            return { ...entry, flipX: false };
+            const entry = pickLoadedSprite([
+                `2x3-fl-${carportSide}`,
+                '2x3-fl-left',
+                '2x3-fl-right'
+            ]);
+            return entry ? { ...entry, flipX: false } : null;
         }
-        // effectiveFacing === 0: pintu hadap kanan-bawah (mirror horizontal dari fl)
+
+        // effectiveFacing === 0: tampak depan kanan-bawah ('fr')
         if (effectiveFacing === 0) {
-            return { ...entry, flipX: true };
+            const entry = pickLoadedSprite([
+                `2x3-fr-${carportSide}`,
+                `2x3-fl-${carportSide}`,
+                '2x3-fr-left',
+                '2x3-fr-right'
+            ]);
+            return entry ? { ...entry, flipX: false } : null;
         }
 
         return null;

@@ -225,6 +225,7 @@ class SiteplanController extends Controller
                 'block' => $unit->block,
                 'number' => $unit->number,
                 'unit_type' => $unit->unit_type,
+                'carport_side' => $unit->carport_side,
                 'zone' => $unit->zone,
                 'occupancy_status' => $unit->occupancy_status,
                 'map_coordinates' => $unit->map_coordinates,
