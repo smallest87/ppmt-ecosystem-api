@@ -35,6 +35,7 @@ Route::prefix('komunitas')->group(function () {
     Route::view('/', 'komunitas')->name('komunitas');
     Route::view('/agenda', 'komunitas.agenda')->name('komunitas.agenda');
     Route::view('/pasar-tetangga', 'komunitas.pasar-tetangga')->name('komunitas.pasar-tetangga');
+    Route::view('/my-ppmt', 'komunitas.my-ppmt')->name('komunitas.my-ppmt');
 
     // Sharable Deep Link Produk / Jasa Pasar Tetangga (dengan Open Graph Preview WhatsApp)
     Route::get('/pasar-tetangga/p/{store}/{itemId}', function (int $store, string $itemId) {
