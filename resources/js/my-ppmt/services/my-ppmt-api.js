@@ -76,6 +76,11 @@ window.MyPpmtModules.MyPpmtApi = (() => {
         const zone = rawUnit.zone || rawUnit.zone_code || layoutRef?.zone_code || 'ZONA-1';
         const unitType = rawUnit.unit_type || layoutRef?.unit_type || 'rumah';
 
+        const rawCarportSide = rawUnit.carport_side ?? layoutRef?.carport_side ?? null;
+        const carportSide = (rawCarportSide === 'left' || rawCarportSide === 'right')
+            ? rawCarportSide
+            : null;
+
         const members = Array.isArray(rawUnit.members) ? rawUnit.members : [];
         const activeStores = Array.isArray(rawUnit.active_stores) ? rawUnit.active_stores : [];
 
@@ -88,6 +93,7 @@ window.MyPpmtModules.MyPpmtApi = (() => {
             zone,
             zone_code: zone,
             unit_type: unitType,
+            carport_side: carportSide,
             coord_x: coordX,
             coord_y: coordY,
             width,
