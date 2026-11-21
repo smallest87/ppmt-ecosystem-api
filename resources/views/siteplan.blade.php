@@ -194,27 +194,39 @@
         <!-- Konten Utama: Peta Matriks 1:1 (Mode Matrix) vs Grid Blok (Mode Grid) + Inspector Detail Unit -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-            <!-- ========================================================= -->
+<!-- ========================================================= -->
             <!-- MODE 1: DENAH MATRIKS 1:1 PPMT_v3.bmp (36 × 70 PIKSEL)    -->
             <!-- ========================================================= -->
             <div x-show="viewMode === 'matrix'"
                  :class="selectedUnit ? 'lg:col-span-8' : 'lg:col-span-12'"
-                 class="bg-slate-900 rounded-2xl p-4 sm:p-6 border border-slate-800 shadow-xl overflow-x-auto transition-all">
+                 class="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-sm overflow-x-auto transition-all">
 
-                <div class="flex flex-wrap items-center justify-between gap-2 pb-4 mb-4 border-b border-slate-800 text-xs text-slate-400">
+                <div class="flex flex-wrap items-center justify-between gap-2 pb-4 mb-4 border-b border-slate-200 text-xs text-slate-600">
                     <div class="flex items-center gap-2">
-                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                        <span class="font-bold text-slate-200">Denah Matriks 1:1 PPMT_v3.bmp (Kanvas 36 × 70 Piksel)</span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-[#6B8E23]"></span>
+                        <span class="font-extrabold text-[#1E1E1E]">Denah Matriks 1:1 Siteplan PPMT (Kanvas 36 × 70 Piksel)</span>
                     </div>
-                    <span>Rasio Proporsional Eksak (2×3, 3×2, 6×2, 5×3) • Utara di Atas</span>
+                    <span class="text-[#696969] font-medium">Kontras Blok Tegas &bull; Jalan &amp; RTH Menyatu &bull; Utara (U) di Atas</span>
                 </div>
 
-                <!-- Kanvas CSS Grid 36 Kolom × 70 Baris dengan Sel Bujur Sangkar (1:1) -->
+                <!-- Kanvas CSS Grid 36 Kolom × 70 Baris dengan Latar Pure White (#FFFFFF) -->
                 <div class="min-w-[680px] flex justify-center py-2">
-                    <div class="grid bg-slate-950 p-3 rounded-xl border border-slate-800 shadow-inner"
+                    <div class="relative grid bg-white p-3 rounded-xl border border-[#696969] shadow-inner"
                         style="grid-template-columns: repeat(36, 16px); grid-template-rows: repeat(70, 16px);">
 
-                        <!-- Layer 1: Latar Belakang Spasial (Jalan Cyan, Taman Hijau, Sempadan) -->
+                        <!-- Kompas Mata Angin (U-T-S-B) Jet Black / Charcoal -->
+                        <div class="pointer-events-none select-none z-20 flex flex-col items-center justify-center text-[#1E1E1E] font-extrabold text-[9px] leading-none"
+                             style="grid-column: 31 / span 5; grid-row: 2 / span 5;">
+                            <span>U</span>
+                            <div class="flex items-center gap-1 my-0.5">
+                                <span>B</span>
+                                <span class="w-3 h-3 rounded-full border border-[#1E1E1E] flex items-center justify-center text-[7px]">+</span>
+                                <span>T</span>
+                            </div>
+                            <span>S</span>
+                        </div>
+
+                        <!-- Layer 1: Latar Belakang Spasial Menyatu (Tanpa Border) -->
                         <template x-for="(bg, idx) in matrixBackgroundBlocks" :key="'bg-' + idx">
                             <div :style="`grid-column: ${bg.x + 1} / span ${bg.w}; grid-row: ${bg.y + 1} / span ${bg.h};`"
                                  :class="bg.className"
@@ -225,43 +237,55 @@
                         <!-- Layer 2: 91 Unit Kavling / Ruko / Fasum Ibadah dengan Bounding Box Eksak (x, y, w, h) -->
                         <template x-for="unit in matrixUnits" :key="'munit-' + unit.id">
                             <button type="button"
-                                    :disabled="!unit.is_interactive"
-                                    @click="selectUnit(unit)"
-                                    :style="`grid-column: ${unit.map_coordinates.x + 1} / span ${unit.map_coordinates.w}; grid-row: ${unit.map_coordinates.y + 1} / span ${unit.map_coordinates.h};`"
-                                    :title="unit.is_interactive ? ('Kavling ' + unit.code + ' (' + unit.zone + ') — Rasio ' + unit.map_coordinates.w + '×' + unit.map_coordinates.h) : ('Kavling ' + unit.code + ' di luar wilayah tugas')"
-                                    :class="[
-                                        getMatrixUnitClass(unit),
-                                        isUnitDimmedByFilter(unit) ? 'opacity-25' : '',
-                                        !unit.is_interactive
-                                            ? 'opacity-35 cursor-not-allowed grayscale'
-                                            : (selectedUnit?.id === unit.id
-                                                ? 'ring-2 ring-white ring-offset-1 ring-offset-slate-900 scale-105 z-30 cursor-pointer'
-                                                : 'hover:brightness-110 hover:z-20 cursor-pointer')
-                                    ]"
-                                    class="relative rounded-[2px] border text-[8px] leading-none font-mono font-extrabold flex items-center justify-center transition-all select-none overflow-hidden px-0.5">
+                                :disabled="!unit.is_interactive"
+                                @click="selectUnit(unit)"
+                                :style="`grid-column: ${unit.map_coordinates.x + 1} / span ${unit.map_coordinates.w}; grid-row: ${unit.map_coordinates.y + 1} / span ${unit.map_coordinates.h};`"
+                                :title="unit.is_interactive ? ('Kavling ' + unit.code + ' (' + unit.zone + ') — Rasio ' + unit.map_coordinates.w + '×' + unit.map_coordinates.h) : ('Kavling ' + unit.code + ' di luar wilayah tugas')"
+                                :class="[
+                                    getMatrixUnitClass(unit),
+                                    isUnitDimmedByFilter(unit) ? 'opacity-25' : '',
+                                    !unit.is_interactive
+                                        ? 'opacity-40 cursor-not-allowed grayscale'
+                                        : (selectedUnit?.id === unit.id
+                                            ? 'ring-2 ring-[#1E1E1E] ring-offset-1 ring-offset-white scale-105 z-30 cursor-pointer'
+                                            : 'hover:brightness-95 hover:z-20 cursor-pointer')
+                                ]"
+                                class="relative rounded-[1px] border text-[11px] leading-[1.05] font-mono font-extrabold flex flex-col items-center justify-center text-center transition-all select-none overflow-hidden px-0.5">
 
-                                <!-- Badge Kavling Anda -->
-                                <span x-show="unit.is_my_unit"
-                                      class="absolute top-0 left-0 w-1.5 h-1.5 bg-indigo-400 rounded-br-xs"></span>
+                            <!-- Badge Kavling Anda -->
+                            <span x-show="unit.is_my_unit"
+                                title="Kavling Anda"
+                                class="absolute top-0 left-0 w-1.5 h-1.5 bg-indigo-800 rounded-br-xs"></span>
 
-                                <!-- Badge Lapak Buka -->
-                                <span x-show="unit.active_stores_count > 0"
-                                      class="absolute top-0 right-0 w-1.5 h-1.5 bg-amber-300 rounded-bl-xs"></span>
+                            <!-- Penanda Antrean Verifikasi -->
+                            <span x-show="mapLayer === 'occupancy' && unit.unit_type !== 'fasum' && unit.occupancy_status === 'pending'"
+                                title="Menunggu Verifikasi"
+                                class="absolute bottom-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-amber-500 border border-white"></span>
 
-                                <span class="truncate tracking-tighter"
-                                      x-text="unit.code === 'FASUM-IBADAH' ? 'IBADAH' : unit.code"></span>
-                            </button>
+                            <!-- Badge Lapak Buka -->
+                            <span x-show="unit.active_stores_count > 0"
+                                title="Ada Lapak Pasar Tetangga Buka"
+                                class="absolute top-0 right-0 w-1.5 h-1.5 bg-[#2E4D1B] rounded-bl-xs"></span>
+
+                            <!-- Label Kode Kavling 2 Baris -->
+                            <span class="w-full break-words tracking-tighter"
+                                x-html="formatMatrixUnitLabel(unit)"></span>
+                        </button>
                         </template>
 
                     </div>
                 </div>
 
-                <div class="flex flex-wrap items-center justify-center gap-4 pt-4 mt-4 border-t border-slate-800 text-[11px] text-slate-400">
-                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-sky-300/35 border border-sky-400/30"></span> Jalan Lingkungan</span>
-                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-rose-600 border border-rose-400"></span> Pos Satpam</span>
-                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-emerald-600"></span> Fasum Taman</span>
-                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-amber-400"></span> Fasum Ibadah</span>
-                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-slate-700 border border-slate-500"></span> Kavling / Ruko (Proporsi 1:1)</span>
+                <!-- Legenda Palet Warna -->
+                <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pt-4 mt-4 border-t border-slate-200 text-[11px] text-[#1E1E1E]">
+                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-[2px] bg-[#E2E8F0] border border-[#94A3B8]"></span> Belum Dihuni</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-[2px] bg-[#F9A8B4] border border-[#475569]"></span> Blok A (Terisi)</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-[2px] bg-[#939BFB] border border-[#475569]"></span> Blok B (Terisi)</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-[2px] bg-[#7CC4FA] border border-[#475569]"></span> Blok C (Terisi)</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-[2px] bg-[#7CE09A] border border-[#475569]"></span> Blok D (Terisi)</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-[2px] bg-[#F4C430] border border-[#475569]"></span> Ruko (Terisi) &amp; Ibadah</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-[2px] bg-[#6B8E23]"></span> RTH / Taman</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-[2px] bg-[#CBD5E1]"></span> Jalan Perumahan (ROW 6 &amp; 7)</span>
                 </div>
             </div>
 
@@ -611,40 +635,45 @@ function ppmtSiteplan() {
         toastMessage: '',
         toastType: 'success',
 
-        // Latar belakang spasial eksak 1:1 sesuai PPMT_v3.bmp (36x70) + koreksi presisi
+        // Latar belakang spasial eksak 1:1 sesuai palet warna resmi peta PPMT (36x70)
+        // - Jalan Utama (Jl. Pandowo): Light Gray / Gainsboro (#DCDCDC)
+        // - Jalan Lingkungan (ROW 6 & ROW 7): Silver / Ash Gray (#C0C0C0) + tepi Dim Gray (#696969)
+        // - Ruang Terbuka Hijau (RTH / Taman): Olive Drab / Moss Green (#6B8E23) + aksen Forest Green (#2E4D1B)
         matrixBackgroundBlocks: [
-            // Koridor Jalan Lingkungan Utama (Cyan)
-            { x: 16, y: 0, w: 6, h: 3, className: 'bg-sky-400/25 border-b border-dashed border-emerald-400/60', label: 'Gerbang Utara (Jl. Pandowo)' },
-            { x: 19, y: 3, w: 3, h: 42, className: 'bg-sky-400/25', label: 'Jalan Utama ROW 6' },
-            { x: 22, y: 33, w: 7, h: 3, className: 'bg-sky-400/25', label: 'Jalan Blok B' },
-            { x: 1, y: 42, w: 18, h: 3, className: 'bg-sky-400/25', label: 'Jalan ROW 6 Tengah Utara 1' },
-            { x: 22, y: 42, w: 14, h: 3, className: 'bg-sky-400/25', label: 'Jalan ROW 6 Tengah Utara 2' },
-            { x: 1, y: 45, w: 3, h: 6, className: 'bg-sky-400/25', label: 'Jalan ROW 6 Barat' },
-            { x: 33, y: 45, w: 3, h: 6, className: 'bg-sky-400/25', label: 'Jalan ROW 6 Timur' },
-            { x: 1, y: 51, w: 18, h: 3, className: 'bg-sky-400/25', label: 'Jalan ROW 6 Tengah Selatan 1' },
-            { x: 22, y: 51, w: 14, h: 3, className: 'bg-sky-400/25', label: 'Jalan ROW 6 Tengah Selatan 2' },
-            { x: 3, y: 54, w: 3, h: 7, className: 'bg-sky-400/25', label: 'Jalan ROW 7 Barat Daya' },
-            { x: 19, y: 51, w: 3, h: 19, className: 'bg-sky-400/25', label: 'Jalan ROW 6 Selatan' },
-            { x: 13, y: 60, w: 6, h: 3, className: 'bg-sky-400/25', label: 'Jalan Blok D 1' },
-            { x: 22, y: 60, w: 8, h: 3, className: 'bg-sky-400/25', label: 'Jalan Blok D 2' },
-            { x: 16, y: 63, w: 3, h: 7, className: 'bg-sky-400/25', label: 'Jalan ROW 6 Blok D-14/D-15' },
-            { x: 22, y: 66, w: 3, h: 4, className: 'bg-sky-400/25', label: 'Jalan ROW 6 Blok D-16/D-17' },
+            // Badan Jalan Akses Depan Ruko (Menyatu dengan jaringan jalan perumahan)
+            { x: 16, y: 0, w: 6, h: 3, className: 'bg-[#CBD5E1]', label: 'Jalan Depan Ruko R1 & R2' },
 
-            // Pos Satpam (Sisi kanan R2)
-            { x: 18, y: 3, w: 1, h: 1, className: 'bg-rose-600 border border-rose-400/60', label: 'Pos Satpam Gerbang Utama' },
+            // Jaringan Jalan Lingkungan Perumahan (ROW 6 & ROW 7) - Silver / Ash Gray menyatu tanpa border
+            { x: 19, y: 3, w: 3, h: 42, className: 'bg-[#CBD5E1]', label: 'Jalan Utama ROW 6' },
+            { x: 22, y: 33, w: 7, h: 3, className: 'bg-[#CBD5E1]', label: 'Jalan Blok B' },
+            { x: 1, y: 42, w: 18, h: 3, className: 'bg-[#CBD5E1]', label: 'Jalan ROW 6 Tengah Utara 1' },
+            { x: 22, y: 42, w: 14, h: 3, className: 'bg-[#CBD5E1]', label: 'Jalan ROW 6 Tengah Utara 2' },
+            { x: 1, y: 45, w: 3, h: 6, className: 'bg-[#CBD5E1]', label: 'Jalan ROW 6 Barat' },
+            { x: 33, y: 45, w: 3, h: 6, className: 'bg-[#CBD5E1]', label: 'Jalan ROW 6 Timur' },
+            { x: 1, y: 51, w: 18, h: 3, className: 'bg-[#CBD5E1]', label: 'Jalan ROW 6 Tengah Selatan 1' },
+            { x: 22, y: 51, w: 14, h: 3, className: 'bg-[#CBD5E1]', label: 'Jalan ROW 6 Tengah Selatan 2' },
+            { x: 3, y: 54, w: 3, h: 7, className: 'bg-[#CBD5E1]', label: 'Jalan ROW 7 Barat Daya' },
+            { x: 19, y: 51, w: 3, h: 19, className: 'bg-[#CBD5E1]', label: 'Jalan ROW 6 Selatan' },
+            { x: 13, y: 60, w: 6, h: 3, className: 'bg-[#CBD5E1]', label: 'Jalan Blok D 1' },
+            { x: 22, y: 60, w: 8, h: 3, className: 'bg-[#CBD5E1]', label: 'Jalan Blok D 2' },
+            { x: 16, y: 63, w: 3, h: 7, className: 'bg-[#CBD5E1]', label: 'Jalan ROW 6 Blok D-14/D-15' },
+            { x: 22, y: 66, w: 3, h: 4, className: 'bg-[#CBD5E1]', label: 'Jalan ROW 6 Blok D-16/D-17' },
 
-            // Fasum Taman (Hijau)
-            { x: 18, y: 4, w: 1, h: 3, className: 'bg-emerald-600', label: 'Taman Samping Pos Satpam' },
-            { x: 15, y: 0, w: 1, h: 39, className: 'bg-emerald-600/85', label: 'Jalur Hijau Barat Utara' },
-            { x: 0, y: 38, w: 15, h: 1, className: 'bg-emerald-600/85', label: 'Jalur Hijau Utara Blok A' },
-            { x: 0, y: 39, w: 1, h: 15, className: 'bg-emerald-600/85', label: 'Jalur Hijau Barat' },
-            { x: 0, y: 54, w: 3, h: 1, className: 'bg-emerald-600/85', label: 'Taman Utara D-1' },
-            { x: 30, y: 54, w: 6, h: 1, className: 'bg-emerald-600/85', label: 'Jalur Hijau Tenggara' },
-            { x: 4, y: 48, w: 1, h: 3, className: 'bg-emerald-600/85', label: 'Taman Ujung Barat Pulau' },
-            { x: 32, y: 45, w: 1, h: 3, className: 'bg-emerald-600/85', label: 'Taman Ujung Timur Pulau' },
-            { x: 6, y: 57, w: 9, h: 4, className: 'bg-emerald-600', label: 'Fasum Taman Utama' },
-            { x: 13, y: 63, w: 3, h: 3, className: 'bg-emerald-600', label: 'Fasum Taman Selatan' },
-            { x: 19, y: 69, w: 3, h: 1, className: 'bg-emerald-600', label: 'Taman Ujung Selatan' },
+            // Pos Satpam (Sisi kanan R2) - Coral Red / Vermilion menyatu tanpa border
+            { x: 18, y: 3, w: 1, h: 1, className: 'bg-[#E03C31]', label: 'Pos Satpam Gerbang Utama' },
+
+            // Ruang Terbuka Hijau (RTH / Taman) - Olive Drab / Moss Green menyatu tanpa border
+            { x: 18, y: 4, w: 1, h: 3, className: 'bg-[#6B8E23]', label: 'Taman Samping Pos Satpam' },
+            { x: 15, y: 0, w: 1, h: 39, className: 'bg-[#6B8E23]', label: 'Jalur Hijau Barat Utara' },
+            { x: 0, y: 38, w: 15, h: 1, className: 'bg-[#6B8E23]', label: 'Jalur Hijau Utara Blok A' },
+            { x: 0, y: 39, w: 1, h: 15, className: 'bg-[#6B8E23]', label: 'Jalur Hijau Barat' },
+            { x: 0, y: 54, w: 3, h: 1, className: 'bg-[#6B8E23]', label: 'Taman Utara D-1' },
+            { x: 30, y: 54, w: 6, h: 1, className: 'bg-[#6B8E23]', label: 'Jalur Hijau Tenggara' },
+            { x: 4, y: 48, w: 1, h: 3, className: 'bg-[#6B8E23]', label: 'Taman Ujung Barat Pulau' },
+            { x: 32, y: 45, w: 1, h: 3, className: 'bg-[#6B8E23]', label: 'Taman Ujung Timur Pulau' },
+            { x: 6, y: 57, w: 9, h: 4, className: 'bg-[#6B8E23]', label: 'Fasum Taman Utama (Selatan Tempat Ibadah)' },
+            { x: 13, y: 63, w: 3, h: 3, className: 'bg-[#6B8E23]', label: 'Fasum Taman Selatan' },
+            { x: 19, y: 69, w: 3, h: 1, className: 'bg-[#6B8E23]', label: 'Taman Ujung Selatan' },
         ],
 
         async init() {
@@ -732,35 +761,61 @@ function ppmtSiteplan() {
         getMatrixUnitClass(unit) {
             if (this.mapLayer === 'umkm') {
                 if ((unit.active_stores_count || 0) > 0) {
-                    return 'bg-amber-400 text-slate-950 border-amber-200';
+                    return 'bg-[#F4C430] text-[#1E1E1E] border-[#475569]';
                 }
-                return 'bg-slate-800 text-slate-400 border-slate-700';
+                return 'bg-[#E2E8F0] text-[#475569] border-[#94A3B8]';
             }
 
             if (this.mapLayer === 'treasury') {
                 if (unit.unit_type === 'fasum' || unit.dues_status === 'vacant' || unit.dues_status === 'exempt') {
-                    return 'bg-slate-800 text-slate-400 border-slate-700';
+                    return 'bg-[#E2E8F0] text-[#475569] border-[#94A3B8]';
                 }
                 if (unit.dues_status === 'paid') {
-                    return 'bg-emerald-600 text-white border-emerald-400';
+                    return 'bg-[#7CE09A] text-[#1E1E1E] border-[#1E1E1E]';
                 }
-                return 'bg-rose-600 text-white border-rose-400';
+                return 'bg-[#E03C31] text-white border-[#1E1E1E]';
             }
 
-            // Default: Lapisan Hunian
-            if (unit.code === 'FASUM-IBADAH' || unit.unit_type === 'fasum') {
-                return 'bg-amber-400 text-slate-950 border-amber-200';
+            // Lapisan Hunian: Jika bukan fasum dan belum ditempati (occupied/rented), tampilkan abu-abu
+            const isOccupiedOrRented = ['occupied', 'rented'].includes(unit.occupancy_status);
+            if (unit.unit_type !== 'fasum' && !isOccupiedOrRented) {
+                return 'bg-[#E2E8F0] text-[#64748B] border-[#94A3B8]';
             }
-            if (unit.occupancy_status === 'occupied') {
-                return 'bg-emerald-600 text-white border-emerald-400';
+
+            // Jika sudah ditempati (atau merupakan Fasum Ibadah), tampilkan warna sesuai blok
+            if (unit.code === 'FASUM-IBADAH' || unit.unit_type === 'fasum' || unit.block === 'R') {
+                return 'bg-[#F4C430] text-[#1E1E1E] border-[#475569]';
             }
-            if (unit.occupancy_status === 'rented') {
-                return 'bg-sky-600 text-white border-sky-400';
+            if (unit.block === 'A') {
+                return 'bg-[#F9A8B4] text-[#1E1E1E] border-[#475569]';
             }
-            if (unit.occupancy_status === 'pending') {
-                return 'bg-amber-500 text-slate-950 border-amber-300';
+            if (unit.block === 'B') {
+                return 'bg-[#939BFB] text-[#1E1E1E] border-[#475569]';
             }
-            return 'bg-slate-700 text-slate-100 border-slate-500';
+            if (unit.block === 'C') {
+                return 'bg-[#7CC4FA] text-[#1E1E1E] border-[#475569]';
+            }
+            if (unit.block === 'D') {
+                return 'bg-[#7CE09A] text-[#1E1E1E] border-[#475569]';
+            }
+            return 'bg-white text-[#1E1E1E] border-[#475569]';
+        },
+
+        formatMatrixUnitLabel(unit) {
+            const code = (unit.code || '').trim();
+            if (code === 'FASUM-IBADAH') {
+                return 'IBADAH';
+            }
+            // Memecah format seperti "C-21" menjadi "C<br>21"
+            if (code.includes('-')) {
+                const [prefix, number] = code.split('-');
+                return `${prefix}<br>${number}`;
+            }
+            // Memecah format tanpa tanda hubung seperti "R1" menjadi "R<br>1" jika lebar kotak sempit (<= 2 kolom)
+            if (unit.map_coordinates?.w <= 2 && /^[A-Z]+\d+$/.test(code)) {
+                return code.replace(/^([A-Z]+)(\d+)$/, '$1<br>$2');
+            }
+            return code;
         },
 
         get unitRolesBreakdown() {
