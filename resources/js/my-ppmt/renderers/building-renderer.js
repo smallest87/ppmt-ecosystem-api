@@ -14,8 +14,64 @@ window.MyPpmtModules.BuildingRenderer = (() => {
 
     const customSprites = new Map();
 
+    // Anchor pixel pada gambar PNG 240x280: x = 120, y = 264
+    const SPRITE_SPECS = {
+        '2x3-fl': {
+            url: '/images/my-ppmt/house-2x3-fl.png',
+            anchorX: 240, // Titik tengah bawah carport (sesuaikan ±5px jika perlu)
+            anchorY: 528, // Titik paling bawah carport pada kanvas 480x560
+            leftX: 76,
+            rightX: 480
+        }
+    };
+
     function registerCustomSprite(key, imageElement, anchor = { x: 0.5, y: 0.85 }) {
         customSprites.set(key, { image: imageElement, anchor });
+    }
+
+    function initSpriteLoader() {
+        Object.entries(SPRITE_SPECS).forEach(([key, spec]) => {
+            if (customSprites.has(key)) return;
+            const img = new Image();
+            const entry = {
+                image: img,
+                loaded: false,
+                anchorX: spec.anchorX,
+                anchorY: spec.anchorY,
+                leftX: spec.leftX,
+                rightX: spec.rightX
+            };
+            img.onload = () => {
+                entry.loaded = true;
+                window.dispatchEvent(new CustomEvent('my-ppmt:sprite-loaded', { detail: { key } }));
+            };
+            img.onerror = () => {
+                entry.loaded = false;
+            };
+            img.src = spec.url;
+            customSprites.set(key, entry);
+        });
+    }
+
+    initSpriteLoader();
+
+    function resolveHouseSprite(u, gw, gh, effectiveFacing) {
+        const is2x3 = (u.width === 2 && u.height === 3) || (u.width === 3 && u.height === 2);
+        if (!is2x3) return null;
+
+        const entry = customSprites.get('2x3-fl');
+        if (!entry || !entry.loaded || entry.image.naturalWidth <= 0) return null;
+
+        // effectiveFacing === 1: pintu hadap kiri-bawah (sesuai house-2x3-fl.png)
+        if (effectiveFacing === 1) {
+            return { ...entry, flipX: false };
+        }
+        // effectiveFacing === 0: pintu hadap kanan-bawah (mirror horizontal dari fl)
+        if (effectiveFacing === 0) {
+            return { ...entry, flipX: true };
+        }
+
+        return null;
     }
 
     function isPublicFacility(u) {
@@ -189,6 +245,45 @@ window.MyPpmtModules.BuildingRenderer = (() => {
 
         const dirMap = { 'Timur': 0, 'Selatan': 1, 'Barat': 2, 'Utara': 3 };
         const effectiveFacing = ((dirMap[u.facing_direction] ?? 1) + viewState.rotation) % 4;
+
+        const sprite = resolveHouseSprite(u, gw, gh, effectiveFacing);
+        if (sprite) {
+            const lotBase = viewState.isNight ? '#2c3545' : '#cbd5e1';
+            drawIsoQuad(targetCtx, p00, p10, p11, p01, lotBase, ink, 0.75);
+
+            const diamondW = p10.x - p01.x;
+            const artWidth = Math.max(1, (sprite.rightX ?? sprite.image.naturalWidth) - (sprite.leftX ?? 0));
+            const scale = diamondW / artWidth;
+
+            const drawW = sprite.image.naturalWidth * scale;
+            const drawH = sprite.image.naturalHeight * scale;
+
+            targetCtx.save();
+            targetCtx.imageSmoothingEnabled = true;
+            targetCtx.imageSmoothingQuality = 'high';
+            if (viewState.isNight) {
+                targetCtx.filter = 'brightness(0.75) contrast(1.05)';
+            }
+
+            if (sprite.flipX) {
+                const mirroredAnchorX = sprite.image.naturalWidth - sprite.anchorX;
+                const dx = p11.x - mirroredAnchorX * scale;
+                const dy = p11.y - sprite.anchorY * scale;
+                targetCtx.translate(dx + drawW, dy);
+                targetCtx.scale(-1, 1);
+                targetCtx.drawImage(sprite.image, 0, 0, drawW, drawH);
+            } else {
+                const dx = p11.x - sprite.anchorX * scale;
+                const dy = p11.y - sprite.anchorY * scale;
+                targetCtx.drawImage(sprite.image, dx, dy, drawW, drawH);
+            }
+
+            targetCtx.restore();
+
+            const c = rotatedToIso(gx + gw / 2, gy + gh / 2);
+            drawUnitLabel(targetCtx, u, c.x, c.y - 24, viewState);
+            return;
+        }
 
         const wallCreamLight = viewState.isNight ? '#d6ceb8' : '#fef7dc';
         const wallCreamShade = viewState.isNight ? '#a89f88' : '#ebd9a8';
