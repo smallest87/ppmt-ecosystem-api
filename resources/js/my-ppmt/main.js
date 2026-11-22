@@ -56,7 +56,7 @@
             }).length;
         }
 
-        const staticCache = EnvRenderer.createStaticCacheManager(2.0);
+        const staticCache = EnvRenderer.createStaticCacheManager(3.0);
         
         window.addEventListener('my-ppmt:sprite-loaded', () => {
             staticCache.dirty = true;

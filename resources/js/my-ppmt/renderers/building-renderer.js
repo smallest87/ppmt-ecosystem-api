@@ -14,28 +14,28 @@ window.MyPpmtModules.BuildingRenderer = (() => {
 
     const customSprites = new Map();
 
-    // Anchor pixel pada gambar PNG 480x560 (acuan awal 240x280 dikalikan 2x)
+    // Anchor pixel pada gambar PNG 600x443
     const SPRITE_SPECS = {
         '2x3-fl-left': {
             url: '/images/my-ppmt/house-2x3-fl-left.png',
-            anchorX: 240,
-            anchorY: 528,
-            leftX: 76,
-            rightX: 480
+            anchorX: 304,
+            anchorY: 441,
+            leftX: 0,
+            rightX: 490
         },
         '2x3-fl-right': {
             url: '/images/my-ppmt/house-2x3-fl-right.png',
-            anchorX: 240,
-            anchorY: 528,
-            leftX: 76,
-            rightX: 480
+            anchorX: 300,
+            anchorY: 440,
+            leftX: 0,
+            rightX: 496
         },
         '2x3-fr-left': {
             url: '/images/my-ppmt/house-2x3-fr-left.png',
-            anchorX: 240,
-            anchorY: 528,
-            leftX: 76,
-            rightX: 480
+            anchorX: 300,
+            anchorY: 439,
+            leftX: 0,
+            rightX: 496
         },
         '2x3-fr-right': {
             url: '/images/my-ppmt/house-2x3-fr-right.png',
@@ -43,6 +43,34 @@ window.MyPpmtModules.BuildingRenderer = (() => {
             anchorY: 528,
             leftX: 76,
             rightX: 480
+        },
+        '2x3-bl-left': {
+            url: '/images/my-ppmt/house-2x3-bl-left.png',
+            anchorX: 300,
+            anchorY: 439,
+            leftX: 4,
+            rightX: 508
+        },
+        '2x3-bl-right': {
+            url: '/images/my-ppmt/house-2x3-bl-right.png',
+            anchorX: 300,
+            anchorY: 439,
+            leftX: 4,
+            rightX: 508
+        },
+        '2x3-br-left': {
+            url: '/images/my-ppmt/house-2x3-br-left.png',
+            anchorX: 290,
+            anchorY: 443,
+            leftX: 4,
+            rightX: 508
+        },
+        '2x3-br-right': {
+            url: '/images/my-ppmt/house-2x3-br-right.png',
+            anchorX: 193,
+            anchorY: 440,
+            leftX: 4,
+            rightX: 508
         }
     };
 
@@ -121,6 +149,16 @@ window.MyPpmtModules.BuildingRenderer = (() => {
                 `2x3-fl-${carportSide}`,
                 '2x3-fr-left',
                 '2x3-fr-right'
+            ]);
+            return entry ? { ...entry, flipX: false } : null;
+        }
+
+        // Tampak belakang di orientasi ini memakai '2x3-br-right' dan '2x3-br-left'
+        if (effectiveFacing === 2 || effectiveFacing === 3) {
+            const entry = pickLoadedSprite([
+                `2x3-br-${carportSide}`,
+                '2x3-br-right',
+                '2x3-br-left'
             ]);
             return entry ? { ...entry, flipX: false } : null;
         }
@@ -282,7 +320,7 @@ window.MyPpmtModules.BuildingRenderer = (() => {
                 const wt0 = { x: t11.x + (t10.x - t11.x) * f0, y: t11.y + (t10.y - t11.y) * f0 + 2.5 };
                 const wt1 = { x: t11.x + (t10.x - t11.x) * f1, y: t11.y + (t10.y - t11.y) * f1 + 2.5 };
                 const wb0 = { x: mid11.x + (mid10.x - mid11.x) * f0, y: mid11.y + (mid10.y - mid11.y) * f0 - 2.0 };
-                const wb1 = { x: mid11.x + (mid10.x - mid11.x) * f1, y: mid11.y + (mid10.y - mid11.y) * f1 - 2.0 };
+                const wb1 = { x: mid11.x + (mid10.x - mid11.x) * f1, y: mid11.y + (mid10.y - mid11.x) * f1 - 2.0 };
                 drawIsoQuad(targetCtx, wt0, wt1, wb1, wb0, winGlass, '#ffffff', 0.65);
 
                 const dt0 = { x: mid11.x + (mid10.x - mid11.x) * f0, y: mid11.y + (mid10.y - mid11.y) * f0 + 2.5 };

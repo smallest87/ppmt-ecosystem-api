@@ -82,7 +82,7 @@ function mount({ canvas, minimapCanvas, units, state, apiClient, onCacheDirty, o
 
         function applyZoomAt(factor, pivotX = canvas.width / 2, pivotY = canvas.height / 2) {
             const prevZoom = state.zoom;
-            const nextZoom = Math.min(3.2, Math.max(0.45, prevZoom * factor));
+            const nextZoom = Math.min(5.0, Math.max(0.65, prevZoom * factor));
             if (nextZoom === prevZoom) return;
 
             const wx = (pivotX - canvas.width / 2 - state.camX) / prevZoom;
