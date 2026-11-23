@@ -251,7 +251,6 @@ window.MyPpmtModules.BuildingRenderer = (() => {
             targetCtx.strokeStyle = ink;
             targetCtx.lineWidth = 0.7;
             targetCtx.strokeRect(c.x - 4.5, c.y - 11, 9, 5);
-            drawUnitLabel(targetCtx, u, c.x, c.y - 16, viewState);
             return;
         }
 
@@ -280,7 +279,6 @@ window.MyPpmtModules.BuildingRenderer = (() => {
             targetCtx.strokeStyle = ink;
             targetCtx.lineWidth = 1;
             targetCtx.stroke();
-            drawUnitLabel(targetCtx, u, mc.x, mc.y - wallH - 17, viewState);
             return;
         }
 
@@ -330,8 +328,6 @@ window.MyPpmtModules.BuildingRenderer = (() => {
                 drawIsoQuad(targetCtx, dt0, dt1, db1, db0, '#e2e8f0', ink, 0.65);
             }
 
-            const rc = rotatedToIso(gx + gw / 2, gy + gh / 2);
-            drawUnitLabel(targetCtx, u, rc.x, rc.y - h - 6, viewState);
             return;
         }
 
@@ -372,8 +368,6 @@ window.MyPpmtModules.BuildingRenderer = (() => {
 
             targetCtx.restore();
 
-            const c = rotatedToIso(gx + gw / 2, gy + gh / 2);
-            drawUnitLabel(targetCtx, u, c.x, c.y - 24, viewState);
             return;
         }
 
@@ -676,9 +670,6 @@ window.MyPpmtModules.BuildingRenderer = (() => {
             targetCtx.lineWidth = 1;
             targetCtx.stroke();
         }
-
-        const c = rotatedToIso(gx + gw / 2, gy + gh / 2);
-        drawUnitLabel(targetCtx, u, c.x, c.y - roofPeakH - 3, viewState);
     }
 
     function drawGuardPostAsset(targetCtx, pos) {

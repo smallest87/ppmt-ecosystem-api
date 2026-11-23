@@ -14,7 +14,14 @@
         const minimapCanvas = document.getElementById('minimapCanvas');
         const mCtx = minimapCanvas.getContext('2d');
 
-        const { MapLayout, IsoMath, EnvironmentRenderer: EnvRenderer, MyPpmtApi, HudController } = window.MyPpmtModules;
+        const {
+            MapLayout,
+            IsoMath,
+            EnvironmentRenderer: EnvRenderer,
+            BuildingRenderer,
+            MyPpmtApi,
+            HudController
+        } = window.MyPpmtModules;
 
         const hydrationData = MyPpmtApi.parseHydrationPayload('laravel-my-ppmt-payload');
         const apiClient = MyPpmtApi.createClient(hydrationData);
@@ -57,7 +64,7 @@
         }
 
         const staticCache = EnvRenderer.createStaticCacheManager(3.0);
-        
+
         window.addEventListener('my-ppmt:sprite-loaded', () => {
             staticCache.dirty = true;
         });
@@ -315,6 +322,13 @@
                     ctx.textBaseline = 'middle';
                     ctx.fillText(badgeText, c.x, by + 0.5);
                 }
+            }
+
+            // Nomor kavling hanya muncul pada unit yang sedang diklik/dipilih
+            if (state.selectedUnit && BuildingRenderer?.drawUnitLabel) {
+                const u = state.selectedUnit;
+                const c = IsoMath.gridToIso(u.coord_x + u.width / 2, u.coord_y + u.height / 2, state.rotation);
+                BuildingRenderer.drawUnitLabel(ctx, u, c.x, c.y - 36, state);
             }
 
             ctx.restore();
