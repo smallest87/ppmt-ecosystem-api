@@ -18,31 +18,31 @@ window.MyPpmtModules.BuildingRenderer = (() => {
     const SPRITE_SPECS = {
         '2x3-fl-left': {
             url: '/images/my-ppmt/house-2x3-fl-left.png',
-            anchorX: 304,
-            anchorY: 441,
-            leftX: 0,
-            rightX: 490
+            anchorX: 319,
+            anchorY: 431,
+            leftX: 128,
+            rightX: 607
         },
         '2x3-fl-right': {
             url: '/images/my-ppmt/house-2x3-fl-right.png',
-            anchorX: 300,
-            anchorY: 440,
-            leftX: 0,
-            rightX: 496
+            anchorX: 319,
+            anchorY: 431,
+            leftX: 128,
+            rightX: 607
         },
         '2x3-fr-left': {
             url: '/images/my-ppmt/house-2x3-fr-left.png',
             anchorX: 300,
             anchorY: 439,
             leftX: 0,
-            rightX: 496
+            rightX: 500
         },
         '2x3-fr-right': {
             url: '/images/my-ppmt/house-2x3-fr-right.png',
-            anchorX: 240,
-            anchorY: 528,
-            leftX: 76,
-            rightX: 480
+            anchorX: 300,
+            anchorY: 439,
+            leftX: 0,
+            rightX: 500
         },
         '2x3-bl-left': {
             url: '/images/my-ppmt/house-2x3-bl-left.png',
@@ -318,7 +318,7 @@ window.MyPpmtModules.BuildingRenderer = (() => {
                 const wt0 = { x: t11.x + (t10.x - t11.x) * f0, y: t11.y + (t10.y - t11.y) * f0 + 2.5 };
                 const wt1 = { x: t11.x + (t10.x - t11.x) * f1, y: t11.y + (t10.y - t11.y) * f1 + 2.5 };
                 const wb0 = { x: mid11.x + (mid10.x - mid11.x) * f0, y: mid11.y + (mid10.y - mid11.y) * f0 - 2.0 };
-                const wb1 = { x: mid11.x + (mid10.x - mid11.x) * f1, y: mid11.y + (mid10.y - mid11.x) * f1 - 2.0 };
+                const wb1 = { x: mid11.x + (mid10.x - mid11.x) * f1, y: mid11.y + (mid10.y - mid11.y) * f1 - 2.0 };
                 drawIsoQuad(targetCtx, wt0, wt1, wb1, wb0, winGlass, '#ffffff', 0.65);
 
                 const dt0 = { x: mid11.x + (mid10.x - mid11.x) * f0, y: mid11.y + (mid10.y - mid11.y) * f0 + 2.5 };
@@ -346,6 +346,11 @@ window.MyPpmtModules.BuildingRenderer = (() => {
             const drawW = sprite.image.naturalWidth * scale;
             const drawH = sprite.image.naturalHeight * scale;
 
+            const cacheScale = targetCtx.getTransform().a || 1;
+            const snapToTargetPx = (val) => Math.round(val * cacheScale) / cacheScale;
+            const rDrawW = snapToTargetPx(drawW);
+            const rDrawH = snapToTargetPx(drawH);
+
             targetCtx.save();
             targetCtx.imageSmoothingEnabled = true;
             targetCtx.imageSmoothingQuality = 'high';
@@ -355,15 +360,15 @@ window.MyPpmtModules.BuildingRenderer = (() => {
 
             if (sprite.flipX) {
                 const mirroredAnchorX = sprite.image.naturalWidth - sprite.anchorX;
-                const dx = p11.x - mirroredAnchorX * scale;
-                const dy = p11.y - sprite.anchorY * scale;
-                targetCtx.translate(dx + drawW, dy);
+                const dx = snapToTargetPx(p11.x - mirroredAnchorX * scale);
+                const dy = snapToTargetPx(p11.y - sprite.anchorY * scale);
+                targetCtx.translate(dx + rDrawW, dy);
                 targetCtx.scale(-1, 1);
-                targetCtx.drawImage(sprite.image, 0, 0, drawW, drawH);
+                targetCtx.drawImage(sprite.image, 0, 0, rDrawW, rDrawH);
             } else {
-                const dx = p11.x - sprite.anchorX * scale;
-                const dy = p11.y - sprite.anchorY * scale;
-                targetCtx.drawImage(sprite.image, dx, dy, drawW, drawH);
+                const dx = snapToTargetPx(p11.x - sprite.anchorX * scale);
+                const dy = snapToTargetPx(p11.y - sprite.anchorY * scale);
+                targetCtx.drawImage(sprite.image, dx, dy, rDrawW, rDrawH);
             }
 
             targetCtx.restore();
