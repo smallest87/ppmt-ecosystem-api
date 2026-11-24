@@ -15,6 +15,7 @@ export default defineConfig({
                 'resources/js/my-ppmt/renderers/environment-renderer.js',
                 'resources/js/my-ppmt/services/my-ppmt-api.js',
                 'resources/js/my-ppmt/ui/hud-controller.js',
+                'resources/js/my-ppmt/ui/facade-subscene.js',
                 'resources/js/my-ppmt/main.js',
             ],
             refresh: true,

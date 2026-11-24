@@ -61,6 +61,61 @@
     <!-- Kanvas Utama Isometrik 2.5D -->
     <canvas id="gameCanvas" class="block w-full h-full cursor-grab active:cursor-grabbing"></canvas>
 
+    <!-- Sub-scene Fasad 2D Overlay -->
+    <div id="facadeSubsceneOverlay"
+         class="hidden fixed inset-0 z-30 flex flex-col justify-between bg-[#0d111a]/95 select-none">
+
+        <!-- Bar Atas: Tombol Back & Info Kavling -->
+        <div class="px-3 py-2.5 sm:px-5 sm:py-3 bg-[#1b2234]/95 border-b-2 border-[#141824] flex items-center justify-between gap-3 shrink-0">
+            <button id="btnFacadeBack" type="button"
+                    class="retro-btn px-3 py-1.5 rounded-lg bg-[#f4f1de] hover:bg-white text-[#141824] text-xs font-extrabold cursor-pointer shrink-0">
+                ← Kembali ke Siteplan
+            </button>
+
+            <div class="min-w-0 text-right">
+                <div id="facadeUnitTitle" class="font-extrabold text-xs sm:text-sm text-[#f4f1de] truncate">Fasad Kavling</div>
+                <div id="facadeUnitSub" class="text-[10px] sm:text-xs text-slate-300 truncate">-</div>
+            </div>
+        </div>
+
+        <!-- Area Stage Responsif: Fit-to-Width di Mobile Potret, Stage Lebar di Desktop -->
+        <div id="facadeStageContainer"
+             class="flex-1 w-full flex flex-col items-center justify-center p-2 sm:p-5 overflow-y-auto">
+            <div id="facadeStageFrame"
+                 class="relative w-full max-w-4xl aspect-video rounded-xl overflow-hidden border-2 border-[#141824] bg-[#141824] shadow-2xl shrink-0">
+                <canvas id="facadeCanvas" width="640" height="360"
+                        class="w-full h-full block"></canvas>
+
+                <!-- Layer Fade Transisi Antar-Scene -->
+                <div id="sceneFadeLayer"
+                     class="pointer-events-none absolute inset-0 bg-[#0d111a] opacity-0 transition-opacity duration-200"></div>
+            </div>
+
+            <!-- Panel Interaksi Awal (Tegur Sapa & Lapak UMKM) -->
+            <div id="facadeInteractionBar"
+                 class="mt-3 w-full max-w-4xl retro-panel rounded-xl p-3 bg-[#f4f1de] text-[#141824] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div class="min-w-0">
+                    <div id="facadeStatusBadge" class="text-[11px] font-extrabold uppercase tracking-wide text-amber-800">
+                        Sub-Scene Fasad 2D • Pandangan Depan
+                    </div>
+                    <div id="facadeHintText" class="text-xs text-slate-700 truncate">
+                        Siap untuk fitur tegur sapa warga dan etalase produk lapak.
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button id="btnFacadeGreet" type="button"
+                            class="retro-btn px-3 py-1.5 rounded-lg bg-[#81b29a] text-[#141824] text-xs font-extrabold cursor-pointer">
+                        👋 Tegur Sapa
+                    </button>
+                    <button id="btnFacadeStore" type="button"
+                            class="retro-btn px-3 py-1.5 rounded-lg bg-[#f2cc8f] text-[#141824] text-xs font-extrabold cursor-pointer">
+                        🛍️ Lapak
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- HUD Atas -->
     <header class="fixed top-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
         <div class="flex items-center gap-2 pointer-events-auto">
@@ -130,10 +185,14 @@
                         ✕
                     </button>
                 </div>
-                <div class="px-3 pt-2.5 pb-1 bg-[#f4f1de] border-b border-slate-300">
+                <div class="px-3 pt-2.5 pb-1 bg-[#f4f1de] border-b border-slate-300 space-y-1.5">
                     <button id="btnDrawerFocusUnit" type="button"
                             class="retro-btn w-full py-1.5 px-2.5 rounded-lg bg-white hover:bg-slate-100 text-[#141824] text-xs font-extrabold text-center cursor-pointer">
                         🎯 Fokus ke Tengah Layar
+                    </button>
+                    <button id="btnDrawerOpenFacade" type="button"
+                            class="retro-btn w-full py-1.5 px-2.5 rounded-lg bg-[#f2cc8f] hover:bg-[#e8be7a] text-[#141824] text-xs font-extrabold text-center cursor-pointer">
+                        🏠 Lihat Fasad 2D
                     </button>
                 </div>
                 <div id="unitDetailBody" class="p-3 max-h-64 overflow-y-auto space-y-2.5 bg-[#f4f1de] text-[#141824] text-xs"></div>
@@ -354,6 +413,7 @@
         'resources/js/my-ppmt/renderers/environment-renderer.js',
         'resources/js/my-ppmt/services/my-ppmt-api.js',
         'resources/js/my-ppmt/ui/hud-controller.js',
+        'resources/js/my-ppmt/ui/facade-subscene.js',
         'resources/js/my-ppmt/main.js',
     ])
 </body>

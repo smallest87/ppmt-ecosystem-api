@@ -20,7 +20,8 @@
             EnvironmentRenderer: EnvRenderer,
             BuildingRenderer,
             MyPpmtApi,
-            HudController
+            HudController,
+            FacadeSubscene
         } = window.MyPpmtModules;
 
         const hydrationData = MyPpmtApi.parseHydrationPayload('laravel-my-ppmt-payload');
@@ -70,6 +71,7 @@
         });
 
         let hud = null;
+        let facadeScene = null;
 
         async function refreshWorldFromApi() {
             const payload = await apiClient.loadWorldPayload();
@@ -259,7 +261,7 @@
 
                 ctx.save();
                 if (pulseGlow) {
-                    const pulse = (Math.sin(now / 220) + 1) * 0.5; // 0 .. 1
+                    const pulse = (Math.sin(now / 220) + 1) * 0.5;
                     ctx.shadowColor = '#facc15';
                     ctx.shadowBlur = 8 + pulse * 8;
                     IsoMath.drawIsoQuad(
@@ -350,7 +352,6 @@
                 }
             }
 
-            // Nomor kavling hanya muncul pada unit yang sedang diklik/dipilih
             if (state.selectedUnit && BuildingRenderer?.drawUnitLabel) {
                 const u = state.selectedUnit;
                 const c = IsoMath.gridToIso(u.coord_x + u.width / 2, u.coord_y + u.height / 2, state.rotation);
@@ -369,6 +370,20 @@
         }
 
         initAmbientLife();
+
+        if (FacadeSubscene?.mount) {
+            facadeScene = FacadeSubscene.mount({
+                state,
+                onBackToSiteplan: () => {
+                    hud?.resizeCanvas();
+                    if (state.isNight) {
+                        staticCache.dirty = true;
+                    }
+                },
+                onShowToast: (msg) => hud?.showToast(msg)
+            });
+        }
+
         hud = HudController.mount({
             canvas,
             minimapCanvas,
@@ -377,7 +392,8 @@
             apiClient,
             onCacheDirty: () => { staticCache.dirty = true; },
             onRunTests: executeAllMilestoneTests,
-            onReloadWorld: refreshWorldFromApi
+            onReloadWorld: refreshWorldFromApi,
+            onOpenFacade: (unit) => facadeScene?.openForUnit(unit)
         });
 
         await executeAllMilestoneTests(false);

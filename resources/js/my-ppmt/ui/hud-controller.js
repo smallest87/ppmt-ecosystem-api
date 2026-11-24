@@ -15,7 +15,7 @@ window.MyPpmtModules.HudController = (() => {
         { code: 'B', name: 'Barat' }
     ];
 
-    function mount({ canvas, minimapCanvas, units, state, apiClient, onCacheDirty, onRunTests, onReloadWorld }) {
+    function mount({ canvas, minimapCanvas, units, state, apiClient, onCacheDirty, onRunTests, onReloadWorld, onOpenFacade }) {
         const contextMenu = document.getElementById('contextMenu');
         const inspectorModal = document.getElementById('inspectorModal');
 
@@ -28,6 +28,7 @@ window.MyPpmtModules.HudController = (() => {
         const unitDetailDrawer = document.getElementById('unitDetailDrawer');
         const btnCloseUnitDetail = document.getElementById('btnCloseUnitDetail');
         const btnDrawerFocusUnit = document.getElementById('btnDrawerFocusUnit');
+        const btnDrawerOpenFacade = document.getElementById('btnDrawerOpenFacade');
 
         function setMinimapOpen(isOpen) {
             if (!minimapDrawer || !btnOpenMinimap) return;
@@ -456,6 +457,15 @@ window.MyPpmtModules.HudController = (() => {
         if (btnDrawerFocusUnit) {
             btnDrawerFocusUnit.addEventListener('click', () => {
                 if (state.selectedUnit) focusUnitOnCamera(state.selectedUnit);
+            });
+        }
+        if (btnDrawerOpenFacade) {
+            btnDrawerOpenFacade.addEventListener('click', () => {
+                if (!state.selectedUnit) return;
+                setUnitDetailDrawerOpen(false);
+                if (typeof onOpenFacade === 'function') {
+                    onOpenFacade(state.selectedUnit);
+                }
             });
         }
 
