@@ -45,11 +45,15 @@ window.MyPpmtModules.EnvironmentRenderer = (() => {
     }
 
     function rebuildStaticCache(cache, units, autumnFoliage, viewState) {
+        const rot = viewState.rotation;
+        const boundW = (rot === 1 || rot === 3) ? GRID_ROWS : GRID_COLS;
+        const boundH = (rot === 1 || rot === 3) ? GRID_COLS : GRID_ROWS;
+        
         const corners = [
             rotatedToIso(0, 0),
-            rotatedToIso(GRID_COLS, 0),
-            rotatedToIso(GRID_COLS, GRID_ROWS),
-            rotatedToIso(0, GRID_ROWS)
+            rotatedToIso(boundW, 0),
+            rotatedToIso(boundW, boundH),
+            rotatedToIso(0, boundH)
         ];
         const minX = Math.min(...corners.map(c => c.x)) - 70;
         const maxX = Math.max(...corners.map(c => c.x)) + 70;
@@ -76,13 +80,12 @@ window.MyPpmtModules.EnvironmentRenderer = (() => {
         bCtx.setTransform(cache.scale, 0, 0, cache.scale, -minX * cache.scale, -minY * cache.scale);
 
         const ink = '#141824';
-        const rot = viewState.rotation;
 
         // 1. Lapisan Tanah Dasar + Plint 3D Pulau Siteplan
         const b00 = snapPt(rotatedToIso(0, 0));
-        const b10 = snapPt(rotatedToIso(GRID_COLS, 0));
-        const b11 = snapPt(rotatedToIso(GRID_COLS, GRID_ROWS));
-        const b01 = snapPt(rotatedToIso(0, GRID_ROWS));
+        const b10 = snapPt(rotatedToIso(boundW, 0));
+        const b11 = snapPt(rotatedToIso(boundW, boundH));
+        const b01 = snapPt(rotatedToIso(0, boundH));
 
         const plinthH = 14;
         drawIsoQuad(

@@ -67,10 +67,10 @@ window.MyPpmtModules.BuildingRenderer = (() => {
         },
         '2x3-br-right': {
             url: '/images/my-ppmt/house-2x3-br-right.png',
-            anchorX: 193,
-            anchorY: 440,
-            leftX: 4,
-            rightX: 508
+            anchorX: 319,
+            anchorY: 431,
+            leftX: 128,
+            rightX: 607
         }
     };
 
