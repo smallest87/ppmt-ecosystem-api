@@ -111,6 +111,35 @@
 
     <!-- Radar Minimap & Kontrol Kamera Kanan Bawah -->
     <div class="fixed bottom-3 right-3 z-20 flex flex-col items-end gap-2 pointer-events-auto">
+        <!-- Tombol & Panel Detail Rumah Terpilih di Atas Toggle Radar -->
+        <div class="flex flex-col items-end gap-1.5 max-w-[92vw] sm:max-w-xs">
+            <button id="btnUnitDetailDrawer" type="button"
+                    class="hidden retro-btn px-3 py-1.5 rounded-lg bg-[#f2cc8f] hover:bg-[#e8be7a] text-[#141824] text-xs font-extrabold cursor-pointer flex items-center gap-1.5">
+                <span>🏠</span>
+                <span id="btnUnitDetailLabel">Detail -</span>
+            </button>
+
+            <div id="unitDetailDrawer" class="hidden retro-panel w-72 sm:w-80 rounded-xl overflow-hidden">
+                <div class="px-3 py-2 bg-[#1b2234] text-[#f4f1de] flex items-center justify-between gap-2 border-b-2 border-[#141824]">
+                    <div class="min-w-0">
+                        <div id="unitDetailTitle" class="font-extrabold text-xs sm:text-sm truncate">Detail Kavling</div>
+                        <div id="unitDetailSub" class="text-[10px] text-slate-300 truncate">-</div>
+                    </div>
+                    <button id="btnCloseUnitDetail" type="button" title="Tutup detail"
+                            class="retro-btn px-2 py-0.5 rounded bg-[#e07a5f] text-[#141824] text-xs font-extrabold cursor-pointer shrink-0">
+                        ✕
+                    </button>
+                </div>
+                <div class="px-3 pt-2.5 pb-1 bg-[#f4f1de] border-b border-slate-300">
+                    <button id="btnDrawerFocusUnit" type="button"
+                            class="retro-btn w-full py-1.5 px-2.5 rounded-lg bg-white hover:bg-slate-100 text-[#141824] text-xs font-extrabold text-center cursor-pointer">
+                        🎯 Fokus ke Tengah Layar
+                    </button>
+                </div>
+                <div id="unitDetailBody" class="p-3 max-h-64 overflow-y-auto space-y-2.5 bg-[#f4f1de] text-[#141824] text-xs"></div>
+            </div>
+        </div>
+
         <!-- Drawer Minimap Menempel di Sisi Kanan Frame -->
         <div class="flex items-stretch justify-end">
             <!-- Tombol Buka Minimap (Tampil Saat Tersembunyi) -->

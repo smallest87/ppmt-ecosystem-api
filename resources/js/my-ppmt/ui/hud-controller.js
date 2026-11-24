@@ -15,13 +15,19 @@ window.MyPpmtModules.HudController = (() => {
         { code: 'B', name: 'Barat' }
     ];
 
-function mount({ canvas, minimapCanvas, units, state, apiClient, onCacheDirty, onRunTests, onReloadWorld }) {
+    function mount({ canvas, minimapCanvas, units, state, apiClient, onCacheDirty, onRunTests, onReloadWorld }) {
         const contextMenu = document.getElementById('contextMenu');
         const inspectorModal = document.getElementById('inspectorModal');
 
         const btnOpenMinimap = document.getElementById('btnOpenMinimap');
         const btnHideMinimap = document.getElementById('btnHideMinimap');
         const minimapDrawer = document.getElementById('minimapDrawer');
+
+        const btnUnitDetailDrawer = document.getElementById('btnUnitDetailDrawer');
+        const btnUnitDetailLabel = document.getElementById('btnUnitDetailLabel');
+        const unitDetailDrawer = document.getElementById('unitDetailDrawer');
+        const btnCloseUnitDetail = document.getElementById('btnCloseUnitDetail');
+        const btnDrawerFocusUnit = document.getElementById('btnDrawerFocusUnit');
 
         function setMinimapOpen(isOpen) {
             if (!minimapDrawer || !btnOpenMinimap) return;
@@ -105,55 +111,17 @@ function mount({ canvas, minimapCanvas, units, state, apiClient, onCacheDirty, o
             showToast(`Sudut Pandang: Hadap ${ori.name}`);
         }
 
-        function openContextMenu(u, clientX, clientY) {
-            state.selectedUnit = u;
-            const ownTag = u.is_my_unit ? ' • Kavling Anda' : '';
-            document.getElementById('ctxTitle').textContent = `Kavling ${getCode(u)}`;
-            document.getElementById('ctxSubtitle').textContent = `Blok ${u.block} • ${getZone(u)} • Hadap ${u.facing_direction}${ownTag}`;
-
-            const statusLabels = {
-                occupied: 'Berpenghuni Tetap',
-                rented: 'Disewakan / Kontrak',
-                pending: 'Menunggu Verifikasi SHM',
-                unclaimed: 'Lahan Kosong / Belum Klaim'
-            };
-            document.getElementById('ctxStatusBadge').textContent = `Status: ${statusLabels[u.occupancy_status] || u.occupancy_status}`;
-
-            const missionBtn = document.getElementById('ctxMissionBtn');
-            const missionLabel = document.getElementById('ctxMissionLabel');
-
-            if (canApproveClaimOnUnit(u)) {
-                missionBtn.classList.remove('hidden');
-                missionLabel.textContent = '✓ Sahkan Klaim & SHM (+150)';
-            } else if (canRecordDuesOnUnit(u)) {
-                missionBtn.classList.remove('hidden');
-                missionLabel.textContent = 'Rp Catat Lunas Iuran (+100)';
-            } else {
-                missionBtn.classList.add('hidden');
-            }
-
-            contextMenu.classList.remove('hidden');
-            if (window.innerWidth >= 640) {
-                const left = Math.min(window.innerWidth - 272, Math.max(12, clientX + 12));
-                const top = Math.min(window.innerHeight - 210, Math.max(76, clientY - 20));
-                contextMenu.style.left = `${left}px`;
-                contextMenu.style.top = `${top}px`;
-            } else {
-                contextMenu.style.left = '';
-                contextMenu.style.top = '';
-            }
+        function focusUnitOnCamera(u) {
+            if (!u) return;
+            const iso = gridToIso(u.coord_x + u.width / 2, u.coord_y + u.height / 2, state.rotation);
+            state.zoom = 1.9;
+            state.camX = -iso.x * state.zoom;
+            state.camY = -iso.y * state.zoom;
+            document.getElementById('zoomLevelText').textContent = '190%';
+            setUnitDetailDrawerOpen(false);
         }
 
-        function closeContextMenu() {
-            contextMenu.classList.add('hidden');
-            state.selectedUnit = null;
-        }
-
-        function openInspector(u) {
-            const ownBadge = u.is_my_unit ? ' • KAVLING ANDA' : '';
-            document.getElementById('inspTitle').textContent = `Kavling ${getCode(u)} (Blok ${u.block})${ownBadge}`;
-            document.getElementById('inspSub').textContent = `${getZone(u)} • Grid (${u.coord_x}, ${u.coord_y}) • ${u.width}×${u.height}m • Hadap ${u.facing_direction}`;
-
+        function buildUnitDetailHtml(u, compact = false) {
             const members = Array.isArray(u.members) ? u.members : [];
             const membersHtml = members.length > 0
                 ? members.map((m) => {
@@ -163,25 +131,25 @@ function mount({ canvas, minimapCanvas, units, state, apiClient, onCacheDirty, o
                     const detailLine = m.phone ? `${m.sub_role_label} • ${m.phone}` : (m.sub_role_label || 'Warga Terhubung');
 
                     return `
-                        <div class="p-2.5 bg-white border border-[#141824] rounded flex items-center justify-between gap-2">
-                            <div>
-                                <div class="font-bold text-[#141824]">${m.name}</div>
-                                <div class="text-xs text-slate-600">${detailLine}</div>
+                        <div class="${compact ? 'p-2' : 'p-2.5'} bg-white border border-[#141824] rounded flex items-center justify-between gap-2">
+                            <div class="min-w-0">
+                                <div class="font-bold text-[#141824] truncate">${m.name}</div>
+                                <div class="${compact ? 'text-[11px]' : 'text-xs'} text-slate-600 truncate">${detailLine}</div>
                             </div>
-                            <span class="px-2 py-0.5 text-xs font-bold border border-[#141824] shrink-0 ${badgeClass}">
+                            <span class="px-1.5 py-0.5 ${compact ? 'text-[10px]' : 'text-xs'} font-bold border border-[#141824] shrink-0 ${badgeClass}">
                                 ${badgeText}
                             </span>
                         </div>
                     `;
                 }).join('')
-                : '<div class="p-2.5 bg-[#e6e1c5] border border-[#b5ae8c] text-sm text-slate-700">Belum ada data penghuni yang dapat ditampilkan pada kavling ini.</div>';
+                : '<div class="p-2 bg-[#e6e1c5] border border-[#b5ae8c] text-xs text-slate-700">Belum ada data penghuni yang dapat ditampilkan pada kavling ini.</div>';
 
             const stores = Array.isArray(u.active_stores) ? u.active_stores : [];
             const storesHtml = stores.length > 0
                 ? stores.map((s) => `
-                    <div class="p-2 bg-[#f2cc8f]/45 border border-[#141824] rounded flex items-center justify-between">
-                        <span class="font-bold">★ ${s.store_name}</span>
-                        <span class="text-xs uppercase px-1.5 py-0.5 bg-[#1b2234] text-[#f2cc8f]">${s.category}</span>
+                    <div class="p-2 bg-[#f2cc8f]/45 border border-[#141824] rounded flex items-center justify-between gap-2">
+                        <span class="font-bold truncate">★ ${s.store_name}</span>
+                        <span class="text-[10px] uppercase px-1.5 py-0.5 bg-[#1b2234] text-[#f2cc8f] shrink-0">${s.category}</span>
                     </div>
                 `).join('')
                 : '';
@@ -192,23 +160,71 @@ function mount({ canvas, minimapCanvas, units, state, apiClient, onCacheDirty, o
                 ? 'text-red-700'
                 : (showDuesBox ? 'text-emerald-800' : 'text-slate-500');
 
-            document.getElementById('inspBody').innerHTML = `
-                <div class="grid grid-cols-2 gap-2 text-sm">
+            return `
+                <div class="grid grid-cols-2 gap-2 ${compact ? '' : 'text-sm'}">
                     <div class="p-2 bg-white border border-[#141824] rounded">
-                        <span class="block text-xs text-slate-500">STATUS HUNIAN</span>
+                        <span class="block ${compact ? 'text-[10px]' : 'text-xs'} text-slate-500">STATUS HUNIAN</span>
                         <strong class="uppercase">${u.occupancy_status}</strong>
                     </div>
                     <div class="p-2 bg-white border border-[#141824] rounded">
-                        <span class="block text-xs text-slate-500">IURAN KAS BULANAN</span>
+                        <span class="block ${compact ? 'text-[10px]' : 'text-xs'} text-slate-500">IURAN KAS BULANAN</span>
                         <strong class="uppercase ${duesColor}">${duesValue}</strong>
                     </div>
                 </div>
                 <div>
-                    <div class="font-bold text-sm mb-1">Data Warga / Penghuni:</div>
+                    <div class="font-bold ${compact ? '' : 'text-sm'} mb-1">Data Warga / Penghuni:</div>
                     <div class="space-y-1.5">${membersHtml}</div>
                 </div>
-                ${storesHtml ? `<div><div class="font-bold text-sm mb-1">Unit Usaha UMKM Warga:</div><div class="space-y-1.5">${storesHtml}</div></div>` : ''}
+                ${storesHtml ? `<div><div class="font-bold ${compact ? '' : 'text-sm'} mb-1">Unit Usaha UMKM Warga:</div><div class="space-y-1.5">${storesHtml}</div></div>` : ''}
             `;
+        }
+
+        function setUnitDetailDrawerOpen(isOpen, u = null) {
+            if (!unitDetailDrawer) return;
+            if (isOpen && u) {
+                const ownBadge = u.is_my_unit ? ' • KAVLING ANDA' : '';
+                document.getElementById('unitDetailTitle').textContent = `Kavling ${getCode(u)} (Blok ${u.block})${ownBadge}`;
+                document.getElementById('unitDetailSub').textContent = `${getZone(u)} • Grid (${u.coord_x}, ${u.coord_y}) • ${u.width}×${u.height}m • Hadap ${u.facing_direction}`;
+                document.getElementById('unitDetailBody').innerHTML = buildUnitDetailHtml(u, true);
+                unitDetailDrawer.classList.remove('hidden');
+            } else {
+                unitDetailDrawer.classList.add('hidden');
+            }
+        }
+
+        function syncUnitDetailButton(u) {
+            if (!btnUnitDetailDrawer || !btnUnitDetailLabel) return;
+            if (u) {
+                btnUnitDetailLabel.textContent = `Detail ${getCode(u)}`;
+                btnUnitDetailDrawer.classList.remove('hidden');
+            } else {
+                btnUnitDetailDrawer.classList.add('hidden');
+                setUnitDetailDrawerOpen(false);
+            }
+        }
+
+        function openContextMenu(u, clientX, clientY) {
+            state.selectedUnit = u;
+            syncUnitDetailButton(u);
+            setUnitDetailDrawerOpen(false);
+            if (contextMenu) {
+                contextMenu.classList.add('hidden');
+            }
+        }
+
+        function closeContextMenu() {
+            if (contextMenu) {
+                contextMenu.classList.add('hidden');
+            }
+            state.selectedUnit = null;
+            syncUnitDetailButton(null);
+        }
+
+        function openInspector(u) {
+            const ownBadge = u.is_my_unit ? ' • KAVLING ANDA' : '';
+            document.getElementById('inspTitle').textContent = `Kavling ${getCode(u)} (Blok ${u.block})${ownBadge}`;
+            document.getElementById('inspSub').textContent = `${getZone(u)} • Grid (${u.coord_x}, ${u.coord_y}) • ${u.width}×${u.height}m • Hadap ${u.facing_direction}`;
+            document.getElementById('inspBody').innerHTML = buildUnitDetailHtml(u, false);
 
             inspectorModal.classList.remove('hidden');
             inspectorModal.classList.add('flex');
@@ -427,19 +443,29 @@ function mount({ canvas, minimapCanvas, units, state, apiClient, onCacheDirty, o
             btnRunTests.addEventListener('click', () => onRunTests(true));
         }
 
+        if (btnUnitDetailDrawer) {
+            btnUnitDetailDrawer.addEventListener('click', () => {
+                if (!state.selectedUnit) return;
+                const willOpen = unitDetailDrawer?.classList.contains('hidden');
+                setUnitDetailDrawerOpen(Boolean(willOpen), state.selectedUnit);
+            });
+        }
+        if (btnCloseUnitDetail) {
+            btnCloseUnitDetail.addEventListener('click', () => setUnitDetailDrawerOpen(false));
+        }
+        if (btnDrawerFocusUnit) {
+            btnDrawerFocusUnit.addEventListener('click', () => {
+                if (state.selectedUnit) focusUnitOnCamera(state.selectedUnit);
+            });
+        }
+
         document.getElementById('btnCloseCtx').addEventListener('click', closeContextMenu);
         document.getElementById('ctxMissionBtn').addEventListener('click', () => executeUnitMission(state.selectedUnit));
         document.getElementById('ctxInspectBtn').addEventListener('click', () => {
             if (state.selectedUnit) openInspector(state.selectedUnit);
         });
         document.getElementById('ctxFocusBtn').addEventListener('click', () => {
-            if (!state.selectedUnit) return;
-            const u = state.selectedUnit;
-            const iso = gridToIso(u.coord_x + u.width / 2, u.coord_y + u.height / 2, state.rotation);
-            state.zoom = 1.9;
-            state.camX = -iso.x * state.zoom;
-            state.camY = -iso.y * state.zoom;
-            document.getElementById('zoomLevelText').textContent = '190%';
+            if (state.selectedUnit) focusUnitOnCamera(state.selectedUnit);
         });
 
         document.getElementById('btnCloseInspector').addEventListener('click', () => {

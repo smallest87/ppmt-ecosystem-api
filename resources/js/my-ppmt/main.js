@@ -249,20 +249,46 @@
 
             ctx.drawImage(staticCache.groundCanvas, staticCache.offsetX, staticCache.offsetY, staticCache.width, staticCache.height);
 
-            const drawFootprintHighlight = (u, strokeCol, fillCol) => {
+            const drawFootprintHighlight = (u, strokeCol, fillCol, options = {}) => {
+                const { lineWidth = 2.4, pulseGlow = false } = options;
                 const tr = IsoMath.transformRect(u.coord_x, u.coord_y, u.width, u.height, state.rotation);
                 const h00 = IsoMath.rotatedToIso(tr.x, tr.y);
                 const h10 = IsoMath.rotatedToIso(tr.x + tr.w, tr.y);
                 const h11 = IsoMath.rotatedToIso(tr.x + tr.w, tr.y + tr.h);
                 const h01 = IsoMath.rotatedToIso(tr.x, tr.y + tr.h);
-                IsoMath.drawIsoQuad(ctx, h00, h10, h11, h01, fillCol, strokeCol, 2.2);
+
+                ctx.save();
+                if (pulseGlow) {
+                    const pulse = (Math.sin(now / 220) + 1) * 0.5; // 0 .. 1
+                    ctx.shadowColor = '#facc15';
+                    ctx.shadowBlur = 8 + pulse * 8;
+                    IsoMath.drawIsoQuad(
+                        ctx,
+                        h00,
+                        h10,
+                        h11,
+                        h01,
+                        `rgba(250, 204, 21, ${0.22 + pulse * 0.22})`,
+                        '#fef08a',
+                        lineWidth + pulse * 1.2
+                    );
+                    ctx.shadowBlur = 0;
+                }
+
+                IsoMath.drawIsoQuad(ctx, h00, h10, h11, h01, fillCol, strokeCol, lineWidth);
+                ctx.restore();
             };
 
             if (state.hoveredUnit && state.hoveredUnit !== state.selectedUnit) {
-                drawFootprintHighlight(state.hoveredUnit, '#38bdf8', 'rgba(56, 189, 248, 0.25)');
+                drawFootprintHighlight(state.hoveredUnit, '#38bdf8', 'rgba(56, 189, 248, 0.25)', {
+                    lineWidth: 2.2
+                });
             }
             if (state.selectedUnit) {
-                drawFootprintHighlight(state.selectedUnit, '#facc15', 'rgba(250, 204, 21, 0.35)');
+                drawFootprintHighlight(state.selectedUnit, '#facc15', 'rgba(250, 204, 21, 0.35)', {
+                    lineWidth: 3.0,
+                    pulseGlow: true
+                });
             }
 
             ctx.drawImage(staticCache.buildingCanvas, staticCache.offsetX, staticCache.offsetY, staticCache.width, staticCache.height);

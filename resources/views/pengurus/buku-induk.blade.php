@@ -423,7 +423,7 @@
                             <option value="">-- Pilih Kavling --</option>
                             <template x-for="u in allUnits" :key="u.id">
                                 <option :value="u.code"
-                                        x-text="u.code + ' (' + u.zone + ') • ' + formatUnitStatusShort(u.occupancy_status)">
+                                        x-text="u.code + ' (' + (u.zone || '-') + ') • ' + (u.occupancy_status ? formatUnitStatusShort(u.occupancy_status) : '-')">
                                 </option>
                             </template>
                         </select>

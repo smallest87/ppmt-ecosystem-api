@@ -27,6 +27,8 @@ class PublicUnitController extends Controller
                 'id',
                 'code',
                 'block',
+                'zone',
+                'occupancy_status',
             ]);
 
         return response()->json([
