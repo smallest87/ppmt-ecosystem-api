@@ -32,17 +32,17 @@ window.MyPpmtModules.BuildingRenderer = (() => {
         },
         '2x3-fr-left': {
             url: '/images/my-ppmt/house-2x3-fr-left.png',
-            anchorX: 300,
-            anchorY: 439,
-            leftX: 0,
-            rightX: 500
+            anchorX: 319,
+            anchorY: 431,
+            leftX: 32,
+            rightX: 511
         },
         '2x3-fr-right': {
             url: '/images/my-ppmt/house-2x3-fr-right.png',
-            anchorX: 300,
-            anchorY: 439,
-            leftX: 0,
-            rightX: 500
+            anchorX: 319,
+            anchorY: 431,
+            leftX: 32,
+            rightX: 511
         },
         '2x3-bl-left': {
             url: '/images/my-ppmt/house-2x3-bl-left.png',
@@ -60,10 +60,10 @@ window.MyPpmtModules.BuildingRenderer = (() => {
         },
         '2x3-br-left': {
             url: '/images/my-ppmt/house-2x3-br-left.png',
-            anchorX: 290,
-            anchorY: 443,
-            leftX: 4,
-            rightX: 508
+            anchorX: 319,
+            anchorY: 431,
+            leftX: 128,
+            rightX: 607
         },
         '2x3-br-right': {
             url: '/images/my-ppmt/house-2x3-br-right.png',
