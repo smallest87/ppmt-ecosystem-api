@@ -14,7 +14,7 @@ window.MyPpmtModules.BuildingRenderer = (() => {
 
     const customSprites = new Map();
 
-    // Anchor pixel pada gambar PNG 600x443
+    // Anchor pixel pada gambar PNG 600x443 (rumah) & fasum masjid
     const SPRITE_SPECS = {
         '2x3-fl-left': {
             url: '/images/my-ppmt/house-2x3-fl-left.png',
@@ -71,6 +71,15 @@ window.MyPpmtModules.BuildingRenderer = (() => {
             anchorY: 431,
             leftX: 128,
             rightX: 607
+        },
+
+        // Sprite Fasum Ibadah (Masjid) — gunakan PNG transparan
+        'fasum-masjid-2x3-fr': {
+            url: '/images/my-ppmt/masjid-2x3-fr.png',
+            anchorX: 320,
+            anchorY: 671,
+            leftX: 32,
+            rightX: 800
         }
     };
 
@@ -108,7 +117,6 @@ window.MyPpmtModules.BuildingRenderer = (() => {
         if (u.carport_side === 'left' || u.carport_side === 'right') {
             return u.carport_side;
         }
-        // Fallback sementara sebelum seluruh kavling diperiksa manual
         const numMatch = String(u.code || u.unit_code || '').match(/(\d+)/);
         if (numMatch) {
             return parseInt(numMatch[1], 10) % 2 === 1 ? 'left' : 'right';
@@ -126,13 +134,71 @@ window.MyPpmtModules.BuildingRenderer = (() => {
         return null;
     }
 
+    function drawSpriteAlignedToFootprint(targetCtx, sprite, p00, p10, p11, p01, viewState) {
+        const lotBase = viewState.isNight ? '#1e3326' : '#cbe0b4';
+        drawIsoQuad(targetCtx, p00, p10, p11, p01, lotBase, '#141824', 0.75);
+
+        const diamondW = p10.x - p01.x;
+        const artWidth = Math.max(1, (sprite.rightX ?? sprite.image.naturalWidth) - (sprite.leftX ?? 0));
+        const scale = diamondW / artWidth;
+
+        const drawW = sprite.image.naturalWidth * scale;
+        const drawH = sprite.image.naturalHeight * scale;
+
+        const cacheScale = targetCtx.getTransform().a || 1;
+        const snapToTargetPx = (val) => Math.round(val * cacheScale) / cacheScale;
+        const rDrawW = snapToTargetPx(drawW);
+        const rDrawH = snapToTargetPx(drawH);
+
+        targetCtx.save();
+        targetCtx.imageSmoothingEnabled = true;
+        targetCtx.imageSmoothingQuality = 'high';
+        if (viewState.isNight) {
+            targetCtx.filter = 'brightness(0.75) contrast(1.05)';
+        }
+
+        if (sprite.flipX) {
+            const mirroredAnchorX = sprite.image.naturalWidth - sprite.anchorX;
+            const dx = snapToTargetPx(p11.x - mirroredAnchorX * scale);
+            const dy = snapToTargetPx(p11.y - sprite.anchorY * scale);
+            targetCtx.translate(dx + rDrawW, dy);
+            targetCtx.scale(-1, 1);
+            targetCtx.drawImage(sprite.image, 0, 0, rDrawW, rDrawH);
+        } else {
+            const dx = snapToTargetPx(p11.x - sprite.anchorX * scale);
+            const dy = snapToTargetPx(p11.y - sprite.anchorY * scale);
+            targetCtx.drawImage(sprite.image, dx, dy, rDrawW, rDrawH);
+        }
+
+        targetCtx.restore();
+    }
+
+    function resolveFacilitySprite(u, effectiveFacing) {
+        const code = String(u.code || u.unit_code || '').toUpperCase();
+        const subType = String(u.facility_subtype || u.subtype || '').toLowerCase();
+        const isMosque =
+            code.includes('IBADAH') ||
+            code.includes('MASJID') ||
+            subType.includes('mosque') ||
+            subType.includes('masjid') ||
+            subType.includes('ibadah');
+
+        if (!isMosque) return null;
+
+        if (effectiveFacing === 0 || effectiveFacing === 3) {
+            const entry = pickLoadedSprite(['fasum-masjid-2x3-fr']);
+            return entry ? { ...entry, flipX: false } : null;
+        }
+
+        return null;
+    }
+
     function resolveHouseSprite(u, gw, gh, effectiveFacing) {
         const is2x3 = (u.width === 2 && u.height === 3) || (u.width === 3 && u.height === 2);
         if (!is2x3) return null;
 
         const carportSide = getCarportSide(u);
 
-        // effectiveFacing === 1: tampak depan kiri-bawah ('fl')
         if (effectiveFacing === 1) {
             const entry = pickLoadedSprite([
                 `2x3-fl-${carportSide}`,
@@ -142,7 +208,6 @@ window.MyPpmtModules.BuildingRenderer = (() => {
             return entry ? { ...entry, flipX: false } : null;
         }
 
-        // effectiveFacing === 0: tampak depan kanan-bawah ('fr')
         if (effectiveFacing === 0) {
             const entry = pickLoadedSprite([
                 `2x3-fr-${carportSide}`,
@@ -153,7 +218,6 @@ window.MyPpmtModules.BuildingRenderer = (() => {
             return entry ? { ...entry, flipX: false } : null;
         }
 
-        // Tampak belakang di orientasi ini memakai '2x3-br-right' dan '2x3-br-left'
         if (effectiveFacing === 2 || effectiveFacing === 3) {
             const entry = pickLoadedSprite([
                 `2x3-br-${carportSide}`,
@@ -254,7 +318,16 @@ window.MyPpmtModules.BuildingRenderer = (() => {
             return;
         }
 
+        const dirMap = { 'Timur': 0, 'Selatan': 1, 'Barat': 2, 'Utara': 3 };
+        const effectiveFacing = ((dirMap[u.facing_direction] ?? 1) + viewState.rotation) % 4;
+
         if (isPublicFacility(u)) {
+            const facilitySprite = resolveFacilitySprite(u, effectiveFacing);
+            if (facilitySprite) {
+                drawSpriteAlignedToFootprint(targetCtx, facilitySprite, p00, p10, p11, p01, viewState);
+                return;
+            }
+
             drawIsoQuad(targetCtx, p00, p10, p11, p01, viewState.isNight ? '#1e3326' : '#cbe0b4', ink, 0.9);
             const pad = 0.25;
             const b00 = rotatedToIso(gx + pad, gy + pad);
@@ -330,9 +403,6 @@ window.MyPpmtModules.BuildingRenderer = (() => {
 
             return;
         }
-
-        const dirMap = { 'Timur': 0, 'Selatan': 1, 'Barat': 2, 'Utara': 3 };
-        const effectiveFacing = ((dirMap[u.facing_direction] ?? 1) + viewState.rotation) % 4;
 
         const sprite = resolveHouseSprite(u, gw, gh, effectiveFacing);
         if (sprite) {
