@@ -74,9 +74,16 @@ window.MyPpmtModules.BuildingRenderer = (() => {
         },
 
         // Sprite Fasum Ibadah (Masjid) — gunakan PNG transparan
-        'fasum-masjid-2x3-fr': {
-            url: '/images/my-ppmt/masjid-2x3-fr.png',
+        'fasum-masjid-3x5-fr': {
+            url: '/images/my-ppmt/masjid-3x5-fr.png',
             anchorX: 320,
+            anchorY: 671,
+            leftX: 32,
+            rightX: 800
+        },
+        'fasum-masjid-3x5-bl': {
+            url: '/images/my-ppmt/masjid-3x5-bl.png',
+            anchorX: 511,
             anchorY: 671,
             leftX: 32,
             rightX: 800
@@ -185,8 +192,14 @@ window.MyPpmtModules.BuildingRenderer = (() => {
 
         if (!isMosque) return null;
 
-        if (effectiveFacing === 0 || effectiveFacing === 3) {
-            const entry = pickLoadedSprite(['fasum-masjid-2x3-fr']);
+        // effectiveFacing === 3 (Utara pada posisi awal) -> utamakan back-left ('fasum-masjid-3x5-bl')
+        if (effectiveFacing === 3 || effectiveFacing === 1) {
+            const entry = pickLoadedSprite(['fasum-masjid-3x5-bl', 'fasum-masjid-3x5-fr']);
+            return entry ? { ...entry, flipX: false } : null;
+        }
+
+        if (effectiveFacing === 0 || effectiveFacing === 2) {
+            const entry = pickLoadedSprite(['fasum-masjid-3x5-fr', 'fasum-masjid-3x5-bl']);
             return entry ? { ...entry, flipX: false } : null;
         }
 
@@ -198,33 +211,51 @@ window.MyPpmtModules.BuildingRenderer = (() => {
         if (!is2x3) return null;
 
         const carportSide = getCarportSide(u);
+        const otherSide = carportSide === 'left' ? 'right' : 'left';
 
-        if (effectiveFacing === 1) {
-            const entry = pickLoadedSprite([
-                `2x3-fl-${carportSide}`,
-                '2x3-fl-left',
-                '2x3-fl-right'
-            ]);
+        const pickUnique = (keys) => {
+            const entry = pickLoadedSprite([...new Set(keys)]);
             return entry ? { ...entry, flipX: false } : null;
-        }
+        };
 
+        // Tampak depan kanan-bawah (fr)
         if (effectiveFacing === 0) {
-            const entry = pickLoadedSprite([
+            return pickUnique([
                 `2x3-fr-${carportSide}`,
+                `2x3-fr-${otherSide}`,
                 `2x3-fl-${carportSide}`,
-                '2x3-fr-left',
-                '2x3-fr-right'
+                `2x3-fl-${otherSide}`
             ]);
-            return entry ? { ...entry, flipX: false } : null;
         }
 
-        if (effectiveFacing === 2 || effectiveFacing === 3) {
-            const entry = pickLoadedSprite([
-                `2x3-br-${carportSide}`,
-                '2x3-br-right',
-                '2x3-br-left'
+        // Tampak depan kiri-bawah (fl)
+        if (effectiveFacing === 1) {
+            return pickUnique([
+                `2x3-fl-${carportSide}`,
+                `2x3-fl-${otherSide}`,
+                `2x3-fr-${carportSide}`,
+                `2x3-fr-${otherSide}`
             ]);
-            return entry ? { ...entry, flipX: false } : null;
+        }
+
+        // Tampak belakang kiri-atas (bl)
+        if (effectiveFacing === 2) {
+            return pickUnique([
+                `2x3-bl-${carportSide}`,
+                `2x3-bl-${otherSide}`,
+                `2x3-br-${carportSide}`,
+                `2x3-br-${otherSide}`
+            ]);
+        }
+
+        // Tampak belakang kanan-atas (br)
+        if (effectiveFacing === 3) {
+            return pickUnique([
+                `2x3-br-${carportSide}`,
+                `2x3-br-${otherSide}`,
+                `2x3-bl-${carportSide}`,
+                `2x3-bl-${otherSide}`
+            ]);
         }
 
         return null;
