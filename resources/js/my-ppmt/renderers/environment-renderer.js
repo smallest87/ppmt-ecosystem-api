@@ -30,6 +30,73 @@ window.MyPpmtModules.EnvironmentRenderer = (() => {
         drawGuardPostAsset
     } = window.MyPpmtModules.BuildingRenderer;
 
+    const envSprites = new Map();
+
+    function loadEnvSprite(key, url) {
+        if (envSprites.has(key)) return;
+        const img = new Image();
+        const entry = {
+            image: img,
+            loaded: false
+        };
+        img.onload = () => {
+            entry.loaded = true;
+            window.dispatchEvent(new CustomEvent('my-ppmt:sprite-loaded', { detail: { key } }));
+        };
+        img.onerror = () => {
+            entry.loaded = false;
+        };
+        img.src = url;
+        envSprites.set(key, entry);
+    }
+
+    function initEnvSpriteLoader() {
+        loadEnvSprite('park-1x1-grass', '/images/my-ppmt/park-1x1-grass.png');
+        loadEnvSprite('road-1x1', '/images/my-ppmt/road-1x1.png');
+    }
+
+    initEnvSpriteLoader();
+
+    function getLoadedEnvSprite(key) {
+        const entry = envSprites.get(key);
+        if (entry && entry.loaded && entry.image.naturalWidth > 0) {
+            return entry.image;
+        }
+        return null;
+    }
+
+    function drawTiledEnvSprite(targetCtx, spriteImg, rx, ry, rw, rh, viewState) {
+        const cols = Math.max(1, Math.round(rw));
+        const rows = Math.max(1, Math.round(rh));
+
+        targetCtx.save();
+        targetCtx.imageSmoothingEnabled = true;
+        targetCtx.imageSmoothingQuality = 'high';
+
+        if (viewState.isNight) {
+            targetCtx.filter = 'brightness(0.75) contrast(1.05)';
+        }
+
+        for (let ix = 0; ix < cols; ix++) {
+            for (let iy = 0; iy < rows; iy++) {
+                const cellX = rx + ix;
+                const cellY = ry + iy;
+
+                const pTop = snapPt(rotatedToIso(cellX, cellY));
+                const pRight = snapPt(rotatedToIso(cellX + 1, cellY));
+                const pBottom = snapPt(rotatedToIso(cellX + 1, cellY + 1));
+                const pLeft = snapPt(rotatedToIso(cellX, cellY + 1));
+
+                const tileW = pRight.x - pLeft.x;
+                const tileH = pBottom.y - pTop.y;
+
+                targetCtx.drawImage(spriteImg, pLeft.x, pTop.y, tileW, tileH);
+            }
+        }
+
+        targetCtx.restore();
+    }
+
     function createStaticCacheManager(cacheScale = 2.0) {
         return {
             groundCanvas: document.createElement('canvas'),
@@ -48,7 +115,7 @@ window.MyPpmtModules.EnvironmentRenderer = (() => {
         const rot = viewState.rotation;
         const boundW = (rot === 1 || rot === 3) ? GRID_ROWS : GRID_COLS;
         const boundH = (rot === 1 || rot === 3) ? GRID_COLS : GRID_ROWS;
-        
+
         const corners = [
             rotatedToIso(0, 0),
             rotatedToIso(boundW, 0),
@@ -152,28 +219,42 @@ window.MyPpmtModules.EnvironmentRenderer = (() => {
             const q01 = snapPt(rotatedToIso(tr.x, tr.y + tr.h));
 
             if (bg.type === 'road') {
+                const roadImg = getLoadedEnvSprite('road-1x1');
                 const roadFill = viewState.isNight ? '#2b3446' : '#cbd5e1';
-                drawIsoQuad(gCtx, q00, q10, q11, q01, roadFill, viewState.isNight ? '#1e2636' : '#94a3b8', 0.6);
+                const roadStroke = roadImg ? null : (viewState.isNight ? '#1e2636' : '#94a3b8');
 
-                const cStart = bg.w >= bg.h
-                    ? snapPt(rotatedToIso(tr.x + 0.3, tr.y + tr.h / 2))
-                    : snapPt(rotatedToIso(tr.x + tr.w / 2, tr.y + 0.3));
-                const cEnd = bg.w >= bg.h
-                    ? snapPt(rotatedToIso(tr.x + tr.w - 0.3, tr.y + tr.h / 2))
-                    : snapPt(rotatedToIso(tr.x + tr.w / 2, tr.y + tr.h - 0.3));
+                drawIsoQuad(gCtx, q00, q10, q11, q01, roadFill, roadStroke, 0.6);
 
-                gCtx.save();
-                gCtx.strokeStyle = viewState.isNight ? 'rgba(248, 250, 252, 0.25)' : 'rgba(255, 255, 255, 0.72)';
-                gCtx.lineWidth = 0.9;
-                gCtx.setLineDash([3, 3]);
-                gCtx.beginPath();
-                gCtx.moveTo(cStart.x, cStart.y);
-                gCtx.lineTo(cEnd.x, cEnd.y);
-                gCtx.stroke();
-                gCtx.restore();
+                if (roadImg) {
+                    drawTiledEnvSprite(gCtx, roadImg, tr.x, tr.y, tr.w, tr.h, viewState);
+                } else {
+                    const cStart = bg.w >= bg.h
+                        ? snapPt(rotatedToIso(tr.x + 0.3, tr.y + tr.h / 2))
+                        : snapPt(rotatedToIso(tr.x + tr.w / 2, tr.y + 0.3));
+                    const cEnd = bg.w >= bg.h
+                        ? snapPt(rotatedToIso(tr.x + tr.w - 0.3, tr.y + tr.h / 2))
+                        : snapPt(rotatedToIso(tr.x + tr.w / 2, tr.y + tr.h - 0.3));
+
+                    gCtx.save();
+                    gCtx.strokeStyle = viewState.isNight ? 'rgba(248, 250, 252, 0.25)' : 'rgba(255, 255, 255, 0.72)';
+                    gCtx.lineWidth = 0.9;
+                    gCtx.setLineDash([3, 3]);
+                    gCtx.beginPath();
+                    gCtx.moveTo(cStart.x, cStart.y);
+                    gCtx.lineTo(cEnd.x, cEnd.y);
+                    gCtx.stroke();
+                    gCtx.restore();
+                }
             } else {
                 const parkFill = viewState.isNight ? '#214027' : '#81b29a';
                 drawIsoQuad(gCtx, q00, q10, q11, q01, parkFill, viewState.isNight ? '#162b1a' : '#5f947c', 0.7);
+
+                if (bg.type === 'park') {
+                    const parkImg = getLoadedEnvSprite('park-1x1-grass');
+                    if (parkImg) {
+                        drawTiledEnvSprite(gCtx, parkImg, tr.x, tr.y, tr.w, tr.h, viewState);
+                    }
+                }
             }
         }
 
